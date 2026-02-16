@@ -1,0 +1,159 @@
+ body { margin:0; overflow:hidden; background:#000; }
+canvas { display:block; position: fixed; top: 0; left: 0; }
+    #three-canvas { z-index: 1; }
+    #game-canvas { z-index: 2; pointer-events: none; }
+    #keyboard-hint {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #0ff;
+      font-family: system-ui, sans-serif;
+      font-size: 1rem;
+      text-shadow: 0 0 10px #0ff;
+      text-align: center;
+      z-index: 100;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+.background-gradient {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(to bottom, #000000 25%, #37025A 55%, #8a2be2 70%, #c71585 80%, #c71585 97%, #c71585 100%);
+  opacity: 1;
+  z-index: -20;
+}
+
+.dreamy-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.1);
+      backdrop-filter: blur(30px);
+      pointer-events: none;
+      z-index: -10;
+    }
+
+
+    /* ========================= MOBILE CONTROLS ========================= */
+    #mobile-controls {
+      position: fixed;
+      display: none;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .joystick {
+      position: absolute;
+      bottom: 20px;
+      left: 30px;
+      width: 110px;
+      height: 110px;
+      background-image: radial-gradient(
+        rgba(0, 40, 40, 0.9), 
+        rgba(0, 70, 70, 0.8),  
+        rgba(0, 80, 80, 0.7), 
+        rgba(0, 90, 90, 0.6), 
+        rgba(0, 135, 135, 0.5), 
+        rgba(0, 150, 150, 0.4)
+      );
+      border: 2px solid #00FFFF;
+      border-radius: 50%;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      transition: background 0.2s;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+    }
+
+    .joystick.active {
+      background: rgba(0, 255, 255, 0.5);
+    }
+
+    .joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      background-image: radial-gradient(rgba(0, 124, 124, 0.7), rgba(0, 190, 190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.8), rgba(0, 124, 124, 0.9));
+      border: 3px solid #02ffff;
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+    }
+
+    .action-btn {
+      position: absolute;
+      bottom: 25px;
+      right: 35px;
+      font-size: 3rem;
+      color: #00FFFF;
+      background: rgba(0, 89, 89, 0.4);
+      border: 3px solid #00FFFF;
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      text-shadow: 0 0 10px #0ff;
+      transition: background 0.2s;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+    }
+
+    .action-btn:active {
+      background: rgba(0, 255, 255, 0.7);
+    }
+
+
+  .action-btn img {
+    width: 60px;
+  }
+
+    #mobile-controls.landscape {
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 20px 20px;
+    }
+
+    #mobile-controls.landscape .joystick {
+      position: relative;
+      margin-bottom: 0;
+    }
+
+    #mobile-controls.landscape .action-btn {
+      position: relative;
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 700px) {
+      .joystick {
+        width: 100px;
+        height: 100px;
+      }
+
+      .joystick-knob {
+        width: 40px;
+        height: 40px;
+      }
+
+      .action-btn {
+        width: 100px;
+        height: 100px;
+        font-size: 2.3rem;
+      }
+    }
+    
+    
+
