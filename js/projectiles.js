@@ -15,14 +15,40 @@ export class Projectile {
     this.color = CONFIG.SHOOTING.PROJECTILE_COLOR;
     this.glowColor = CONFIG.SHOOTING.PROJECTILE_GLOW_COLOR;
     this.isDead = false;
+
+    // 3D PERSPECTIVE - TRACK DISTANCE TO VANISHING POINT ( SCREEN CENTER)
+    this.startX = x;
+    this.startY = y;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const dx = cx - x;
+    const dy = cy - y;
+    this.maxDistance = Math.sqrt(dx * dx + dy * dy) * 0.88;     // MAX TRAVEL = DISTANCE FROM SHIP TO CENTER * 0.88 ( DIES RIGHT BEFORE VANISHING POINT) 
+    this.distanceTraveled = 0;
+    this.depthScale = 1.0; // 1.0 AT SHIP, ~0 AT VANISHING POINT
+    this.alpha = 1.0;
   }
 
   update(dt) {
     this.x += this.dirX * this.speed * dt;
     this.y += this.dirY * this.speed * dt;
 
-    if (this.y < -100 || this.y > window.innerHeight + 100 ||
-        this.x < -100 || this.x > window.innerWidth + 100) {
+    this.distanceTraveled += this.speed * dt;
+
+    const rawProgress = Math.min(this.distanceTraveled / this.maxDistance, 1.0); // EASE IN CURVE - SLOW SHRINK THEN SHRINKS FASTER - PULLING INTO TUNNEL
+    const easedProgress = rawProgress * rawProgress; // QUADRATIC EASE IN
+
+    this.depthScale = 1.0 - easedProgress * 0.92; // SCALES DOWN TO ~8% ORIGINAL SIZE
+
+    
+    const fadeStart = 0.55; // FADE STARTS AT 55% THROUGH TRAVEL - 100% = FULLY GONE
+    if (rawProgress > fadeStart) {
+      this.alpha = 1.0 - ((rawProgress - fadeStart) / (1.0 - fadeStart));
+    } else {
+      this.alpha = 1.0;
+    }
+
+    if (rawProgress >= 1.0 || this.alpha <= 0.03) {
       this.isDead = true;
     }
   }
@@ -31,33 +57,36 @@ export class Projectile {
     ctx.save();
 
     const angle = Math.atan2(this.dirY, this.dirX); // CALC ANGLE FOR LASER
+    const scaledSize = this.size * this.depthScale;
+    const scaledLength = this.length * this.depthScale;
 
-    ctx.globalAlpha = 0.3; // LASER GLOW
+    ctx.globalAlpha = 0.3 * this.alpha; // LASER GLOW
     ctx.strokeStyle = this.glowColor;
-    ctx.lineWidth = this.size * 2;
+    ctx.lineWidth = scaledSize * 2;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
     ctx.lineTo(
-      this.x - Math.cos(angle) * this.length,
-      this.y - Math.sin(angle) * this.length
+      this.x - Math.cos(angle) * scaledLength,
+      this.y - Math.sin(angle) * scaledLength
     );
     ctx.stroke();
 
-    ctx.globalAlpha = 1; // CORE LASER
+    ctx.globalAlpha = 1.0 * this.alpha; // CORE LASER
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.size;
+    ctx.lineWidth = scaledSize;
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
     ctx.lineTo(
-      this.x - Math.cos(angle) * this.length,
-      this.y - Math.sin(angle) * this.length
+      this.x - Math.cos(angle) * scaledLength,
+      this.y - Math.sin(angle) * scaledLength
     );
     ctx.stroke();
 
+    ctx.globalAlpha = this.alpha;
     ctx.fillStyle = '#ffffff';  // BRIGHT TIP
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, scaledSize / 2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -69,6 +98,15 @@ export class Projectile {
 
   getRadius() {
     return this.size;
+  }
+
+  getSegment() {   // RETURNS TAIL POINT OF LASER - FOR SEGMENT COLLISION
+    return {
+      x1: this.x,
+      y1: this.y,
+      x2: this.x - this.dirX * this.length * (1 / this.depthScale || 1),
+      y2: this.y - this.dirY * this.length * (1 / this.depthScale || 1),
+    };
   }
 }
 
@@ -135,7 +173,7 @@ export class ProjectileManager {
     this.projectiles = [];
     this.explosions = [];
     
-    console.log('✓ Projectile manager initialized');
+    console.log('âœ“ Projectile manager initialized');
   }
 
   shoot(x, y, targetX, targetY) {
@@ -199,14 +237,27 @@ export class ProjectileManager {
 
 export class Crosshair {
   constructor() {
+    // INNER RETICLE 
     this.x = window.innerWidth / 2;
     this.y = window.innerHeight / 2;
+    this.targetX = this.x;
+    this.targetY = this.y;
+
+    // OUTER RETICLE
+    this.outerX = this.x;
+    this.outerY = this.y;
+
     this.sprite = null;
     this.spriteLoaded = false;
+    this.frameWidth = 0;
     this.size = CONFIG.SHOOTING.CROSSHAIR_SIZE;
 
+    this.isLockedOn = false;     // LOCK-ON STATE
+    this.flashTimer = 0;
+    this.currentFrame = 0; // 0=NORMAL(purple), 1=RED, 2=YELLOW
+
     this.loadSprite();
-    console.log('✓ Crosshair initialized');
+    console.log('✔ Crosshair initialized');
   }
 
   loadSprite() {
@@ -214,54 +265,125 @@ export class Crosshair {
     this.sprite.src = CONFIG.SHOOTING.CROSSHAIR_SPRITE;
     this.sprite.onload = () => {
       this.spriteLoaded = true;
-      console.log('✓ Crosshair sprite loaded');
+      this.frameWidth = this.sprite.width / CONFIG.SHOOTING.CROSSHAIR_FRAMES;
+      console.log('✔ Crosshair sprite loaded');
     };
     this.sprite.onerror = () => {
-      console.warn('⚠ Crosshair sprite not found, using fallback');
+      console.warn('⚠  Crosshair sprite not found, using fallback');
     };
   }
 
-  update(shipOffsetX, shipOffsetY) {
+  update(shipOffsetX, shipOffsetY, dt, enemies) {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
 
-    this.x = centerX + shipOffsetX * CONFIG.SHOOTING.CROSSHAIR_OFFSET_MULTIPLIER;
-    this.y = centerY - shipOffsetY * CONFIG.SHOOTING.CROSSHAIR_OFFSET_MULTIPLIER;
+    // CENTER GRAVITY: CROSS HAIR TARGET IS BETWEEN SHIP AND CENTER - NOT BEYOND SHIP - THE FURTHER THE SHIP IS FROM THE CENTER, THE MORETHE CROSSHAIR PULLS BACK TOWARDS CENTER
+    const normX = shipOffsetX / CONFIG.SHIP.MAX_OFFSET_X; // -1 to 1
+    const normY = shipOffsetY / CONFIG.SHIP.MAX_OFFSET_Y;
+    const pullFactor = 1.0 - Math.min(Math.sqrt(normX * normX + normY * normY), 1.0)
+                           * CONFIG.SHOOTING.CROSSHAIR_CENTER_PULL;
+
+    const offsetMult = CONFIG.SHOOTING.CROSSHAIR_OFFSET_MULTIPLIER * pullFactor;
+    const rawX = centerX + shipOffsetX * offsetMult;
+    const rawY = centerY - shipOffsetY * offsetMult;
+
+    const margin = this.size * 0.6;     // CLAMP TO SCREEN WITH  MARGIN
+    this.targetX = Math.max(margin, Math.min(window.innerWidth  - margin, rawX));
+    this.targetY = Math.max(margin, Math.min(window.innerHeight - margin, rawY));
+
+    this.x += (this.targetX - this.x) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;     // INNER 
+    this.y += (this.targetY - this.y) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
+
+    this.outerX += (this.targetX - this.outerX) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;     // OUTER 
+    this.outerY += (this.targetY - this.outerY) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;
+
+    const sep = CONFIG.SHOOTING.CROSSHAIR_MAX_SEPARATION;     // CAP DISTANCE FOR INNER AND OTER CROSS HAIR
+    const dx = this.outerX - this.x;
+    const dy = this.outerY - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > sep) {
+      this.outerX = this.x + (dx / dist) * sep;
+      this.outerY = this.y + (dy / dist) * sep;
+    }
+
+    this.isLockedOn = false;     // LOCK-ON DETECTION
+    if (enemies) {
+      const lockRadius = this.size * CONFIG.SHOOTING.CROSSHAIR_LOCK_RADIUS_MULTIPLIER;
+      for (const enemy of enemies) {
+        const ep = enemy.getPosition();
+        const es = enemy.getSize();
+        const ex = this.x - ep.x;
+        const ey = this.y - ep.y;
+        if (Math.sqrt(ex * ex + ey * ey) < lockRadius + es) {
+          this.isLockedOn = true;
+          break;
+        }
+      }
+    }
+
+    if (this.isLockedOn) {     // FLASH BETWEEN FRAMES 1 (red) AND 2 (yellow) WHEN LOCKED ON
+      this.flashTimer += dt;
+      if (this.flashTimer >= CONFIG.SHOOTING.CROSSHAIR_FLASH_SPEED) {
+        this.flashTimer = 0;
+        this.currentFrame = this.currentFrame === 1 ? 2 : 1;
+      }
+    } else {
+      this.currentFrame = 0;
+      this.flashTimer = 0;
+    }
   }
 
   draw(ctx) {
-    if (this.spriteLoaded) {
+    const outerSize = this.size * CONFIG.SHOOTING.CROSSHAIR_OUTER_SCALE;
+    const alpha = this.isLockedOn ? 0.95 : 0.75;
+
+    ctx.save();  // OUTER RETICLE 
+    ctx.globalAlpha = alpha * 0.7;
+    const color = this.isLockedOn
+      ? (this.currentFrame === 1 ? '#ff2222' : '#ffcc00')
+      : '#cc88ff';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    const b = outerSize / 2; 
+    const corner = outerSize * 0.28; 
+    const ox = this.outerX;
+    const oy = this.outerY;
+    [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([sx, sy]) => {
+      ctx.beginPath();
+      ctx.moveTo(ox + sx * b, oy + sy * (b - corner));
+      ctx.lineTo(ox + sx * b, oy + sy * b);
+      ctx.lineTo(ox + sx * (b - corner), oy + sy * b);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    
+    if (this.spriteLoaded && this.frameWidth > 0) { // INNER RETICLE
       ctx.save();
-      ctx.globalAlpha = 0.8;
+      ctx.globalAlpha = alpha;
       ctx.drawImage(
         this.sprite,
+        this.currentFrame * this.frameWidth, 0,
+        this.frameWidth, this.sprite.height,
         this.x - this.size / 2,
         this.y - this.size / 2,
         this.size,
         this.size
       );
       ctx.restore();
-    } else { // FALLBACK
+    } else { // FALLBACK 
       ctx.save();
-      ctx.strokeStyle = '#00ffff';
+      ctx.strokeStyle = this.isLockedOn ? '#ff2222' : '#cc88ff';
       ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.8;
-
+      ctx.globalAlpha = alpha;
       ctx.beginPath();
-      ctx.moveTo(this.x, this.y - 20);
-      ctx.lineTo(this.x, this.y + 20);
-      ctx.stroke();
-
+      ctx.moveTo(this.x, this.y - 14); ctx.lineTo(this.x, this.y + 14); ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(this.x - 20, this.y);
-      ctx.lineTo(this.x + 20, this.y);
-      ctx.stroke();
-
-      ctx.fillStyle = '#00ffff';
+      ctx.moveTo(this.x - 14, this.y); ctx.lineTo(this.x + 14, this.y); ctx.stroke();
+      ctx.fillStyle = this.isLockedOn ? '#ff2222' : '#cc88ff';
       ctx.beginPath();
       ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.restore();
     }
   }

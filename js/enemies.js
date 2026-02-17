@@ -97,7 +97,7 @@ export class Enemy {
       const sy = 0;
       const sw = frameWidth;
       const sh = enemySprite.height;
-      const renderSize = CONFIG.ENEMIES.SPRITE_SIZE * this.scale; // Apply scale!
+      const renderSize = CONFIG.ENEMIES.SPRITE_SIZE * this.scale; // SCALE
       
       ctx.drawImage(
         enemySprite,
@@ -154,7 +154,7 @@ export class Enemy {
   }
 
   getSize() {
-    return this.size * this.scale; 
+    return (CONFIG.ENEMIES.SPRITE_SIZE / 2) * this.scale; // HITBOX = SPRITE VISUAL RADIUS NOT ABSTRACT SIZE
   }
 }
 
@@ -175,14 +175,14 @@ export class EnemyManager {
     this.enemySprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.enemySprite.width / CONFIG.ENEMIES.SPRITE_FRAMES;
-      console.log('✓ Enemy sprite sheet loaded');
+      console.log('âœ“ Enemy sprite sheet loaded');
     };
     
     this.enemySprite.onerror = () => {
-      console.warn('⚠ Enemy sprite not found, using fallback rendering');
+      console.warn('âš  Enemy sprite not found, using fallback rendering');
     };
     
-    console.log('✓ Enemy manager initialized');
+    console.log('âœ“ Enemy manager initialized');
   }
 
   randomSpawnDelay() {

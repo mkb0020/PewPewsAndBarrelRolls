@@ -6,7 +6,7 @@ import { Tunnel } from './tunnel.js';
 import { Ship } from './ship.js';
 import { EnemyManager } from './enemies.js';
 import { ProjectileManager, Crosshair, MuzzleFlash } from './projectiles.js';
-import { circleCollision } from './collision.js';
+import { circleCollision, segmentCircleCollision } from './collision.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE NEON WORMHOLE! ===');
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -69,7 +69,7 @@ function gameLoop() {
   const shipOffset = ship.getOffset();
   tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
   ship.update(dt);
-  crosshair.update(shipOffset.x, shipOffset.y);
+  crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
   enemyManager.update(dt);
   projectileManager.update(dt);
   muzzleFlash.update(dt);
@@ -80,17 +80,19 @@ function gameLoop() {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const projectile = projectiles[i];
     const projPos = projectile.getPosition();
-    const projRadius = projectile.getRadius();
-
     for (let j = enemies.length - 1; j >= 0; j--) {
       const enemy = enemies[j];
       const enemyPos = enemy.getPosition();
       const enemySize = enemy.getSize();
 
-      if (circleCollision(
-        { x: projPos.x, y: projPos.y, radius: projRadius },
+      // CHECK FULL LASER SEGMENT 
+      const seg = projectile.getSegment();
+      const hit = segmentCircleCollision(
+        seg,
         { x: enemyPos.x, y: enemyPos.y, radius: enemySize }
-      )) {
+      );
+
+      if (hit) {
         projectileManager.removeProjectile(projectile);
         
         const destroyed = enemy.takeDamage(1);
@@ -128,6 +130,6 @@ window.addEventListener('resize', () => {
 });
 
 // ==================== START GAME ====================
-console.log('✓ All systems initialized');
+console.log('âœ“ All systems initialized');
 console.log('=== Starting game loop ===');
 gameLoop();
