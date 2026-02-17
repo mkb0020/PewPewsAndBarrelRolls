@@ -73,9 +73,25 @@ export const CONFIG = {
     SPAWN_DISTANCE: 300, 
     
     
-    SPRITE_PATH: 'assets/images/enemies.png',
-    SPRITE_FRAMES: 8, 
+    SPRITE_PATH: 'assets/images/glitches.png',
+    SPRITE_FRAMES: 11,       // TOTAL FRAMES IN SHEET
     SPRITE_SIZE: 80,
+
+  
+    FRAME_RANGES: {
+      TANK:   { start: 0, count: 6 },
+      BASIC:  { start: 6, count: 5 },
+      FAST:   { start: 6, count: 5 },
+      ZIGZAG: { start: 6, count: 5 },
+    },
+
+    // HOW FAST EACH TYPE CYCLES FRAMES 
+    ANIM_SPEEDS: {
+      TANK:   10,   
+      BASIC:  12,  
+      FAST:   20, 
+      ZIGZAG: 15,  
+    },
     
    
     TYPES: {

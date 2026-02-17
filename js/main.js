@@ -7,6 +7,8 @@ import { Ship } from './ship.js';
 import { EnemyManager } from './enemies.js';
 import { ProjectileManager, Crosshair, MuzzleFlash } from './projectiles.js';
 import { circleCollision, segmentCircleCollision } from './collision.js';
+import { AudioManager } from './audio.js';
+import { GameUI } from './ui.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE NEON WORMHOLE! ===');
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -20,9 +22,11 @@ document.body.appendChild(gameCanvas);
 
 const ctx = gameCanvas.getContext('2d');
 
-const tunnel = new Tunnel();
-const ship = new Ship(gameCanvas, ctx);
-const enemyManager = new EnemyManager(ship.particles, tunnel);
+const tunnel    = new Tunnel();
+const ship      = new Ship(gameCanvas, ctx);
+const audio     = new AudioManager();
+const ui        = new GameUI();
+const enemyManager    = new EnemyManager(ship.particles, tunnel, audio);
 const projectileManager = new ProjectileManager();
 const crosshair = new Crosshair();
 const muzzleFlash = new MuzzleFlash();
@@ -33,74 +37,118 @@ initMobileControls((direction) => {
   ship.startBarrelRoll(direction);
 });
 
+// ==================== GAME STATE ====================
+let isPaused = false;
+let isMuted  = false;
+
+// ==================== START AUDIO ON FIRST INTERACTION ====================
+const startAudio = () => {
+  audio.start();
+  window.removeEventListener('keydown',    startAudio);
+  window.removeEventListener('click',      startAudio);
+  window.removeEventListener('touchstart', startAudio);
+};
+window.addEventListener('keydown',    startAudio, { once: true });
+window.addEventListener('click',      startAudio, { once: true });
+window.addEventListener('touchstart', startAudio, { once: true });
+
+// ==================== KEYBOARD SHORTCUTS ====================
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && !ship.isBarrelRolling) {
+
+  if (e.code === 'KeyP') {  // PAUSE — P KEY
+    isPaused = !isPaused;
+    return;
+  }
+
+  if (e.code === 'KeyM') { // MUTE — M KEY
+    isMuted = audio.toggleMute();
+    return;
+  }
+
+  // SHOOT — SPACE
+  if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {
     e.preventDefault();
-    
-   
     const crosshairPos = crosshair.getPosition();
     const shootData = ship.shoot(crosshairPos.x, crosshairPos.y);
-    
     if (shootData) {
       projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
       muzzleFlash.trigger(shootData.x, shootData.y);
+      audio.playLaser();
     }
   }
 });
 
+// ==================== CLICK HANDLER ====================
 gameCanvas.addEventListener('click', (e) => {
-  const crosshairPos = crosshair.getPosition();
-  const shootData = ship.shoot(crosshairPos.x, crosshairPos.y);
-  
-  if (shootData) {
-    projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
-    muzzleFlash.trigger(shootData.x, shootData.y);
+  const hit = ui.hitTest(e.clientX, e.clientY);
+
+  if (hit === 'pause') {
+    isPaused = !isPaused;
+    return;
+  }
+
+  if (hit === 'sound') {
+    isMuted = audio.toggleMute();
+    return;
+  }
+
+  if (!isPaused) {
+    const crosshairPos = crosshair.getPosition();
+    const shootData = ship.shoot(crosshairPos.x, crosshairPos.y);
+    if (shootData) {
+      projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
+      muzzleFlash.trigger(shootData.x, shootData.y);
+      audio.playLaser();
+    }
   }
 });
- 
+
 // ==================== GAME LOOP ====================
 let lastTime = performance.now();
+
 function gameLoop() {
   requestAnimationFrame(gameLoop);
   const now = performance.now();
-  const dt = (now - lastTime) / 1000; 
-  lastTime = now;
-  tunnel.update(dt);
-  const shipOffset = ship.getOffset();
-  tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
-  ship.update(dt);
-  crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
-  enemyManager.update(dt);
-  projectileManager.update(dt);
-  muzzleFlash.update(dt);
+  const dt  = Math.min((now - lastTime) / 1000, 0.05); 
+  lastTime  = now;
 
-  const projectiles = projectileManager.getProjectiles();
-  const enemies = enemyManager.getEnemies();
+  // ── UPDATE (SKIP WHEN PAUSED ──────────────────
+  if (!isPaused) {
+    tunnel.update(dt);
+    const shipOffset = ship.getOffset();
+    tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
+    ship.update(dt);
+    crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
+    enemyManager.update(dt);
+    projectileManager.update(dt);
+    muzzleFlash.update(dt);
 
-  for (let i = projectiles.length - 1; i >= 0; i--) {
-    const projectile = projectiles[i];
-    const projPos = projectile.getPosition();
-    for (let j = enemies.length - 1; j >= 0; j--) {
-      const enemy = enemies[j];
-      const enemyPos = enemy.getPosition();
-      const enemySize = enemy.getSize();
+    // COLLISION
+    const projectiles = projectileManager.getProjectiles();
+    const enemies     = enemyManager.getEnemies();
 
-      // CHECK FULL LASER SEGMENT 
-      const seg = projectile.getSegment();
-      const hit = segmentCircleCollision(
-        seg,
-        { x: enemyPos.x, y: enemyPos.y, radius: enemySize }
-      );
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const projectile = projectiles[i];
+      for (let j = enemies.length - 1; j >= 0; j--) {
+        const enemy    = enemies[j];
+        const enemyPos = enemy.getPosition();
+        const enemySize = enemy.getSize();
 
-      if (hit) {
-        projectileManager.removeProjectile(projectile);
-        
-        const destroyed = enemy.takeDamage(1);
-        if (destroyed) {
-          projectileManager.createExplosion(enemyPos.x, enemyPos.y);
+        const seg = projectile.getSegment();
+        const hit = segmentCircleCollision(
+          seg,
+          { x: enemyPos.x, y: enemyPos.y, radius: enemySize }
+        );
+
+        if (hit) {
+          projectileManager.removeProjectile(projectile);
+          const destroyed = enemy.takeDamage(1);
+          if (destroyed) {
+            projectileManager.createExplosion(enemyPos.x, enemyPos.y);
+          }
+          audio.playImpact();
+          break;
         }
-        
-        break; 
       }
     }
   }
@@ -108,28 +156,29 @@ function gameLoop() {
   tunnel.render();
 
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-  
-  projectileManager.draw(ctx);  
-  crosshair.draw(ctx);         
-  enemyManager.draw(ctx);       
-  muzzleFlash.draw(ctx);      
-  ship.draw();                 
+
+  projectileManager.draw(ctx);
+  crosshair.draw(ctx);
+  enemyManager.draw(ctx);
+  muzzleFlash.draw(ctx);
+  ship.draw();
+
+  ui.draw(ctx, isMuted, isPaused);
 }
 
-// ==================== WINDOW RESIZE HANDLER ====================
+// ==================== WINDOW RESIZE ====================
 window.addEventListener('resize', () => {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  
+
   tunnel.handleResize();
-  
-  gameCanvas.width = w;
+  gameCanvas.width  = w;
   gameCanvas.height = h;
-  
   ship.handleResize();
+  ui.handleResize();
 });
 
-// ==================== START GAME ====================
-console.log('âœ“ All systems initialized');
+// ==================== START ====================
+console.log('✔ All systems initialized');
 console.log('=== Starting game loop ===');
 gameLoop();

@@ -25,8 +25,15 @@ export class Enemy {
     this.screenX = x; // CACHED SCREEN POS
     this.screenY = y;
     
-    this.spriteFrame = Math.floor(Math.random() * CONFIG.ENEMIES.SPRITE_FRAMES);
     this.useSprite = true;
+
+    // SPRITE ANIMATION 
+    const range = CONFIG.ENEMIES.FRAME_RANGES[type] || CONFIG.ENEMIES.FRAME_RANGES.BASIC;
+    this.animStart  = range.start;
+    this.animCount  = range.count;
+    this.animSpeed  = CONFIG.ENEMIES.ANIM_SPEEDS[type] || 12; // FPS
+    this.animFrame  = Math.random() * this.animCount; // STAGGER STARTING FRAME
+    this.spriteFrame = this.animStart + Math.floor(this.animFrame); // SHEET INDEX
     
     // VISUAL EFFECTS
     this.pulsePhase = Math.random() * Math.PI * 2;
@@ -78,8 +85,11 @@ export class Enemy {
     this.y = this.screenY;
     
     this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
-    
     this.trailTimer += dt;
+
+    // ADVANCE ANIMATION — SPRITE SHEET FRAME RANGES
+    this.animFrame = (this.animFrame + this.animSpeed * dt) % this.animCount;
+    this.spriteFrame = this.animStart + Math.floor(this.animFrame);
     
     if (this.scale >= 0.95 || distanceToPlayer >= 1.0) {
       this.isDead = true;
@@ -175,14 +185,14 @@ export class EnemyManager {
     this.enemySprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.enemySprite.width / CONFIG.ENEMIES.SPRITE_FRAMES;
-      console.log('âœ“ Enemy sprite sheet loaded');
+      console.log('Ã¢Å“â€œ Enemy sprite sheet loaded');
     };
     
     this.enemySprite.onerror = () => {
-      console.warn('âš  Enemy sprite not found, using fallback rendering');
+      console.warn('Ã¢Å¡Â  Enemy sprite not found, using fallback rendering');
     };
     
-    console.log('âœ“ Enemy manager initialized');
+    console.log('Ã¢Å“â€œ Enemy manager initialized');
   }
 
   randomSpawnDelay() {
