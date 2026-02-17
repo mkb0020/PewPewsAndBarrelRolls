@@ -1,0 +1,153 @@
+// config.js
+
+export const CONFIG = {
+  TUNNEL: {
+    RADIUS: 2000,
+    SEGMENTS: 700,
+    TUBE_RADIUS: 210,
+    TUBE_SEGMENTS: 120,
+    TUBE_RADIAL_SEGMENTS: 12,
+    SPEED: 220,
+    ROLL_AMOUNT: 0.95,
+    COLOR_BASE_HUE: 0.52,
+    COLOR_PULSE_RANGE: 0.12,
+    VERTICAL_WAVE_SPEED: 1.2,
+    VERTICAL_WAVE_AMPLITUDE: 6,
+  },
+
+  SHIP: {
+    WIDTH: 280,
+    HEIGHT: 140,
+    SPEED: 3.5,
+    MAX_OFFSET_X: 400,
+    MAX_OFFSET_Y: 250,
+    ROTATION_SMOOTHING: 0.15,
+    TILT_ANGLE: 30, // DEGREES
+    FRAME_INTERPOLATION_ACTIVE: 0.25,
+    FRAME_INTERPOLATION_IDLE: 0.08,
+    SPRITE_FRAMES: 5, // 0=UP, 1=HALF-UP, 2=NEUTRAL, 3=HALF-DOWN, 4=DOWN
+    NEUTRAL_FRAME: 2,
+    UP_FRAME: 0,
+    DOWN_FRAME: 4,
+  },
+
+  BARREL_ROLL: {
+    DURATION: 0.6, // SECONDS
+    PARTICLE_SPAWN_MULTIPLIER: 2,
+  },
+
+  PARTICLES: {
+    MAX_COUNT: 30,
+    SPAWN_RATE: 3,
+    LIFE_MIN: 0.5,
+    LIFE_VARIANCE: 0.15,
+    RADIUS: 30,
+    VELOCITY_X_RANGE: 40,
+    VELOCITY_Y_BASE: 20,
+    VELOCITY_Y_VARIANCE: 90,
+    SPAWN_SPREAD: 20,
+    OPACITY: 0.3,
+    COLOR_PRIMARY: '#00ffff',
+    COLOR_SECONDARY: '#8C92AC',
+  },
+
+  SCENE: {
+    FOG_DENSITY: 0.00075,
+    BACKGROUND_COLOR: 0x0a0015,
+    CAMERA_FOV: 75,
+    CAMERA_NEAR: 0.1,
+    CAMERA_FAR: 5000,
+  },
+
+  MOBILE: {
+    JOYSTICK_RADIUS: 60,
+    DEAD_ZONE: 15,
+  },
+
+  MAX_PIXEL_RATIO: 2,
+
+  ENEMIES: {
+    MAX_COUNT: 20,
+    SPAWN_INTERVAL_MIN: 0.8, 
+    SPAWN_INTERVAL_MAX: 2.0,
+    SPAWN_DISTANCE: 300, 
+    
+    
+    SPRITE_PATH: 'assets/images/enemies.png',
+    SPRITE_FRAMES: 8, 
+    SPRITE_SIZE: 80,
+    
+   
+    TYPES: {
+      BASIC: {
+        SIZE: 40,
+        SPEED: 180, 
+        COLOR: '#ff00ff',
+        GLOW_COLOR: '#ff00ff',
+        HEALTH: 1,
+        SCORE: 10,
+      },
+      FAST: {
+        SIZE: 30,
+        SPEED: 300,
+        COLOR: '#ff3366',
+        GLOW_COLOR: '#ff3366',
+        HEALTH: 1,
+        SCORE: 20,
+      },
+      TANK: {
+        SIZE: 60,
+        SPEED: 120,
+        COLOR: '#ff9900',
+        GLOW_COLOR: '#ffaa00',
+        HEALTH: 3,
+        SCORE: 50,
+      },
+      ZIGZAG: {
+        SIZE: 35,
+        SPEED: 200,
+        COLOR: '#00ff88',
+        GLOW_COLOR: '#00ff88',
+        HEALTH: 1,
+        SCORE: 30,
+        ZIGZAG_AMPLITUDE: 80,
+        ZIGZAG_FREQUENCY: 3,
+      },
+    },
+    
+   
+    GLOW_OPACITY: 0.3,
+    GLOW_SCALE: 1.4,
+    PULSE_SPEED: 2.5,
+    TRAIL_ENABLED: true,
+    TRAIL_PARTICLE_RATE: 0.1, 
+  },
+
+  SHOOTING: {
+    FIRE_RATE: 0.15, 
+    PROJECTILE_SPEED: 1200, 
+    PROJECTILE_SIZE: 8,
+    PROJECTILE_LENGTH: 30,
+    PROJECTILE_COLOR: '#00ffff',
+    PROJECTILE_GLOW_COLOR: '#00ffff',
+    MAX_PROJECTILES: 50,
+    
+    
+    CROSSHAIR_SPRITE: 'assets/images/crosshair.png',
+    CROSSHAIR_SIZE: 60,
+    CROSSHAIR_OFFSET_MULTIPLIER: 0.3, 
+    
+    
+    FLASH_SPRITE: 'assets/images/flash.png',
+    FLASH_FRAMES: 2,
+    FLASH_DURATION: 0.1, 
+    FLASH_SIZE: 50,
+  },
+
+  EXPLOSIONS: {
+    SPRITE: 'assets/images/boom.png',
+    FRAMES: 6,
+    FRAME_DURATION: 0.05, 
+    SIZE: 100,
+  },
+};

@@ -1,7 +1,7 @@
- body { margin:0; overflow:hidden; background:#000; }
+body { margin:0; overflow:hidden; background:#000; }
 canvas { display:block; position: fixed; top: 0; left: 0; }
     #three-canvas { z-index: 1; }
-    #game-canvas { z-index: 2; pointer-events: none; }
+    #game-canvas { z-index: 2; } 
     #keyboard-hint {
       position: fixed;
       bottom: 30px;
@@ -154,6 +154,3 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
         font-size: 2.3rem;
       }
     }
-    
-    
-
