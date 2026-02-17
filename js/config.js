@@ -18,7 +18,7 @@ export const CONFIG = {
   SHIP: {
     WIDTH: 200,
     HEIGHT: 100,
-    SPEED: 3.5,
+    SPEED: 5,
     MAX_OFFSET_X: 400,
     MAX_OFFSET_Y: 250,
     ROTATION_SMOOTHING: 0.15,
@@ -68,8 +68,8 @@ export const CONFIG = {
 
   ENEMIES: {
     MAX_COUNT: 10,
-    SPAWN_INTERVAL_MIN: 1.5, 
-    SPAWN_INTERVAL_MAX: 2.0,
+    SPAWN_INTERVAL_MIN: 2.0, 
+    SPAWN_INTERVAL_MAX: 3.0,
     SPAWN_DISTANCE: 300, 
     
     
