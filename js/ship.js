@@ -4,7 +4,6 @@ import { CONFIG } from './config.js';
 import { keys, virtualKeys, isKeyPressed } from './controls.js';
 import { ParticleSystem } from './particles.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 export class Ship {
   constructor(canvas, ctx) {
     this.canvas = canvas;
@@ -42,7 +41,7 @@ export class Ship {
 
   loadSprite() {
     this.spaceshipImg = new Image();
-    this.spaceshipImg.src = 'assets/images/spaceship.png';
+    this.spaceshipImg.src = './images/spaceship.png';
     
     this.spaceshipImg.onload = () => {
       console.log('✓ Spaceship sprite loaded');

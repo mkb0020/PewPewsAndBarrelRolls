@@ -1,6 +1,6 @@
 // ui.js
-const ICON_SIZE    = 44;  
-const ICON_MARGIN  = 14;   
+const ICON_SIZE    = 37;  
+const ICON_MARGIN  = 20;   
 const ICON_PADDING = 8;   
 const ICON_FRAMES  = 4;
 
@@ -22,7 +22,7 @@ export class GameUI {
   }
 
   _loadSprite() {
-    this.sprite.src = 'assets/images/icons.png';
+    this.sprite.src = './images/icons.png';
     this.sprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.sprite.width / ICON_FRAMES;
@@ -72,7 +72,7 @@ export class GameUI {
     this._drawIcon(ctx, pauseFrame, this._buttons.pause, isPaused ? 0.9 : 0.75);
 
     ctx.save();
-    ctx.globalAlpha = 0.18;
+    ctx.globalAlpha = 0;
     ctx.fillStyle = '#000';
     const allX = this._buttons.sound.x - ICON_PADDING;
     const allY = this._buttons.sound.y - ICON_PADDING;
