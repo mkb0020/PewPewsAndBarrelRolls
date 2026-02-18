@@ -27,19 +27,20 @@ export function initKeyboard() {
     keys[e.key.toLowerCase()] = false;
   });
   
-  console.log('✓ Keyboard controls initialized');
+  console.log('✔ Keyboard controls initialized');
 }
 
 let joystickActive = false;
 let joystickCenter = { x: 0, y: 0 };
 
-export function initMobileControls(onBarrelRoll) {
+export function initMobileControls(onBarrelRoll, onShoot) {
   const mobileControls = document.getElementById('mobile-controls');
-  const joystick = document.querySelector('.joystick');
-  const joystickKnob = document.querySelector('.joystick-knob');
-  const actionBtn = document.querySelector('.action-btn');
+  const joystick       = document.querySelector('.joystick');
+  const joystickKnob   = document.querySelector('.joystick-knob');
+  const btnA           = document.getElementById('btn-a');
+  const btnB           = document.getElementById('btn-b');
   
-  if (!mobileControls || !joystick || !actionBtn) {
+  if (!mobileControls || !joystick || !btnA || !btnB) {
     console.warn('Mobile controls elements not found');
     return;
   }
@@ -47,57 +48,74 @@ export function initMobileControls(onBarrelRoll) {
   if (isMobile) {
     mobileControls.style.display = 'flex';
   }
-  
+
+  // ======================= JOYSTICK =======================
   joystick.addEventListener('touchstart', (e) => {
     e.preventDefault();
     joystickActive = true;
     joystick.classList.add('active');
     updateJoystick(e.touches[0], joystick, joystickKnob);
-  });
+  }, { passive: false });
   
   joystick.addEventListener('touchmove', (e) => {
     e.preventDefault();
     updateJoystick(e.touches[0], joystick, joystickKnob);
-  });
+  }, { passive: false });
   
   joystick.addEventListener('touchend', (e) => {
     e.preventDefault();
     resetJoystick(joystick, joystickKnob);
-  });
+  }, { passive: false });
   
   joystick.addEventListener('touchcancel', (e) => {
     e.preventDefault();
     resetJoystick(joystick, joystickKnob);
-  });
-  
-  actionBtn.addEventListener('touchstart', (e) => {
+  }, { passive: false });
+
+  // ======================= A BUTTON — SHOOT =======================
+  btnA.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    actionBtn.style.transform = 'scale(0.9)';
+    btnA.classList.add('pressed');
+    if (onShoot) onShoot();
+  }, { passive: false });
+
+  btnA.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    btnA.classList.remove('pressed');
+  }, { passive: false });
+
+  btnA.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    btnA.classList.remove('pressed');
+  }, { passive: false });
+
+  // ======================= B BUTTON — DO A BARREL ROLL! =======================
+  btnB.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    btnB.classList.add('pressed');
     const direction = (virtualKeys['a'] || virtualKeys['arrowleft']) ? -1 : 1;
     if (onBarrelRoll) onBarrelRoll(direction);
-  });
+  }, { passive: false });
   
-  actionBtn.addEventListener('touchend', (e) => {
+  btnB.addEventListener('touchend', (e) => {
     e.preventDefault();
-    actionBtn.style.transform = 'scale(1)';
-  });
+    btnB.classList.remove('pressed');
+  }, { passive: false });
   
-  actionBtn.addEventListener('touchcancel', (e) => {
+  btnB.addEventListener('touchcancel', (e) => {
     e.preventDefault();
-    actionBtn.style.transform = 'scale(1)';
-  });
-  
+    btnB.classList.remove('pressed');
+  }, { passive: false });
+
+  // ======================= H KEY — TOGGLE MOBILE UI ON DESKTOP (DEV) =======================
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'm' || e.key === 'M') {
-      if (mobileControls.style.display === 'flex') {
-        mobileControls.style.display = 'none';
-      } else {
-        mobileControls.style.display = 'flex';
-      }
+    if (e.key === 'h' || e.key === 'H') {
+      mobileControls.style.display =
+        mobileControls.style.display === 'flex' ? 'none' : 'flex';
     }
   });
   
-  console.log('✓ Mobile controls initialized');
+  console.log('✔ Mobile controls initialized (A=shoot, B=barrel roll)');
 }
 
 function updateJoystick(touch, joystick, joystickKnob) {
