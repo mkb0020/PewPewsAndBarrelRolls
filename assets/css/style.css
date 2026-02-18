@@ -1,3 +1,13 @@
+@font-face {
+  font-family: 'SpaceLetters'; 
+  src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
+}
+
+@font-face {
+  font-family: 'GothNerd'; 
+  src: url('../fonts/GothNerd.ttf') format('truetype'); 
+}
+
 body { margin:0; overflow:hidden; background:#000; }
 canvas { display:block; position: fixed; top: 0; left: 0; }
     #three-canvas { z-index: 1; }
@@ -85,39 +95,78 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
       box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
     }
 
-    .action-btn {
+    .action-buttons {
       position: absolute;
-      bottom: 25px;
-      right: 35px;
-      font-size: 3rem;
-      color: #00FFFF;
-      background: rgba(0, 89, 89, 0.4);
-      border: 3px solid #00FFFF;
+      bottom: 20px;
+      right: 25px;
+      width: 160px;
+      height: 120px;
+      pointer-events: none;
+    }
+
+    .btn-a {
+      position: absolute;
+      bottom: 0;
+      right: 85px;
+      width: 95px;
+      height: 95px;
       border-radius: 50%;
-      width: 100px;
-      height: 100px;
+      background: radial-gradient(circle at 38% 35%, #b070ff, #5600c2);
+      border: 3px solid #5600c2;
+      box-shadow: 0 0 14px rgba(66,0,148, 0.85), inset 0 2px 6px rgba(255,255,255,0.25);
+      color: #1f0145;
+      text-shadow: 
+        2px 1px 0 #c195f8;
+      font-family: 'GothNerd';
+      font-size: 3rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       pointer-events: auto;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
       cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+
+    .btn-a:active, .btn-a.pressed {
+      transform: scale(0.91);
+      box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+    }
+
+    .btn-b {
+      position: absolute;
+      bottom: 95px;
+      right: 0px;
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #67FEBD, #58E84C);
+      border: 3px solid #58E84C;
+      box-shadow: 0 0 10px rgba(88,232,76, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
+      color: #0a3707;
+      text-shadow: 
+        2px 1px 0 #a1fad3;
+      font-family: 'GothNerd';
+      font-size: 1.8rem;
+      font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      text-shadow: 0 0 10px #0ff;
-      transition: background 0.2s;
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.08s;
     }
 
-    .action-btn:active {
-      background: rgba(0, 255, 255, 0.7);
+    .btn-b:active, .btn-b.pressed {
+      transform: scale(0.91);
+      box-shadow: 0 0 5px rgba(103, 254, 189, 0.4);
     }
-
-
-  .action-btn img {
-    width: 60px;
-  }
 
     #mobile-controls.landscape {
       inset: 0;
@@ -132,9 +181,11 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
       margin-bottom: 0;
     }
 
-    #mobile-controls.landscape .action-btn {
+    #mobile-controls.landscape .action-buttons {
       position: relative;
-      margin-bottom: 0;
+      bottom: auto;
+      right: auto;
+      flex-shrink: 0;
     }
 
     @media (max-width: 700px) {
@@ -148,9 +199,137 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
         height: 40px;
       }
 
-      .action-btn {
-        width: 100px;
-        height: 100px;
-        font-size: 2.3rem;
+      .btn-a {
+        width: 80px;
+        height: 80px;
+        font-size: 1.4rem;
+      }
+
+      .btn-b {
+        width: 52px;
+        height: 52px;
+        font-size: 1rem;
+        bottom: 60px;
+        right: 78px;
       }
     }
+
+
+    /* ========================= HUD / SCOREBOARD ========================= */
+#hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 32px;
+  height: 64px;
+  z-index: 300;
+  pointer-events: none;
+  font-family: 'SpaceLetters';
+  letter-spacing: 0.08em;
+}
+
+.hud-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.hud-label {
+  font-size: 0.8rem;
+  color: #FFC7FF;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+#score-value,
+#hiscore-value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #00ffff;
+  text-shadow:
+    0 0 8px #00ffff,
+    0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+#hiscore-value {
+  color: #cc88ff;
+  text-shadow:
+    0 0 8px #cc88ff,
+    0 0 20px rgba(200, 136, 255, 0.5);
+}
+
+/* ======================= COMBO ======================= */
+#combo-display {
+  min-width: 140px;
+  transition: opacity 0.3s;
+}
+
+#combo-display.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#combo-value {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: hsl(var(--combo-hue, 180), 100%, 60%);
+  text-shadow:
+    0 0 10px hsl(var(--combo-hue, 180), 100%, 60%),
+    0 0 25px hsl(var(--combo-hue, 180), 100%, 40%);
+}
+
+@keyframes combo-pulse-anim {
+  0%   { transform: scale(1.4); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.combo-pulse {
+  animation: combo-pulse-anim 0.25s ease-out forwards;
+}
+
+/* COMBO DECAY BAR */
+#combo-bar {
+  width: 100px;
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#combo-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: hsl(var(--combo-hue, 180), 100%, 60%);
+  box-shadow: 0 0 8px hsl(var(--combo-hue, 180), 100%, 60%);
+  border-radius: 2px;
+  transition: width 0.05s linear, background 0.3s;
+}
+
+/* ======================= FLOATING SCORE POPUPS ======================= */
+@keyframes float-up {
+  0%   { opacity: 1;   transform: translateY(0)   translateX(0); }
+  80%  { opacity: 0.9; transform: translateY(-60px) translateX(var(--drift, 0)); }
+  100% { opacity: 0;   transform: translateY(-80px) translateX(var(--drift, 0)); }
+}
+
+.float-score {
+  position: fixed;
+  z-index: 500;
+  pointer-events: none;
+  color: #00ffff;
+  font-family: 'SpaceLetters';
+  font-weight: bold;
+  text-shadow: 0 0 10px #00ffff, 0 0 20px rgba(0,255,255,0.6);
+  animation: float-up 0.9s ease-out forwards;
+  white-space: nowrap;
+}
+
+.float-combo {
+  color: #c71585;
+  text-shadow: 0 0 10px #c71585;
+  margin-left: 4px;
+}

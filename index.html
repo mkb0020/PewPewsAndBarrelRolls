@@ -12,10 +12,35 @@
     <div class="joystick">
       <div class="joystick-knob"></div>
     </div>
-    <div class="action-btn">🚀</div>
+
+    <div class="action-buttons">
+      <div class="btn-b" id="btn-b">B</div>
+      <div class="btn-a" id="btn-a">A</div>
+    </div>
   </div>
 
   <script type="module" src="js/main.js"></script>
+
+<!-- SCOREBOARD HUD -->
+<div id="hud">
+  <div class="hud-block" id="score-block">
+    <div class="hud-label">SCORE</div>
+    <div id="score-value">000,000</div>
+  </div>
+
+  <!--<div class="hud-block hidden" id="combo-display">
+    <div id="combo-value">×1</div>
+    <div class="hud-label">COMBO</div>
+    <div id="combo-bar">
+      <div id="combo-bar-fill"></div>
+    </div>
+  </div>-->
+
+  <!--<div class="hud-block" id="hiscore-block">
+    <div class="hud-label">BEST</div>
+    <div id="hiscore-value">000,000</div>
+  </div>-->
+</div>
 
 </body>
 </html>
