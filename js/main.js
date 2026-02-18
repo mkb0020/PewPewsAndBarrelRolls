@@ -1,7 +1,7 @@
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from './config.js';
-import { initKeyboard, initMobileControls, keys, isKeyPressed } from './controls.js';
+import { initKeyboard, initMobileControls, isMobile, keys, isKeyPressed } from './controls.js';
 import { Tunnel } from './tunnel.js';
 import { Ship } from './ship.js';
 import { EnemyManager } from './enemies.js';
@@ -9,6 +9,8 @@ import { ProjectileManager, Crosshair, MuzzleFlash } from './projectiles.js';
 import { circleCollision, segmentCircleCollision } from './collision.js';
 import { AudioManager } from './audio.js';
 import { GameUI } from './ui.js';
+import { ScoreManager } from './score.js';
+
 
 console.log('=== YOU HAVE NOW ENTERED THE NEON WORMHOLE! ===');
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,20 +24,35 @@ document.body.appendChild(gameCanvas);
 
 const ctx = gameCanvas.getContext('2d');
 
-const tunnel    = new Tunnel();
-const ship      = new Ship(gameCanvas, ctx);
-const audio     = new AudioManager();
-const ui        = new GameUI();
+const tunnel          = new Tunnel();
+const ship            = new Ship(gameCanvas, ctx);
+const audio           = new AudioManager();
+const ui              = new GameUI();
 const enemyManager    = new EnemyManager(ship.particles, tunnel, audio);
 const projectileManager = new ProjectileManager();
-const crosshair = new Crosshair();
-const muzzleFlash = new MuzzleFlash();
+const crosshair       = new Crosshair();
+const muzzleFlash     = new MuzzleFlash();
+const scoreManager = new ScoreManager();
+
 
 initKeyboard();
 
-initMobileControls((direction) => {
-  ship.startBarrelRoll(direction);
-});
+// ==================== SHARED SHOOT FUNCTION ====================
+function doShoot() {
+  if (isPaused || ship.isBarrelRolling) return;
+  const crosshairPos = crosshair.getPosition();
+  const shootData = ship.shoot(crosshairPos.x, crosshairPos.y);
+  if (shootData) {
+    projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
+    muzzleFlash.trigger(shootData.x, shootData.y);
+    audio.playLaser();
+  }
+}
+
+initMobileControls(
+  (direction) => ship.startBarrelRoll(direction),
+  () => doShoot()
+);
 
 // ==================== GAME STATE ====================
 let isPaused = false;
@@ -68,17 +85,20 @@ window.addEventListener('keydown', (e) => {
   // SHOOT — SPACE
   if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {
     e.preventDefault();
-    const crosshairPos = crosshair.getPosition();
-    const shootData = ship.shoot(crosshairPos.x, crosshairPos.y);
-    if (shootData) {
-      projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
-      muzzleFlash.trigger(shootData.x, shootData.y);
-      audio.playLaser();
-    }
+    doShoot();
+    return;
+  }
+
+  // BARREL ROLL — SHIFT
+  if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !ship.isBarrelRolling) {
+    e.preventDefault();
+    const direction = isKeyPressed('a') || isKeyPressed('arrowleft') ? -1 : 1;
+    ship.startBarrelRoll(direction);
+    return;
   }
 });
 
-// ==================== CLICK HANDLER ====================
+// ==================== CLICK / TAP HANDLER ====================
 gameCanvas.addEventListener('click', (e) => {
   const hit = ui.hitTest(e.clientX, e.clientY);
 
@@ -92,14 +112,8 @@ gameCanvas.addEventListener('click', (e) => {
     return;
   }
 
-  if (!isPaused) {
-    const crosshairPos = crosshair.getPosition();
-    const shootData = ship.shoot(crosshairPos.x, crosshairPos.y);
-    if (shootData) {
-      projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
-      muzzleFlash.trigger(shootData.x, shootData.y);
-      audio.playLaser();
-    }
+  if (!isMobile && !isPaused) {
+    doShoot();
   }
 });
 
@@ -112,7 +126,7 @@ function gameLoop() {
   const dt  = Math.min((now - lastTime) / 1000, 0.05); 
   lastTime  = now;
 
-  // ── UPDATE (SKIP WHEN PAUSED ──────────────────
+  // ==================== UPDATE (SKIP WHEN PAUSED ====================
   if (!isPaused) {
     tunnel.update(dt);
     const shipOffset = ship.getOffset();
@@ -122,7 +136,8 @@ function gameLoop() {
     enemyManager.update(dt);
     projectileManager.update(dt);
     muzzleFlash.update(dt);
-
+    scoreManager.update(dt); 
+    
     // COLLISION
     const projectiles = projectileManager.getProjectiles();
     const enemies     = enemyManager.getEnemies();
@@ -145,6 +160,7 @@ function gameLoop() {
           const destroyed = enemy.takeDamage(1);
           if (destroyed) {
             projectileManager.createExplosion(enemyPos.x, enemyPos.y);
+            scoreManager.addScore(enemy.score, enemyPos.x, enemyPos.y);  
           }
           audio.playImpact();
           break;

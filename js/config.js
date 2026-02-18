@@ -1,5 +1,4 @@
 // config.js
-
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2000,
@@ -67,30 +66,30 @@ export const CONFIG = {
   MAX_PIXEL_RATIO: 2,
 
   ENEMIES: {
-    MAX_COUNT: 10,
-    SPAWN_INTERVAL_MIN: 2.0, 
-    SPAWN_INTERVAL_MAX: 3.0,
+    MAX_COUNT: 5,
+    SPAWN_INTERVAL_MIN: 3.0, 
+    SPAWN_INTERVAL_MAX: .0,
     SPAWN_DISTANCE: 300, 
     
     
-    SPRITE_PATH: 'assets/images/glitches.png',
-    SPRITE_FRAMES: 11,       // TOTAL FRAMES IN SHEET
+    SPRITE_PATH: './images/glitches.png',
+    SPRITE_FRAMES: 15,       // TOTAL FRAMES IN SHEET
     SPRITE_SIZE: 80,
 
   
     FRAME_RANGES: {
-      TANK:   { start: 0, count: 6 },
-      BASIC:  { start: 6, count: 5 },
-      FAST:   { start: 6, count: 5 },
-      ZIGZAG: { start: 6, count: 5 },
+      TANK:   { start: 8, count: 3 },
+      BASIC:  { start: 0, count: 4 },
+      FAST:   { start: 4, count: 4 },
+      ZIGZAG: { start: 11, count: 4 },
     },
 
     // HOW FAST EACH TYPE CYCLES FRAMES 
     ANIM_SPEEDS: {
-      TANK:   10,   
-      BASIC:  12,  
-      FAST:   20, 
-      ZIGZAG: 15,  
+      TANK:   7,   
+      BASIC:  9,  
+      FAST:   12, 
+      ZIGZAG: 9,  
     },
     
    
@@ -149,7 +148,7 @@ export const CONFIG = {
     MAX_PROJECTILES: 50,
     
     
-    CROSSHAIR_SPRITE: 'assets/images/crosshair.png',
+    CROSSHAIR_SPRITE: './images/crosshair.png',
     CROSSHAIR_SIZE: 60,
     CROSSHAIR_FRAMES: 3,               // SPRITE SHEET: 0=NORMAL(PURPLE), 1=RED(LOCK), 2=YELLOW(LOCK)
     CROSSHAIR_OFFSET_MULTIPLIER: 0.55, // BASE OFFSET - CROSS HAIR STAYS BETWEEN SHIP AND CENTER
@@ -162,14 +161,14 @@ export const CONFIG = {
     CROSSHAIR_FLASH_SPEED: 0.08,
     
     
-    FLASH_SPRITE: 'assets/images/flash.png',
+    FLASH_SPRITE: './images/flash.png',
     FLASH_FRAMES: 2,
     FLASH_DURATION: 0.1, 
     FLASH_SIZE: 50,
   },
 
   EXPLOSIONS: {
-    SPRITE: 'assets/images/boom.png',
+    SPRITE: './images/boom.png',
     FRAMES: 6,
     FRAME_DURATION: 0.05, 
     SIZE: 150,
