@@ -37,6 +37,7 @@ const scoreManager = new ScoreManager();
 
 initKeyboard();
 
+
 // ==================== SHARED SHOOT FUNCTION ====================
 function doShoot() {
   if (isPaused || ship.isBarrelRolling) return;
@@ -72,24 +73,24 @@ window.addEventListener('touchstart', startAudio, { once: true });
 // ==================== KEYBOARD SHORTCUTS ====================
 window.addEventListener('keydown', (e) => {
 
-  if (e.code === 'KeyP') {  // PAUSE — P KEY
+  if (e.code === 'KeyP') {  // PAUSE â€” P KEY
     isPaused = !isPaused;
     return;
   }
 
-  if (e.code === 'KeyM') { // MUTE — M KEY
+  if (e.code === 'KeyM') { // MUTE â€” M KEY
     isMuted = audio.toggleMute();
     return;
   }
 
-  // SHOOT — SPACE
+  // SHOOT â€” SPACE
   if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {
     e.preventDefault();
     doShoot();
     return;
   }
 
-  // BARREL ROLL — SHIFT
+  // BARREL ROLL â€” SHIFT
   if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !ship.isBarrelRolling) {
     e.preventDefault();
     const direction = isKeyPressed('a') || isKeyPressed('arrowleft') ? -1 : 1;
@@ -111,10 +112,6 @@ gameCanvas.addEventListener('click', (e) => {
     isMuted = audio.toggleMute();
     return;
   }
-
-  if (!isMobile && !isPaused) {
-    doShoot();
-  }
 });
 
 // ==================== GAME LOOP ====================
@@ -126,12 +123,13 @@ function gameLoop() {
   const dt  = Math.min((now - lastTime) / 1000, 0.05); 
   lastTime  = now;
 
-  // ==================== UPDATE (SKIP WHEN PAUSED ====================
+  // ==================== UPDATE (SKIP WHEN PAUSED) ====================
   if (!isPaused) {
     tunnel.update(dt);
     const shipOffset = ship.getOffset();
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
     ship.update(dt);
+
     crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
     enemyManager.update(dt);
     projectileManager.update(dt);
@@ -191,10 +189,11 @@ window.addEventListener('resize', () => {
   gameCanvas.width  = w;
   gameCanvas.height = h;
   ship.handleResize();
+  crosshair.handleResize();
   ui.handleResize();
 });
 
 // ==================== START ====================
-console.log('✔ All systems initialized');
+console.log('âœ” All systems initialized');
 console.log('=== Starting game loop ===');
 gameLoop();

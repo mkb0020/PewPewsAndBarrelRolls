@@ -41,7 +41,8 @@ export class Enemy {
     
     // MOVEMENT PATTERNS
     this.zigzagPhase = Math.random() * Math.PI * 2;
-    this.lateralOffset = (Math.random() - 0.5) * 300; 
+    // BIAS LEFT 
+    this.lateralOffset = -(20 + Math.random() * 180) + (Math.random() < 0.2 ? Math.random() * 40 : 0);
     
     this.isDead = false;
   }
@@ -73,7 +74,8 @@ export class Enemy {
     
     const camera = curve.getPointAt(Math.max(0, Math.min(1, playerProgress))); // PROJECT TO SCREEN SPACE - ORTHOGRAPHIC PROJECTION - PROJECT RELATIVE TO playerProgress
     
-    this.screenX = window.innerWidth / 2 + this.lateralOffset; // CALC SCREEN POS = CENTER OF SCREEN + LATERAL OFFSET
+    // APPLY FULL OFFSET FROM THE START
+    this.screenX = window.innerWidth / 2 + this.lateralOffset;
     this.screenY = window.innerHeight / 2;
  
     if (this.type === 'ZIGZAG') {
@@ -87,7 +89,7 @@ export class Enemy {
     this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
     this.trailTimer += dt;
 
-    // ADVANCE ANIMATION — SPRITE SHEET FRAME RANGES
+    // ADVANCE ANIMATION â€” SPRITE SHEET FRAME RANGES
     this.animFrame = (this.animFrame + this.animSpeed * dt) % this.animCount;
     this.spriteFrame = this.animStart + Math.floor(this.animFrame);
     
@@ -185,14 +187,14 @@ export class EnemyManager {
     this.enemySprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.enemySprite.width / CONFIG.ENEMIES.SPRITE_FRAMES;
-      console.log('Ã¢Å“â€œ Enemy sprite sheet loaded');
+      console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Enemy sprite sheet loaded');
     };
     
     this.enemySprite.onerror = () => {
-      console.warn('Ã¢Å¡Â  Enemy sprite not found, using fallback rendering');
+      console.warn('ÃƒÂ¢Ã…Â¡Ã‚Â  Enemy sprite not found, using fallback rendering');
     };
     
-    console.log('Ã¢Å“â€œ Enemy manager initialized');
+    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Enemy manager initialized');
   }
 
   randomSpawnDelay() {

@@ -18,6 +18,9 @@ export const virtualKeys = {
   arrowright: false
 };
 
+// ======================= ANALOG INPUT =======================
+export let analogInput = { x: 0, y: 0 };
+
 export function initKeyboard() {
   window.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
@@ -139,27 +142,40 @@ function updateJoystick(touch, joystick, joystickKnob) {
   
   const deadZone = CONFIG.MOBILE.DEAD_ZONE;
   
+  const strength = distance > deadZone
+    ? Math.min(1, (distance - deadZone) / (CONFIG.MOBILE.JOYSTICK_RADIUS - deadZone))
+    : 0;
+
+  if (strength > 0) {
+    analogInput.x =  Math.cos(angle) * strength;
+    analogInput.y = -Math.sin(angle) * strength; 
+  } else {
+    analogInput.x = 0;
+    analogInput.y = 0;
+  }
+
+  // ── DIGITAL KEYS (for movement / barrel roll direction) ──
   if (Math.abs(deltaX) > deadZone) {
-    virtualKeys['a'] = deltaX < 0;
+    virtualKeys['a']         = deltaX < 0;
     virtualKeys['arrowleft'] = deltaX < 0;
-    virtualKeys['d'] = deltaX > 0;
+    virtualKeys['d']          = deltaX > 0;
     virtualKeys['arrowright'] = deltaX > 0;
   } else {
-    virtualKeys['a'] = false;
+    virtualKeys['a']         = false;
     virtualKeys['arrowleft'] = false;
-    virtualKeys['d'] = false;
+    virtualKeys['d']          = false;
     virtualKeys['arrowright'] = false;
   }
   
   if (Math.abs(deltaY) > deadZone) {
-    virtualKeys['w'] = deltaY < 0;
-    virtualKeys['arrowup'] = deltaY < 0;
-    virtualKeys['s'] = deltaY > 0;
+    virtualKeys['w']         = deltaY < 0;
+    virtualKeys['arrowup']   = deltaY < 0;
+    virtualKeys['s']         = deltaY > 0;
     virtualKeys['arrowdown'] = deltaY > 0;
   } else {
-    virtualKeys['w'] = false;
-    virtualKeys['arrowup'] = false;
-    virtualKeys['s'] = false;
+    virtualKeys['w']         = false;
+    virtualKeys['arrowup']   = false;
+    virtualKeys['s']         = false;
     virtualKeys['arrowdown'] = false;
   }
 }
@@ -169,6 +185,9 @@ function resetJoystick(joystick, joystickKnob) {
   joystick.classList.remove('active');
   joystickKnob.style.transform = 'translate(-50%, -50%)';
   
+  analogInput.x = 0;
+  analogInput.y = 0;
+
   Object.keys(virtualKeys).forEach(key => {
     virtualKeys[key] = false;
   });

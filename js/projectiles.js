@@ -1,6 +1,8 @@
 // projectiles.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from './config.js';
+import { isKeyPressed, analogInput, isMobile } from './controls.js';
+import { segmentCircleCollision } from './collision.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export class Projectile {
@@ -173,7 +175,7 @@ export class ProjectileManager {
     this.projectiles = [];
     this.explosions = [];
     
-    console.log('âœ“ Projectile manager initialized');
+    console.log('âœ” Projectile manager initialized');
   }
 
   shoot(x, y, targetX, targetY) {
@@ -235,29 +237,37 @@ export class ProjectileManager {
   }
 }
 
+// ================================== CROSSHAIR - INPUT DRIVEN (NOT SHIP POS DERIVED) / CROSSHAIR REPRESENTS INTENTION NOT WHERE SHIP IS ==================================
 export class Crosshair {
   constructor() {
-    // INNER RETICLE 
-    this.x = window.innerWidth / 2;
-    this.y = window.innerHeight / 2;
-    this.targetX = this.x;
-    this.targetY = this.y;
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
 
-    // OUTER RETICLE
-    this.outerX = this.x;
-    this.outerY = this.y;
+    // INNER RETICLE 
+    this.x = cx;
+    this.y = cy;
+    this.targetX = cx;
+    this.targetY = cy;
+
+    // OUTER BRACKETS 
+    this.outerX = cx;
+    this.outerY = cy;
 
     this.sprite = null;
     this.spriteLoaded = false;
     this.frameWidth = 0;
     this.size = CONFIG.SHOOTING.CROSSHAIR_SIZE;
 
-    this.isLockedOn = false;     // LOCK-ON STATE
+    this.isLockedOn = false;
     this.flashTimer = 0;
     this.currentFrame = 0; // 0=NORMAL(purple), 1=RED, 2=YELLOW
 
+    this.mouseInput = { x: 0, y: 0 };
+
+    this.smoothedInput = { x: 0, y: 0 };
+
     this.loadSprite();
-    console.log('✔ Crosshair initialized');
+    console.log('âœ” Crosshair initialized');
   }
 
   loadSprite() {
@@ -266,62 +276,104 @@ export class Crosshair {
     this.sprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.sprite.width / CONFIG.SHOOTING.CROSSHAIR_FRAMES;
-      console.log('✔ Crosshair sprite loaded');
+      console.log('âœ” Crosshair sprite loaded');
     };
     this.sprite.onerror = () => {
-      console.warn('⚠  Crosshair sprite not found, using fallback');
+      console.warn('âš   Crosshair sprite not found, using fallback');
     };
   }
 
+  setMouseInput(nx, ny) {
+    this.mouseInput.x = nx;
+    this.mouseInput.y = ny;
+  }
+
+  // ================== UPDATE / shipOffsetX/Y: CURRENT SHIP OFFSET FROMS CREEN CENTER  ==================
   update(shipOffsetX, shipOffsetY, dt, enemies) {
-    const centerX = window.innerWidth / 2;
+    const centerX = window.innerWidth  / 2;
     const centerY = window.innerHeight / 2;
+    const shipX   = centerX + shipOffsetX;
+    const shipY   = centerY - shipOffsetY; 
 
-    // CENTER GRAVITY: CROSS HAIR TARGET IS BETWEEN SHIP AND CENTER - NOT BEYOND SHIP - THE FURTHER THE SHIP IS FROM THE CENTER, THE MORETHE CROSSHAIR PULLS BACK TOWARDS CENTER
-    const normX = shipOffsetX / CONFIG.SHIP.MAX_OFFSET_X; // -1 to 1
-    const normY = shipOffsetY / CONFIG.SHIP.MAX_OFFSET_Y;
-    const pullFactor = 1.0 - Math.min(Math.sqrt(normX * normX + normY * normY), 1.0)
-                           * CONFIG.SHOOTING.CROSSHAIR_CENTER_PULL;
+    // ================== RESOLVE RAW INPUT VECTOR ==================
+    // Priority: mobile joystick > mouse > keyboard
+    let rawX = 0;
+    let rawY = 0;
 
-    const offsetMult = CONFIG.SHOOTING.CROSSHAIR_OFFSET_MULTIPLIER * pullFactor;
-    const rawX = centerX + shipOffsetX * offsetMult;
-    const rawY = centerY - shipOffsetY * offsetMult;
+    if (isMobile) {
+      rawX = analogInput.x;
+      rawY = analogInput.y;
+    } else if (this.mouseInput.x !== 0 || this.mouseInput.y !== 0) {
+      rawX = this.mouseInput.x;
+      rawY = this.mouseInput.y;
+    } else {
+      if (isKeyPressed('d') || isKeyPressed('arrowright')) rawX += 1;
+      if (isKeyPressed('a') || isKeyPressed('arrowleft'))  rawX -= 1;
+      if (isKeyPressed('w') || isKeyPressed('arrowup'))    rawY += 1;
+      if (isKeyPressed('s') || isKeyPressed('arrowdown'))  rawY -= 1;
+      const mag = Math.sqrt(rawX * rawX + rawY * rawY) || 1;
+      rawX /= mag;
+      rawY /= mag;
+    }
 
-    const margin = this.size * 0.6;     // CLAMP TO SCREEN WITH  MARGIN
-    this.targetX = Math.max(margin, Math.min(window.innerWidth  - margin, rawX));
-    this.targetY = Math.max(margin, Math.min(window.innerHeight - margin, rawY));
+    // ================== SMOOTH THE INPUT VECTOR - LERP SMOOTHEDINPUT TOWARD RAW EACH FRAME - WHEN KEYS/JOYSTICK RELEASE - rawX/Y DROPS TO 0 BUT smoothedInput DECAYS GRADUALLY ==================
+    const sl = CONFIG.SHOOTING.CROSSHAIR_INPUT_SMOOTHING;
+    this.smoothedInput.x += (rawX - this.smoothedInput.x) * sl;
+    this.smoothedInput.y += (rawY - this.smoothedInput.y) * sl;
 
-    this.x += (this.targetX - this.x) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;     // INNER 
+    const inputX = this.smoothedInput.x;
+    const inputY = this.smoothedInput.y;
+
+    // ==================  COMPUTE AIM TARGET (INPUT-DRIVEN) / DEFLECT FROM CENTER IN DIRECTION OF INPUT - CENTER PULL GENTLY CORRECTS FOR EXTREME SHIP OFFSET ==================
+    const deflect    = CONFIG.SHOOTING.CROSSHAIR_AIM_DEFLECT_PX;
+    const normX      = shipOffsetX / CONFIG.SHIP.MAX_OFFSET_X; // -1..1
+    const normY      = shipOffsetY / CONFIG.SHIP.MAX_OFFSET_Y;
+    const edgeMag    = Math.min(Math.sqrt(normX * normX + normY * normY), 1.0);
+    const pullFactor = 1.0 - edgeMag * CONFIG.SHOOTING.CROSSHAIR_CENTER_PULL; //GENTLE
+
+    const rawTargetX = centerX + inputX * deflect * pullFactor;
+    //  INPUT IS +1 UP BUT SCREEN y INCREASES DOWNWARD
+    const rawTargetY = centerY - inputY * deflect * pullFactor;
+
+    // CLAMP TO SCREEN WITH MARGIN
+    const margin = this.size * 0.6;
+    this.targetX = Math.max(margin, Math.min(window.innerWidth  - margin, rawTargetX));
+    this.targetY = Math.max(margin, Math.min(window.innerHeight - margin, rawTargetY));
+
+    // =============== CHASE INNER â†’ TARGET ===============
+    this.x += (this.targetX - this.x) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
     this.y += (this.targetY - this.y) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
 
-    this.outerX += (this.targetX - this.outerX) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;     // OUTER 
-    this.outerY += (this.targetY - this.outerY) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;
+    // =============== OUTER TRAILS INNER ===============
+    this.outerX += (this.x - this.outerX) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;
+    this.outerY += (this.y - this.outerY) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;
 
-    const sep = CONFIG.SHOOTING.CROSSHAIR_MAX_SEPARATION;     // CAP DISTANCE FOR INNER AND OTER CROSS HAIR
-    const dx = this.outerX - this.x;
-    const dy = this.outerY - this.y;
+    // CAP - MAX SEPARATION
+    const sep = CONFIG.SHOOTING.CROSSHAIR_MAX_SEPARATION;
+    const dx  = this.outerX - this.x;
+    const dy  = this.outerY - this.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > sep) {
       this.outerX = this.x + (dx / dist) * sep;
       this.outerY = this.y + (dy / dist) * sep;
     }
 
-    this.isLockedOn = false;     // LOCK-ON DETECTION
-    if (enemies) {
-      const lockRadius = this.size * CONFIG.SHOOTING.CROSSHAIR_LOCK_RADIUS_MULTIPLIER;
+    // ========================== LOCK-ON: SHIP â†’ CROSSHAIR LINE SEGMENT vs ENEMY CIRCLE / lLINE OF FIRE - ANYWHERE BETWEEN SHIP AND RECTILE ==========================
+    this.isLockedOn = false;
+    if (enemies && enemies.length > 0) {
+      const seg = { x1: shipX, y1: shipY, x2: this.targetX, y2: this.targetY };
       for (const enemy of enemies) {
-        const ep = enemy.getPosition();
-        const es = enemy.getSize();
-        const ex = this.x - ep.x;
-        const ey = this.y - ep.y;
-        if (Math.sqrt(ex * ex + ey * ey) < lockRadius + es) {
+        const pos = enemy.getPosition();
+        const r   = enemy.getSize() * 1.1; // SLIGHT FORGIVENESS
+        if (segmentCircleCollision(seg, { x: pos.x, y: pos.y, radius: r })) {
           this.isLockedOn = true;
           break;
         }
       }
     }
 
-    if (this.isLockedOn) {     // FLASH BETWEEN FRAMES 1 (red) AND 2 (yellow) WHEN LOCKED ON
+    // ========================== LOCK-ON FLASH ==========================
+    if (this.isLockedOn) {
       this.flashTimer += dt;
       if (this.flashTimer >= CONFIG.SHOOTING.CROSSHAIR_FLASH_SPEED) {
         this.flashTimer = 0;
@@ -329,23 +381,31 @@ export class Crosshair {
       }
     } else {
       this.currentFrame = 0;
-      this.flashTimer = 0;
+      this.flashTimer   = 0;
     }
   }
 
+  // ======================= DRAW =======================
   draw(ctx) {
     const outerSize = this.size * CONFIG.SHOOTING.CROSSHAIR_OUTER_SCALE;
     const alpha = this.isLockedOn ? 0.95 : 0.75;
 
-    ctx.save();  // OUTER RETICLE 
-    ctx.globalAlpha = alpha * 0.7;
+    // OUTER SEPARATION AS A 0..1 ALIGNMENT METER 1=PERFECTLY ALIGNED
+    const dx        = this.outerX - this.x;
+    const dy        = this.outerY - this.y;
+    const sepDist   = Math.sqrt(dx * dx + dy * dy);
+    const alignFrac = 1 - Math.min(sepDist / CONFIG.SHOOTING.CROSSHAIR_MAX_SEPARATION, 1);
+
+    // OUTER BRACKETS
+    ctx.save();
     const color = this.isLockedOn
       ? (this.currentFrame === 1 ? '#ff2222' : '#ffcc00')
       : '#cc88ff';
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    const b = outerSize / 2; 
-    const corner = outerSize * 0.28; 
+    ctx.strokeStyle  = color;
+    ctx.lineWidth    = 2;
+    ctx.globalAlpha  = alpha * 0.7 * (0.5 + alignFrac * 0.5); // DIM WHEN SEPARATED - BRIGHT WHEN ALIGNED 
+    const b      = outerSize / 2;
+    const corner = outerSize * 0.28;
     const ox = this.outerX;
     const oy = this.outerY;
     [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([sx, sy]) => {
@@ -357,8 +417,8 @@ export class Crosshair {
     });
     ctx.restore();
 
-    
-    if (this.spriteLoaded && this.frameWidth > 0) { // INNER RETICLE
+    // INNER RETICLE 
+    if (this.spriteLoaded && this.frameWidth > 0) {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.drawImage(
@@ -371,10 +431,10 @@ export class Crosshair {
         this.size
       );
       ctx.restore();
-    } else { // FALLBACK 
+    } else {
       ctx.save();
       ctx.strokeStyle = this.isLockedOn ? '#ff2222' : '#cc88ff';
-      ctx.lineWidth = 2;
+      ctx.lineWidth   = 2;
       ctx.globalAlpha = alpha;
       ctx.beginPath();
       ctx.moveTo(this.x, this.y - 14); ctx.lineTo(this.x, this.y + 14); ctx.stroke();
@@ -389,7 +449,16 @@ export class Crosshair {
   }
 
   getPosition() {
-    return { x: this.x, y: this.y };
+    return { x: this.targetX, y: this.targetY };
+  }
+
+  handleResize() {
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    this.x      = cx;
+    this.y      = cy;
+    this.outerX = cx;
+    this.outerY = cy;
   }
 }
 
