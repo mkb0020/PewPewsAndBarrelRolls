@@ -37,7 +37,6 @@ export class Enemy {
     
     // VISUAL EFFECTS
     this.pulsePhase = Math.random() * Math.PI * 2;
-    this.trailTimer = 0;
     
     // MOVEMENT PATTERNS
     this.zigzagPhase = Math.random() * Math.PI * 2;
@@ -68,12 +67,6 @@ export class Enemy {
     
     this.scale = 0.2 + (Math.min(distanceToPlayer, 1.0) * 0.8);  // SCALE AS APPROACHING ( 0.2 TO 1 )
     
-    const safeProgress = Math.max(0, Math.min(1, this.curveProgress));
-    
-    const curvePos = curve.getPointAt(safeProgress); // GET 3D POS ON CURVE
-    
-    const camera = curve.getPointAt(Math.max(0, Math.min(1, playerProgress))); // PROJECT TO SCREEN SPACE - ORTHOGRAPHIC PROJECTION - PROJECT RELATIVE TO playerProgress
-    
     // APPLY FULL OFFSET FROM THE START
     this.screenX = window.innerWidth / 2 + this.lateralOffset;
     this.screenY = window.innerHeight / 2;
@@ -87,9 +80,8 @@ export class Enemy {
     this.y = this.screenY;
     
     this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
-    this.trailTimer += dt;
 
-    // ADVANCE ANIMATION â€” SPRITE SHEET FRAME RANGES
+    // ADVANCE ANIMATION Ã¢â‚¬â€ SPRITE SHEET FRAME RANGES
     this.animFrame = (this.animFrame + this.animSpeed * dt) % this.animCount;
     this.spriteFrame = this.animStart + Math.floor(this.animFrame);
     
@@ -99,8 +91,6 @@ export class Enemy {
   }
 
   draw(ctx, enemySprite, spriteLoaded, frameWidth) {
-    const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7; // 0.4 to 1.0
-  
     ctx.save();
     ctx.globalAlpha = 1.0; 
     
@@ -151,16 +141,6 @@ export class Enemy {
     return false; 
   }
 
-  shouldSpawnTrail() {
-    if (!CONFIG.ENEMIES.TRAIL_ENABLED) return false;
-    
-    if (this.trailTimer >= CONFIG.ENEMIES.TRAIL_PARTICLE_RATE) {
-      this.trailTimer = 0;
-      return true;
-    }
-    return false;
-  }
-
   getPosition() {
     return { x: this.x, y: this.y };
   }
@@ -187,14 +167,14 @@ export class EnemyManager {
     this.enemySprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.enemySprite.width / CONFIG.ENEMIES.SPRITE_FRAMES;
-      console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Enemy sprite sheet loaded');
+      console.log('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Enemy sprite sheet loaded');
     };
     
     this.enemySprite.onerror = () => {
-      console.warn('ÃƒÂ¢Ã…Â¡Ã‚Â  Enemy sprite not found, using fallback rendering');
+      console.warn('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â  Enemy sprite not found, using fallback rendering');
     };
     
-    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Enemy manager initialized');
+    console.log('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Enemy manager initialized');
   }
 
   randomSpawnDelay() {
@@ -218,7 +198,6 @@ export class EnemyManager {
     const playerProgress = (this.tunnel.getTime() * CONFIG.TUNNEL.SPEED) % 1;
     const spawnDistance = 0.3;
     const spawnProgress = (playerProgress + spawnDistance) % 1;
-    const spawnPos = this.tunnel.curve.getPointAt(spawnProgress);
     const x = window.innerWidth / 2;
     const y = window.innerHeight / 2;
     const type = this.getRandomEnemyType();
@@ -262,49 +241,6 @@ export class EnemyManager {
 
   clear() {
     this.enemies = [];
-  }
-
-  destroyEnemy(enemy) {
-    const colors = [enemy.color, enemy.glowColor, '#ffffff'];
-    for (let i = 0; i < 15; i++) {
-      const particle = {
-        x: enemy.x + (Math.random() - 0.5) * enemy.size,
-        y: enemy.y + (Math.random() - 0.5) * enemy.size,
-        vx: (Math.random() - 0.5) * 300,
-        vy: (Math.random() - 0.5) * 300,
-        life: 0.5 + Math.random() * 0.3,
-        maxLife: 0.8,
-        radius: 8 + Math.random() * 12,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        
-        update(dt) {
-          this.x += this.vx * dt;
-          this.y += this.vy * dt;
-          this.vx *= 0.95; 
-          this.vy *= 0.95;
-          this.life -= dt;
-        },
-        
-        draw(ctx) {
-          ctx.save();
-          const opacity = Math.max(0, this.life / this.maxLife);
-          ctx.globalAlpha = opacity * 0.8;
-          ctx.fillStyle = this.color;
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        },
-        
-        isDead() {
-          return this.life <= 0;
-        }
-      };
-      
-      this.particleSystem.particles.push(particle);
-    }
-    
-    enemy.isDead = true;
   }
 
   getCount() {

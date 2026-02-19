@@ -28,7 +28,7 @@ const tunnel          = new Tunnel();
 const ship            = new Ship(gameCanvas, ctx);
 const audio           = new AudioManager();
 const ui              = new GameUI();
-const enemyManager    = new EnemyManager(ship.particles, tunnel, audio);
+const enemyManager    = new EnemyManager(ship.particles, tunnel);
 const projectileManager = new ProjectileManager();
 const crosshair       = new Crosshair();
 const muzzleFlash     = new MuzzleFlash();
@@ -51,13 +51,24 @@ function doShoot() {
 }
 
 initMobileControls(
-  (direction) => ship.startBarrelRoll(direction),
+  (direction) => { ship.startBarrelRoll(direction); audio.playBarrelRoll(); },
   () => doShoot()
 );
 
 // ==================== GAME STATE ====================
 let isPaused = false;
 let isMuted  = false;
+
+// ==================== UI BUTTON EVENTS (DOM - NOT CANVAS) ====================
+document.getElementById('btn-sound').addEventListener('click', () => {
+  isMuted = audio.toggleMute();
+  ui.update(isMuted, isPaused);
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  isPaused = !isPaused;
+  ui.update(isMuted, isPaused);
+});
 
 // ==================== START AUDIO ON FIRST INTERACTION ====================
 const startAudio = () => {
@@ -73,43 +84,31 @@ window.addEventListener('touchstart', startAudio, { once: true });
 // ==================== KEYBOARD SHORTCUTS ====================
 window.addEventListener('keydown', (e) => {
 
-  if (e.code === 'KeyP') {  // PAUSE â€” P KEY
+  if (e.code === 'KeyP') {  // PAUSE - P KEY
     isPaused = !isPaused;
+    ui.update(isMuted, isPaused);
     return;
   }
 
-  if (e.code === 'KeyM') { // MUTE â€” M KEY
+  if (e.code === 'KeyM') { // MUTE - M KEY
     isMuted = audio.toggleMute();
+    ui.update(isMuted, isPaused);
     return;
   }
 
-  // SHOOT â€” SPACE
+  // SHOOT - SPACE
   if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {
     e.preventDefault();
     doShoot();
     return;
   }
 
-  // BARREL ROLL â€” SHIFT
+  // BARREL ROLL
   if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !ship.isBarrelRolling) {
     e.preventDefault();
     const direction = isKeyPressed('a') || isKeyPressed('arrowleft') ? -1 : 1;
     ship.startBarrelRoll(direction);
-    return;
-  }
-});
-
-// ==================== CLICK / TAP HANDLER ====================
-gameCanvas.addEventListener('click', (e) => {
-  const hit = ui.hitTest(e.clientX, e.clientY);
-
-  if (hit === 'pause') {
-    isPaused = !isPaused;
-    return;
-  }
-
-  if (hit === 'sound') {
-    isMuted = audio.toggleMute();
+    audio.playBarrelRoll();
     return;
   }
 });
@@ -176,8 +175,6 @@ function gameLoop() {
   enemyManager.draw(ctx);
   muzzleFlash.draw(ctx);
   ship.draw();
-
-  ui.draw(ctx, isMuted, isPaused);
 }
 
 // ==================== WINDOW RESIZE ====================
@@ -190,10 +187,9 @@ window.addEventListener('resize', () => {
   gameCanvas.height = h;
   ship.handleResize();
   crosshair.handleResize();
-  ui.handleResize();
 });
 
 // ==================== START ====================
-console.log('âœ” All systems initialized');
+console.log('Ã¢Å“â€ All systems initialized');
 console.log('=== Starting game loop ===');
 gameLoop();

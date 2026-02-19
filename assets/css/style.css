@@ -333,3 +333,71 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   text-shadow: 0 0 10px #c71585;
   margin-left: 4px;
 }
+/* ========================= UI ICON BUTTONS ========================= */
+#ui-buttons {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 20px;
+  z-index: 300;
+}
+
+.ui-icon {
+  width: 37px;
+  height: 37px;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  background-image: url('../../images/icons.png');
+  background-size: auto 100%;  
+  background-repeat: no-repeat;
+  cursor: pointer;
+  opacity: 0.82;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-icon:hover { opacity: 1; }
+
+#btn-sound          { background-position:    0px 0; }
+#btn-sound.muted    { background-position:  -37px 0; opacity: 0.5; }
+#btn-pause          { background-position:  -74px 0; }
+#btn-pause.paused   { background-position: -111px 0; opacity: 0.95; }
+
+
+/* ========================= PAUSE OVERLAY ========================= */
+#pause-overlay {
+  display: none;                  
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 400;
+  pointer-events: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+#pause-overlay.active {
+  display: flex;
+}
+
+.pause-title {
+  font-family: 'GothNerd';
+  font-size: 5rem;
+  letter-spacing: 0.15em;
+  color: #67FEBD;
+  text-shadow:
+    0 0 40px rgba(0, 255, 255, 0.4),
+    0 0 12px #00FFFF;
+}
+
+.pause-hint {
+  font-family: 'SpaceLetters';
+  font-size: 1.3rem;
+  color: #FFC7FF;
+  opacity: 0.7;
+  letter-spacing: 0.12em;
+}

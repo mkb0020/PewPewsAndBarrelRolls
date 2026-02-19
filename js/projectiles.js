@@ -113,27 +113,15 @@ export class Projectile {
 }
 
 export class Explosion {
-  constructor(x, y) {
+  constructor(x, y, sprite, frameWidth) {
     this.x = x;
     this.y = y;
     this.currentFrame = 0;
     this.frameTime = 0;
     this.isDead = false;
     this.size = CONFIG.EXPLOSIONS.SIZE;
-    this.sprite = null;
-    this.spriteLoaded = false;
-    this.frameWidth = 0;
-
-    this.loadSprite();
-  }
-
-  loadSprite() {
-    this.sprite = new Image();
-    this.sprite.src = CONFIG.EXPLOSIONS.SPRITE;
-    this.sprite.onload = () => {
-      this.spriteLoaded = true;
-      this.frameWidth = this.sprite.width / CONFIG.EXPLOSIONS.FRAMES;
-    };
+    this.sprite = sprite;         // SHARED - cached at ProjectileManager level
+    this.frameWidth = frameWidth; // SHARED
   }
 
   update(dt) {
@@ -150,17 +138,14 @@ export class Explosion {
   }
 
   draw(ctx) {
-    if (!this.spriteLoaded) return;
+    if (!this.sprite || !this.frameWidth) return;
 
     ctx.save();
     const sx = this.currentFrame * this.frameWidth;
-    const sy = 0;
-    const sw = this.frameWidth;
-    const sh = this.sprite.height;
 
     ctx.drawImage(
       this.sprite,
-      sx, sy, sw, sh,
+      sx, 0, this.frameWidth, this.sprite.height,
       this.x - this.size / 2,
       this.y - this.size / 2,
       this.size,
@@ -175,7 +160,15 @@ export class ProjectileManager {
     this.projectiles = [];
     this.explosions = [];
     
-    console.log('âœ” Projectile manager initialized');
+    // CACHE EXPLOSION SPRITE ONCE - shared across all Explosion instances
+    this.explosionSprite = new Image();
+    this.explosionFrameWidth = 0;
+    this.explosionSprite.src = CONFIG.EXPLOSIONS.SPRITE;
+    this.explosionSprite.onload = () => {
+      this.explosionFrameWidth = this.explosionSprite.width / CONFIG.EXPLOSIONS.FRAMES;
+    };
+    
+    console.log('✔ Projectile manager initialized');
   }
 
   shoot(x, y, targetX, targetY) {
@@ -195,7 +188,7 @@ export class ProjectileManager {
   }
 
   createExplosion(x, y) {
-    const explosion = new Explosion(x, y);
+    const explosion = new Explosion(x, y, this.explosionSprite, this.explosionFrameWidth);
     this.explosions.push(explosion);
   }
 
@@ -267,7 +260,7 @@ export class Crosshair {
     this.smoothedInput = { x: 0, y: 0 };
 
     this.loadSprite();
-    console.log('âœ” Crosshair initialized');
+    console.log('Ã¢Å“â€ Crosshair initialized');
   }
 
   loadSprite() {
@@ -276,10 +269,10 @@ export class Crosshair {
     this.sprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.sprite.width / CONFIG.SHOOTING.CROSSHAIR_FRAMES;
-      console.log('âœ” Crosshair sprite loaded');
+      console.log('Ã¢Å“â€ Crosshair sprite loaded');
     };
     this.sprite.onerror = () => {
-      console.warn('âš   Crosshair sprite not found, using fallback');
+      console.warn('Ã¢Å¡Â   Crosshair sprite not found, using fallback');
     };
   }
 
@@ -340,7 +333,7 @@ export class Crosshair {
     this.targetX = Math.max(margin, Math.min(window.innerWidth  - margin, rawTargetX));
     this.targetY = Math.max(margin, Math.min(window.innerHeight - margin, rawTargetY));
 
-    // =============== CHASE INNER â†’ TARGET ===============
+    // =============== CHASE INNER Ã¢â€ â€™ TARGET ===============
     this.x += (this.targetX - this.x) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
     this.y += (this.targetY - this.y) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
 
@@ -358,7 +351,7 @@ export class Crosshair {
       this.outerY = this.y + (dy / dist) * sep;
     }
 
-    // ========================== LOCK-ON: SHIP â†’ CROSSHAIR LINE SEGMENT vs ENEMY CIRCLE / lLINE OF FIRE - ANYWHERE BETWEEN SHIP AND RECTILE ==========================
+    // ========================== LOCK-ON: SHIP Ã¢â€ â€™ CROSSHAIR LINE SEGMENT vs ENEMY CIRCLE / lLINE OF FIRE - ANYWHERE BETWEEN SHIP AND RECTILE ==========================
     this.isLockedOn = false;
     if (enemies && enemies.length > 0) {
       const seg = { x1: shipX, y1: shipY, x2: this.targetX, y2: this.targetY };

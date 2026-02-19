@@ -9,22 +9,24 @@ export class AudioManager {
     this._preMuteVolume = 1.0;
 
     // BACKGROUND MUSIC 
-    this.musicEl = new Audio('./audio/spaceSong.wav');
+    this.musicEl = new Audio('./audio/wormholeTheme.m4a');
     this.musicEl.loop    = true;
     this.musicEl.preload = 'auto';
 
-    this.MUSIC_VOLUME  = 0.75;
-    this.LASER_VOLUME  = 0.3;
-    this.IMPACT_VOLUME = 0.2;
-    this.SPAWN_VOLUME  = 0.15;
+    this.MUSIC_VOLUME       = 0.75;
+    this.LASER_VOLUME       = 0.3;
+    this.IMPACT_VOLUME      = 0.2;
+    this.SPAWN_VOLUME       = 0.15;
+    this.BARREL_ROLL_VOLUME = 0.15;
 
     this.musicEl.volume = this.MUSIC_VOLUME;
 
     // SFX POOLS
     this.sfxPools = {
-      laser:  this._createPool('./audio/laser.wav',  6),
-      impact: this._createPool('./audio/impact.wav', 6),
-      spawn:  this._createPool('./audio/spawn.wav',  4),
+      laser:      this._createPool('./audio/laser.m4a',      6),
+      impact:     this._createPool('./audio/impact.m4a',     6),
+      spawn:      this._createPool('./audio/spawn.m4a',      4),
+      barrelRoll: this._createPool('./audio/barrelRoll.m4a', 2),
     };
 
     this._initContext();
@@ -71,35 +73,30 @@ export class AudioManager {
   }
 
   // ==================== PUBLIC API ====================
-  async start() {
+  start() {
     if (this.isStarted) return;
     this.isStarted = true;
 
-    try {
-      if (this.context && this.context.state === 'suspended') {
-        await this.context.resume();
-      }
-    } catch (e) {
-      console.warn('⚠ Could not resume AudioContext:', e);
+    // RESUME AUDIOCONTEXT 
+    if (this.context && this.context.state === 'suspended') {
+      this.context.resume().catch(() => {});
     }
 
-
-    try {
-      await this.musicEl.play();
+    // PLAY MUSIC - IOS SAFARI BLOCKS .play() IF ANY AWAIT HAS OCCURED FIRST IN THE CALL STACK
+    this.musicEl.play().then(() => {
       console.log('✔ Background music started');
-    } catch (e) {
+    }).catch(e => {
       console.warn('⚠ Could not autoplay music (will retry on next interaction):', e);
-      const retry = async () => {
-        try {
-          await this.musicEl.play();
+      const retry = () => {
+        this.musicEl.play().then(() => {
           console.log('✔ Music started on retry');
-        } catch (_) {}
+        }).catch(() => {});
         window.removeEventListener('touchstart', retry);
-        window.removeEventListener('click', retry);
+        window.removeEventListener('click',      retry);
       };
       window.addEventListener('touchstart', retry, { once: true });
       window.addEventListener('click',      retry, { once: true });
-    }
+    });
   }
 
   stop() {
@@ -129,7 +126,8 @@ export class AudioManager {
   }
 
   // SFX SHORTCUTS
-  playLaser()  { this._playSfx('laser',  this.LASER_VOLUME);  }
-  playImpact() { this._playSfx('impact', this.IMPACT_VOLUME); }
-  playSpawn()  { this._playSfx('spawn',  this.SPAWN_VOLUME);  }
+  playLaser()      { this._playSfx('laser',      this.LASER_VOLUME);       }
+  playImpact()     { this._playSfx('impact',     this.IMPACT_VOLUME);      }
+  playSpawn()      { this._playSfx('spawn',      this.SPAWN_VOLUME);       }
+  playBarrelRoll() { this._playSfx('barrelRoll', this.BARREL_ROLL_VOLUME); }
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>NEON TUNNEL</title>
+  <title>WORMHOLE</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -21,6 +21,18 @@
 
   <script type="module" src="js/main.js"></script>
 
+  <!-- UI ICON BUTTONS - DOM ELEMENTS - ZERO CANVAS COST -->
+  <div id="ui-buttons">
+    <button class="ui-icon" id="btn-sound" aria-label="Toggle sound"></button>
+    <button class="ui-icon" id="btn-pause" aria-label="Toggle pause"></button>
+  </div>
+
+  <!-- PAUSE OVERLAY - SHOWN/HIDDEN VIA ACTIVE CLASS -->
+  <div id="pause-overlay">
+    <div class="pause-title">PAUSED</div>
+    <div class="pause-hint">press &nbsp;P&nbsp; to resume</div>
+  </div>
+
 <!-- SCOREBOARD HUD -->
 <div id="hud">
   <div class="hud-block" id="score-block">
@@ -29,7 +41,7 @@
   </div>
 
   <!--<div class="hud-block hidden" id="combo-display">
-    <div id="combo-value">×1</div>
+    <div id="combo-value">x1</div>
     <div class="hud-label">COMBO</div>
     <div id="combo-bar">
       <div id="combo-bar-fill"></div>
