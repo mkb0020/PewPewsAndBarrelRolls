@@ -129,7 +129,7 @@ function gameLoop() {
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
     ship.update(dt);
 
-    crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
+    crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies(), tunnel.getVanishingPoint());
     enemyManager.update(dt);
     projectileManager.update(dt);
     muzzleFlash.update(dt);
@@ -190,6 +190,6 @@ window.addEventListener('resize', () => {
 });
 
 // ==================== START ====================
-console.log('Ã¢Å“â€ All systems initialized');
+console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â All systems initialized');
 console.log('=== Starting game loop ===');
 gameLoop();

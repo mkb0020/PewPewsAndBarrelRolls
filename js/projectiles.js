@@ -6,7 +6,7 @@ import { segmentCircleCollision } from './collision.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export class Projectile {
-  constructor(x, y, dirX, dirY) {
+  constructor(x, y, dirX, dirY, targetX, targetY) {
     this.x = x;
     this.y = y;
     this.dirX = dirX;
@@ -18,16 +18,14 @@ export class Projectile {
     this.glowColor = CONFIG.SHOOTING.PROJECTILE_GLOW_COLOR;
     this.isDead = false;
 
-    // 3D PERSPECTIVE - TRACK DISTANCE TO VANISHING POINT ( SCREEN CENTER)
+    // 3D PERSPECTIVE - USE ACTUAL TARGET POS AS VANISHING POINT 
     this.startX = x;
     this.startY = y;
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    const dx = cx - x;
-    const dy = cy - y;
-    this.maxDistance = Math.sqrt(dx * dx + dy * dy) * 0.88;     // MAX TRAVEL = DISTANCE FROM SHIP TO CENTER * 0.88 ( DIES RIGHT BEFORE VANISHING POINT) 
+    const dx = (targetX ?? window.innerWidth  / 2) - x;
+    const dy = (targetY ?? window.innerHeight / 2) - y;
+    this.maxDistance = Math.sqrt(dx * dx + dy * dy); // REACH CROSS HAIR EXACTLY - ALPHA FADES TO 0 THERE
     this.distanceTraveled = 0;
-    this.depthScale = 1.0; // 1.0 AT SHIP, ~0 AT VANISHING POINT
+    this.depthScale = 1.0;
     this.alpha = 1.0;
   }
 
@@ -120,7 +118,7 @@ export class Explosion {
     this.frameTime = 0;
     this.isDead = false;
     this.size = CONFIG.EXPLOSIONS.SIZE;
-    this.sprite = sprite;         // SHARED - cached at ProjectileManager level
+    this.sprite = sprite;         // SHARED 
     this.frameWidth = frameWidth; // SHARED
   }
 
@@ -160,7 +158,7 @@ export class ProjectileManager {
     this.projectiles = [];
     this.explosions = [];
     
-    // CACHE EXPLOSION SPRITE ONCE - shared across all Explosion instances
+    // CACHE EXPLOSION SPRITE ONCE 
     this.explosionSprite = new Image();
     this.explosionFrameWidth = 0;
     this.explosionSprite.src = CONFIG.EXPLOSIONS.SPRITE;
@@ -168,7 +166,7 @@ export class ProjectileManager {
       this.explosionFrameWidth = this.explosionSprite.width / CONFIG.EXPLOSIONS.FRAMES;
     };
     
-    console.log('✔ Projectile manager initialized');
+    console.log('âœ” Projectile manager initialized');
   }
 
   shoot(x, y, targetX, targetY) {
@@ -183,7 +181,7 @@ export class ProjectileManager {
     const dirX = dx / distance;
     const dirY = dy / distance;
 
-    const projectile = new Projectile(x, y, dirX, dirY);
+    const projectile = new Projectile(x, y, dirX, dirY, targetX, targetY);
     this.projectiles.push(projectile);
   }
 
@@ -260,7 +258,7 @@ export class Crosshair {
     this.smoothedInput = { x: 0, y: 0 };
 
     this.loadSprite();
-    console.log('Ã¢Å“â€ Crosshair initialized');
+    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â Crosshair initialized');
   }
 
   loadSprite() {
@@ -269,10 +267,10 @@ export class Crosshair {
     this.sprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth = this.sprite.width / CONFIG.SHOOTING.CROSSHAIR_FRAMES;
-      console.log('Ã¢Å“â€ Crosshair sprite loaded');
+      console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â Crosshair sprite loaded');
     };
     this.sprite.onerror = () => {
-      console.warn('Ã¢Å¡Â   Crosshair sprite not found, using fallback');
+      console.warn('ÃƒÂ¢Ã…Â¡Ã‚Â   Crosshair sprite not found, using fallback');
     };
   }
 
@@ -282,11 +280,13 @@ export class Crosshair {
   }
 
   // ================== UPDATE / shipOffsetX/Y: CURRENT SHIP OFFSET FROMS CREEN CENTER  ==================
-  update(shipOffsetX, shipOffsetY, dt, enemies) {
-    const centerX = window.innerWidth  / 2;
-    const centerY = window.innerHeight / 2;
-    const shipX   = centerX + shipOffsetX;
-    const shipY   = centerY - shipOffsetY; 
+  update(shipOffsetX, shipOffsetY, dt, enemies, vanishingPoint) {
+    // VANISHING POINT - WHERE THE TUNNEL MOUTH CONVERGES ON SCREEN - CROSSHAIR'S GRAVITY TARGET
+    const centerX = vanishingPoint ? vanishingPoint.x : window.innerWidth  / 2;
+    const centerY = vanishingPoint ? vanishingPoint.y : window.innerHeight / 2;
+    // SHIP - ALWAYS RENDERED AT SCREEN CENTER + OFFSET (INDEPENDENT OF TUNNEL PERSPECTIVE)
+    const shipX = window.innerWidth  / 2 + shipOffsetX;
+    const shipY = window.innerHeight / 2 - shipOffsetY;
 
     // ================== RESOLVE RAW INPUT VECTOR ==================
     // Priority: mobile joystick > mouse > keyboard
@@ -333,7 +333,7 @@ export class Crosshair {
     this.targetX = Math.max(margin, Math.min(window.innerWidth  - margin, rawTargetX));
     this.targetY = Math.max(margin, Math.min(window.innerHeight - margin, rawTargetY));
 
-    // =============== CHASE INNER Ã¢â€ â€™ TARGET ===============
+    // =============== CHASE INNER ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ TARGET ===============
     this.x += (this.targetX - this.x) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
     this.y += (this.targetY - this.y) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
 
@@ -351,7 +351,7 @@ export class Crosshair {
       this.outerY = this.y + (dy / dist) * sep;
     }
 
-    // ========================== LOCK-ON: SHIP Ã¢â€ â€™ CROSSHAIR LINE SEGMENT vs ENEMY CIRCLE / lLINE OF FIRE - ANYWHERE BETWEEN SHIP AND RECTILE ==========================
+    // ========================== LOCK-ON: SHIP ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ CROSSHAIR LINE SEGMENT vs ENEMY CIRCLE / lLINE OF FIRE - ANYWHERE BETWEEN SHIP AND RECTILE ==========================
     this.isLockedOn = false;
     if (enemies && enemies.length > 0) {
       const seg = { x1: shipX, y1: shipY, x2: this.targetX, y2: this.targetY };
@@ -442,7 +442,7 @@ export class Crosshair {
   }
 
   getPosition() {
-    return { x: this.targetX, y: this.targetY };
+    return { x: this.x, y: this.y };
   }
 
   handleResize() {

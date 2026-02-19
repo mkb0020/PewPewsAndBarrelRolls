@@ -13,7 +13,7 @@ export class Tunnel {
     this.initScene();
     this.initTunnel();
     
-    console.log('✓ Tunnel initialized');
+    console.log('âœ“ Tunnel initialized');
   }
 
   initScene() {
@@ -61,7 +61,7 @@ export class Tunnel {
     );
 
     this.material = new THREE.MeshBasicMaterial({ // MAIN WIREFRAME
-      color: 0x00ffff,
+      color: 0xA55AFF, // CHANGED TO PURPLE
       wireframe: true,
       transparent: true,
       opacity: 0.4,
@@ -71,14 +71,14 @@ export class Tunnel {
     this.scene.add(this.tube);
 
     const glowMat = new THREE.MeshBasicMaterial({  // GLOW LAYER
-      color: 0x00ffff,
+      color: 0xA55AFF, // CHANGED TO PURPLE
       transparent: true,
-      opacity: 0.18,
+      opacity: 0.15, // DECREASED SLIGHTLY
       blending: THREE.AdditiveBlending,
     });
     
     this.glowTube = new THREE.Mesh(geometry, glowMat);
-    this.glowTube.scale.set(1.12, 1.12, 1.12);
+    this.glowTube.scale.set(1.25, 1.0, 1.25); // CHANGED FROM 1.12, 1.12, 1.12
     this.scene.add(this.glowTube);
     this.glowMat = glowMat;
   }
@@ -129,5 +129,25 @@ export class Tunnel {
 
   getTime() {
     return this.time;
+  }
+
+  // PROJECTS A POINT SLIGHTLY AHEAD ALONG THE TUNNEL CURVE INTO 2D SCREEN SPACE - RETURNS THE PIXEL COORDINATE WHERE THE TUNNEL VISUALLY CONVERGES — THE TRUE VANISHING POINT FOR THIS FRAME, WHICH SHIFTS AS THE CAMERA ROLLS AND CURVES - USED BY THE CROSSHAIR SO AIM-GRAVITY TRACKS THE TUNNEL MOUTH, NOT SCREEN CENTER.
+  getVanishingPoint() { // SAMPLE A POINT A SHORT LOOK-AHEAD DISTANCE ALONG THE CURVE
+    const progress = (this.time * CONFIG.TUNNEL.SPEED) % 1;
+    const lookProgress = (progress + 0.018) % 1;
+    const lookPos = this.curve.getPointAt(lookProgress);
+
+    const ndc = lookPos.clone().project(this.camera); // PROJECT WORLD-SPACE POINT → NDC → PIXEL
+    const projX = ( ndc.x + 1) / 2 * window.innerWidth;
+    const projY = (-ndc.y + 1) / 2 * window.innerHeight;
+
+    const scx = window.innerWidth  / 2; // THE PROJECTED SPINE POINT ENDS UP MIRRORED FROM THE VISUAL TUNNEL MOUTH - SO REFLECT THE OFFSET RELATIVE TO SCREEN CENTER TO CORRECT DIRECTION.
+    const scy = window.innerHeight / 2;
+    const strength = 0.25; // 0=SCREEN CENTER, 1=FULL REFLECTION 
+    return {
+      x: scx - (projX - scx) * strength,
+      y: scy - (projY - scy) * strength,
+    };
+  
   }
 }
