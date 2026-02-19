@@ -27,13 +27,14 @@ export class AudioManager {
       impact:     this._createPool('./audio/impact.m4a',     6),
       spawn:      this._createPool('./audio/spawn.m4a',      4),
       barrelRoll: this._createPool('./audio/barrelRoll.m4a', 2),
+      wormNoise:  this._createPool('./audio/wormNoise.m4a',  2),
     };
 
     this._initContext();
-    console.log('✔ AudioManager initialized');
+    console.log('âœ” AudioManager initialized');
   }
 
-  // WEB AUDIO — SFX ONLY
+  // WEB AUDIO â€” SFX ONLY
   _initContext() {
     try {
       this.context    = new (window.AudioContext || window.webkitAudioContext)();
@@ -46,7 +47,7 @@ export class AudioManager {
       this.sfxGain.connect(this.masterGain);
       this.masterGain.connect(this.context.destination);
     } catch (e) {
-      console.warn('⚠ Web Audio API not supported:', e);
+      console.warn('âš  Web Audio API not supported:', e);
     }
   }
 
@@ -84,12 +85,12 @@ export class AudioManager {
 
     // PLAY MUSIC - IOS SAFARI BLOCKS .play() IF ANY AWAIT HAS OCCURED FIRST IN THE CALL STACK
     this.musicEl.play().then(() => {
-      console.log('✔ Background music started');
+      console.log('âœ” Background music started');
     }).catch(e => {
-      console.warn('⚠ Could not autoplay music (will retry on next interaction):', e);
+      console.warn('âš  Could not autoplay music (will retry on next interaction):', e);
       const retry = () => {
         this.musicEl.play().then(() => {
-          console.log('✔ Music started on retry');
+          console.log('âœ” Music started on retry');
         }).catch(() => {});
         window.removeEventListener('touchstart', retry);
         window.removeEventListener('click',      retry);
@@ -105,7 +106,7 @@ export class AudioManager {
     this.musicEl.currentTime = 0;
   }
 
-  /** Toggle mute — affects both music and SFX */
+  /** Toggle mute â€” affects both music and SFX */
   toggleMute() {
     this.isMuted = !this.isMuted;
 
@@ -130,4 +131,5 @@ export class AudioManager {
   playImpact()     { this._playSfx('impact',     this.IMPACT_VOLUME);      }
   playSpawn()      { this._playSfx('spawn',      this.SPAWN_VOLUME);       }
   playBarrelRoll() { this._playSfx('barrelRoll', this.BARREL_ROLL_VOLUME); }
+  playWormNoise()  { this._playSfx('wormNoise',  0.65);                     }
 }

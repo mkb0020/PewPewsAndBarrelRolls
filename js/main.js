@@ -10,6 +10,7 @@ import { circleCollision, segmentCircleCollision } from './collision.js';
 import { AudioManager } from './audio.js';
 import { GameUI } from './ui.js';
 import { ScoreManager } from './score.js';
+import { WormBoss } from './worm.js';
 
 
 console.log('=== YOU HAVE NOW ENTERED THE NEON WORMHOLE! ===');
@@ -32,7 +33,10 @@ const enemyManager    = new EnemyManager(ship.particles, tunnel);
 const projectileManager = new ProjectileManager();
 const crosshair       = new Crosshair();
 const muzzleFlash     = new MuzzleFlash();
-const scoreManager = new ScoreManager();
+const scoreManager    = new ScoreManager();
+const wormBoss        = new WormBoss();
+wormBoss.onAttack     = () => audio.playWormNoise();
+wormBoss.activate(); // PLACEHOLDER
 
 
 initKeyboard();
@@ -129,11 +133,12 @@ function gameLoop() {
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
     ship.update(dt);
 
-    crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies(), tunnel.getVanishingPoint());
+    crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
     enemyManager.update(dt);
     projectileManager.update(dt);
     muzzleFlash.update(dt);
     scoreManager.update(dt); 
+    wormBoss.update(dt);
     
     // COLLISION
     const projectiles = projectileManager.getProjectiles();
@@ -163,6 +168,24 @@ function gameLoop() {
           break;
         }
       }
+
+      // ================== WORM BOSS COLLISION ==================
+      if (!projectile.isDead) {
+        const seg      = projectile.getSegment();
+        const wormHit  = wormBoss.checkProjectileHit(seg);
+        if (wormHit.hit) {
+          projectileManager.removeProjectile(projectile);
+          audio.playImpact();
+          if (wormHit.killed) {
+            projectileManager.createExplosion(wormHit.x, wormHit.y);
+            scoreManager.addScore(500, wormHit.x, wormHit.y);
+          } else {
+            projectileManager.createExplosion(wormHit.x, wormHit.y);
+            const segScore = wormHit.segIndex === 0 ? 25 : 10;
+            scoreManager.addScore(segScore, wormHit.x, wormHit.y);
+          }
+        }
+      }
     }
   }
 
@@ -172,6 +195,7 @@ function gameLoop() {
 
   projectileManager.draw(ctx);
   crosshair.draw(ctx);
+  wormBoss.draw(ctx);
   enemyManager.draw(ctx);
   muzzleFlash.draw(ctx);
   ship.draw();
