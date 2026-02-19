@@ -131,5 +131,5 @@ export class AudioManager {
   playImpact()     { this._playSfx('impact',     this.IMPACT_VOLUME);      }
   playSpawn()      { this._playSfx('spawn',      this.SPAWN_VOLUME);       }
   playBarrelRoll() { this._playSfx('barrelRoll', this.BARREL_ROLL_VOLUME); }
-  playWormNoise()  { this._playSfx('wormNoise',  0.65);                     }
+  playWormNoise()  { this._playSfx('wormNoise',  0.75);                     }
 }

@@ -1,10 +1,11 @@
-// worm.js
+/// WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from './config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ======================= LAYERED SINE NOISE =======================
-// OVERLAPPING SINE WAVES AT DIFFERENT FREQUENCIES / PHASES PRODUCE SMOOTH ORGANIC MOTITON WITHOUT ANY EXTERNAL NOISE LIBRARY
+// OVERLAPPING SINE WAVES AT DIFFERENT FREQUENCIES/PHASES PRODUCE
+// SMOOTH ORGANIC MOTION WITHOUT ANY EXTERNAL NOISE LIBRARY.
 function organicNoise(t, layers) {
   let val = 0;
   for (const [amp, freq, phase] of layers) {
@@ -17,7 +18,7 @@ function organicNoise(t, layers) {
 const WORM = {
   NUM_SEGMENTS:     20,
   SEGMENT_SPACING:  30,    // WORLD-SPACE DISTANCE BETWEEN SEGMENTS
-  BASE_SIZE:        200,   // HEAD SPRITE SIZE AT SCALE 1.0
+  BASE_SIZE:        350,   // HEAD SPRITE SIZE AT SCALE 1.0
   TAIL_SIZE_RATIO:  0.28,  // TAIL SCALES DOWN SMALLER SINCE NO DEDICATED TAIL SPRITE
   FOCAL_LENGTH:     200,   // PERSPECTIVE FOCAL LENGTH
   START_Z:          1400,  // STARTS FAR AWAY (TINY)
@@ -28,11 +29,12 @@ const WORM = {
   FRAME_SEGMENT:    1,
   FRAME_TAIL:       1,     // REUSE SEGMENT SPRITE, JUST SCALED SMALLER
 
-  // ATTACK ANIMATION (FRAMES 4-9 ON HEAD ONLY)
-  FRAME_ATTACK_START: 3,   // 0-INDEXED: FRAME 4 = INDEX 3
+  FRAME_TRANSITION:   2,   // FRAME 3 (0-INDEXED) — SHOWN BEFORE & AFTER ATTACK LOOP
+  TRANSITION_DURATION: 0.25, // HOW LONG THE TRANSITION FRAME HOLDS
+  FRAME_ATTACK_START:   3, 
   FRAME_ATTACK_END:   8,   // 0-INDEXED: FRAME 9 = INDEX 8
-  ATTACK_INTERVAL:    7,   // SECONDS BETWEEN ATTACKS
-  ATTACK_DURATION:    3,   // HOW LONG THE ATTACK LOOP PLAYS
+  ATTACK_INTERVAL:    7, // SECONDS BETWEEN ATTACKS
+  ATTACK_DURATION:    4, // HOW LONG THE ATTACK LOOP PLAYS
   ATTACK_FPS:         10,  // FRAMES PER SECOND FOR ATTACK ANIMATION
 
   // SPAWN OFFSET — NEGATIVE X = LEFT, POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
@@ -77,21 +79,21 @@ export class WormBoss {
     this.alpha        = WORM.ALPHA_START;
 
     // ATTACK ANIMATION STATE
-    this.attackTimer    = WORM.ATTACK_INTERVAL; // COUNTDOWN TO NEXT ATTACK
-    this.isAttacking    = false;
-    this.attackProgress = 0;   // TIME SPENT IN CURRENT ATTACK
-    this.attackFrame    = WORM.FRAME_ATTACK_START; // CURRENT SPRITE FRAME DURING ATTACK
-    this.attackFrameTime = 0;  // ACCUMULATOR FOR FRAME STEPPING
+    this.attackTimer     = WORM.ATTACK_INTERVAL;
+    this.isAttacking     = false;
+    this.attackPhase     = 'idle';  // 'IDLE' | 'TRANSIN' | 'LOOP' | 'TRANSOUT'
+    this.attackProgress  = 0;
+    this.attackFrame     = WORM.FRAME_ATTACK_START;
+    this.attackFrameTime = 0;
 
-    // OPTIONAL CALLBACK — SET THIS TO PLAY SOUND FROM MAIN.JS
+    // OPTIONAL CALLBACK 
     this.onAttack = null;
 
     // HEAD WORLD-SPACE POSITION — START AT SPAWN OFFSET
     this.headX  = WORM.SPAWN_OFFSET_X;
     this.headY  = WORM.SPAWN_OFFSET_Y;
 
-    // CHAIN OF SEGMENTS — INDEX 0 IS THE HEAD
-    // START STACKED WITH SPAWN OFFSET SO IT APPEARS FROM LOWER-LEFT (AROUND THE BEND)
+    // CHAIN OF SEGMENTS — INDEX 0 IS THE HEAD - START STACKED WITH SPAWN OFFSET SO IT APPEARS FROM LOWER-LEFT (AROUND THE BEND)
     this.segments = Array.from({ length: WORM.NUM_SEGMENTS }, (_, i) => ({
       x:           WORM.SPAWN_OFFSET_X,
       y:           WORM.SPAWN_OFFSET_Y + i * WORM.SEGMENT_SPACING,
@@ -136,47 +138,56 @@ export class WormBoss {
 
     this.time += dt;
 
-    // ======== APPROACH ========
+    // ============= APPROACH =============
     this.z       += (WORM.IDLE_Z - this.z) * WORM.APPROACH_SPEED;
     this.baseScale = WORM.FOCAL_LENGTH / (WORM.FOCAL_LENGTH + this.z);
 
-    // ======== FADE IN ========
+    // ============= FADE IN =============
     this.alpha += (WORM.ALPHA_FULL - this.alpha) * WORM.ALPHA_SPEED;
 
-    // ======== ATTACK CYCLE ========
+    // ============= ATTACK CYCLE =============
     if (this.isAttacking) {
-      this.attackProgress  += dt;
-      this.attackFrameTime += dt;
+      this.attackProgress += dt;
 
-      // STEP THROUGH FRAMES 4–9 AT ATTACK_FPS
-      const frameDur = 1 / WORM.ATTACK_FPS;
-      if (this.attackFrameTime >= frameDur) {
-        this.attackFrameTime -= frameDur;
-        this.attackFrame++;
-        if (this.attackFrame > WORM.FRAME_ATTACK_END) {
-          this.attackFrame = WORM.FRAME_ATTACK_START; // LOOP
+      if (this.attackPhase === 'transIn') {
+        // HOLD FRAME 3 BRIEFLY, THEN START THE LOOP
+        if (this.attackProgress >= WORM.TRANSITION_DURATION) {
+          this.attackPhase     = 'loop';
+          this.attackProgress  = 0;
+          this.attackFrame     = WORM.FRAME_ATTACK_START;
+          this.attackFrameTime = 0;
+        }
+
+      } else if (this.attackPhase === 'loop') {
+        // CYCLE FRAMES 4–9 AT ATTACK_FPS
+        this.attackFrameTime += dt;
+        const frameDur = 1 / WORM.ATTACK_FPS;
+        if (this.attackFrameTime >= frameDur) {
+          this.attackFrameTime -= frameDur;
+          this.attackFrame++;
+          if (this.attackFrame > WORM.FRAME_ATTACK_END) {
+            this.attackFrame = WORM.FRAME_ATTACK_START;
+          }
+        }
+        // AFTER ATTACK_DURATION, GO STRAIGHT BACK TO IDLE
+        if (this.attackProgress >= WORM.ATTACK_DURATION) {
+          this.isAttacking  = false;
+          this.attackPhase  = 'idle';
+          this.attackTimer  = WORM.ATTACK_INTERVAL;
         }
       }
 
-      // END ATTACK AFTER ATTACK_DURATION
-      if (this.attackProgress >= WORM.ATTACK_DURATION) {
-        this.isAttacking    = false;
-        this.attackProgress = 0;
-        this.attackTimer    = WORM.ATTACK_INTERVAL;
-      }
     } else {
       this.attackTimer -= dt;
-      if (this.attackTimer <= 0 && this.alpha > 0.8) { // DON'T ATTACK WHILE STILL FADING IN
+      if (this.attackTimer <= 0 && this.alpha > 0.8) {
         this.isAttacking    = true;
+        this.attackPhase    = 'transIn';
         this.attackProgress = 0;
-        this.attackFrameTime = 0;
-        this.attackFrame    = WORM.FRAME_ATTACK_START;
-        if (this.onAttack) this.onAttack(); // FIRE SOUND CALLBACK
+        if (this.onAttack) this.onAttack();
       }
     }
 
-    // ======== ORGANIC HEAD MOVEMENT ========
-    // WIGGLE TARGET DRIFTS FROM SPAWN OFFSET TOWARD SCREEN CENTER OVER TIME
+    // ============= ORGANIC HEAD MOVEMENT - WIGGLE TARGET DRIFTS FROM SPAWN OFFSET TOWARD SCREEN CENTER OVER TIME =============
     const t = this.time + this.phaseOffset;
     const approachFrac = 1.0 - Math.max(0, (this.z - WORM.IDLE_Z) / (WORM.START_Z - WORM.IDLE_Z));
     const spawnBlendX  = WORM.SPAWN_OFFSET_X * (1.0 - approachFrac);
@@ -190,7 +201,7 @@ export class WormBoss {
     this.segments[0].x = this.headX;
     this.segments[0].y = this.headY;
 
-    // ======== CHAIN IK — EACH SEGMENT FOLLOWS THE ONE AHEAD ========
+    // ============= CHAIN IK — EACH SEGMENT FOLLOWS THE ONE AHEAD =============
     for (let i = 1; i < WORM.NUM_SEGMENTS; i++) {
       const prev = this.segments[i - 1];
       const curr = this.segments[i];
@@ -205,7 +216,7 @@ export class WormBoss {
       }
     }
 
-    // ======== PROJECT TO SCREEN SPACE & CACHE ========
+    // ─=============─ PROJECT TO SCREEN SPACE & CACHE =============
     const cx = window.innerWidth  / 2;
     const cy = window.innerHeight / 2;
     const bs = this.baseScale;
@@ -242,14 +253,17 @@ export class WormBoss {
 
       // SPRITE FRAME
       let frame;
-      if (i === 0)                          frame = this.isAttacking ? this.attackFrame : WORM.FRAME_HEAD;
-      else if (i === WORM.NUM_SEGMENTS - 1) frame = WORM.FRAME_TAIL;
-      else                                  frame = WORM.FRAME_SEGMENT;
+      if (i === 0) {
+        if (this.attackPhase === 'loop')   frame = this.attackFrame;
+        else if (this.attackPhase === 'transIn') frame = WORM.FRAME_TRANSITION;
+        else                               frame = WORM.FRAME_HEAD;
+      } else if (i === WORM.NUM_SEGMENTS - 1) frame = WORM.FRAME_TAIL;
+      else                                    frame = WORM.FRAME_SEGMENT;
 
       ctx.save();
       ctx.translate(seg.screenX, seg.screenY);
 
-      // ======== ROTATION ========
+      // ── ROTATION ──────────────────────────────────────
       if (i === 0) {
         // HEAD: FACES US — JUST A TINY WIGGLE SO IT FEELS ALIVE
         const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
@@ -262,21 +276,20 @@ export class WormBoss {
         ctx.rotate(Math.atan2(dy, dx) - Math.PI / 2);
       }
 
-      // ======== HIT FLASH ========
+      // ============= HIT FLASH =============
       if (seg.flashTimer > 0) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.6;
       }
 
-      // ========= DRAW SPRITE (OR FALLBACK CIRCLES) =========
+      // ============= DRAW SPRITE (OR FALLBACK CIRCLES) =============
       if (this.spriteLoaded && this.frameWidth > 0) {
         ctx.drawImage(
           this.sprite,
           frame * this.frameWidth, 0, this.frameWidth, this.sprite.height,
           -size / 2, -size / 2, size, size
         );
-      } else {
-        // FALLBACK: COLOURED CIRCLES
+      } else { // FALLBACK
         const colors = ['#ff00aa', '#cc00ff', '#8800cc'];
         ctx.fillStyle = colors[frame] || '#ff00aa';
         ctx.beginPath();
