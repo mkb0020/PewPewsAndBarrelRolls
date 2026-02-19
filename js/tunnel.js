@@ -9,11 +9,13 @@ export class Tunnel {
   constructor() {
     this.time = 0;
     this.shipOffset = { x: 0, y: 0 };
+    this._suctionIntensity = 0;
+    this._suctionTarget    = 0;
     
     this.initScene();
     this.initTunnel();
     
-    console.log('âœ“ Tunnel initialized');
+    console.log('Ã¢Å“â€œ Tunnel initialized');
   }
 
   initScene() {
@@ -49,48 +51,85 @@ export class Tunnel {
         Math.sin(angle) * CONFIG.TUNNEL.RADIUS
       ));
     }
-    
+
     this.curve = new THREE.CatmullRomCurve3(points, true);
 
-    const geometry = new THREE.TubeGeometry( // TUBE
+    // PRE-BAKE TWO GEOMETRIES — NORMAL + CONSTRICTED (FATTER WALLS = TIGHTER FEELING TUBE) /  GENERATED ONCE AT INIT, ZERO PER-FRAME COST — CROSSFADE VIA OPACITY
+    const normalGeom = new THREE.TubeGeometry(
       this.curve,
       CONFIG.TUNNEL.TUBE_SEGMENTS,
       CONFIG.TUNNEL.TUBE_RADIUS,
       CONFIG.TUNNEL.TUBE_RADIAL_SEGMENTS,
       true
     );
+    const constrictedGeom = new THREE.TubeGeometry(
+      this.curve,
+      CONFIG.TUNNEL.TUBE_SEGMENTS,
+      CONFIG.TUNNEL.TUBE_RADIUS * 0.7,  // FATTER CROSS-SECTION = WALLS CLOSE IN AROUND CAMERA
+      CONFIG.TUNNEL.TUBE_RADIAL_SEGMENTS,
+      true
+    );
 
-    this.material = new THREE.MeshBasicMaterial({ // MAIN WIREFRAME
-      color: 0xA55AFF, // CHANGED TO PURPLE
+    // =============== NORMAL TUBE ===============
+    this.material = new THREE.MeshBasicMaterial({
+      color: 0xA55AFF,
       wireframe: true,
       transparent: true,
       opacity: 0.4,
     });
-
-    this.tube = new THREE.Mesh(geometry, this.material);
+    this.tube = new THREE.Mesh(normalGeom, this.material);
     this.scene.add(this.tube);
 
-    const glowMat = new THREE.MeshBasicMaterial({  // GLOW LAYER
-      color: 0xA55AFF, // CHANGED TO PURPLE
+    this.glowMat = new THREE.MeshBasicMaterial({
+      color: 0xA55AFF,
       transparent: true,
-      opacity: 0.15, // DECREASED SLIGHTLY
+      opacity: 0.18,
       blending: THREE.AdditiveBlending,
     });
-    
-    this.glowTube = new THREE.Mesh(geometry, glowMat);
-    this.glowTube.scale.set(1.25, 1.0, 1.25); // CHANGED FROM 1.12, 1.12, 1.12
+    this.glowTube = new THREE.Mesh(normalGeom, this.glowMat);
+    this.glowTube.scale.set(1.25, 1.0, 1.25);
     this.scene.add(this.glowTube);
-    this.glowMat = glowMat;
+
+    // ── CONSTRICTED TUBE (STARTS INVISIBLE) ──────────────────────
+    this.constrictedMat = new THREE.MeshBasicMaterial({
+      color: 0xA55AFF,
+      wireframe: true,
+      transparent: true,
+      opacity: 0,
+    });
+    this.constrictedTube = new THREE.Mesh(constrictedGeom, this.constrictedMat);
+    this.scene.add(this.constrictedTube);
+
+    this.constrictedGlowMat = new THREE.MeshBasicMaterial({
+      color: 0xA55AFF,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+    });
+    this.constrictedGlowTube = new THREE.Mesh(constrictedGeom, this.constrictedGlowMat);
+    this.constrictedGlowTube.scale.set(1.25, 1.0, 1.25);
+    this.scene.add(this.constrictedGlowTube);
   }
+
 
   updateShipOffset(offsetX, offsetY) {
     this.shipOffset.x = offsetX;
     this.shipOffset.y = offsetY;
   }
 
+  // CALL FROM MAIN.JS — t: 0=NORMAL, 1=FULL SUCTION
+  setSuctionIntensity(t) {
+    this._suctionTarget = Math.max(0, Math.min(1, t));
+  }
+
   update(dt) {
     // FIXED TIMESTAMP FOR SMOOTH TUNNEL
     this.time += 0.016;
+
+    // LERP SUCTION INTENSITY — SNAPPY IN, SLOW RELEASE
+    const lerpSpeed = this._suctionTarget > this._suctionIntensity ? 0.03 : 0.015;
+    this._suctionIntensity += (this._suctionTarget - this._suctionIntensity) * lerpSpeed;
+    const si = this._suctionIntensity; // SHORTHAND
 
     // PROGRESS ALONG CURVE
     const progress = (this.time * CONFIG.TUNNEL.SPEED) % 1;
@@ -103,18 +142,26 @@ export class Tunnel {
     this.camera.lookAt(lookTarget);
     this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * CONFIG.TUNNEL.ROLL_AMOUNT);
 
-    // COLOR PULSE
-    const pulse = Math.sin(this.time * 1.8) * 0.5 + 0.5;
-    this.material.color.setHSL(
-      CONFIG.TUNNEL.COLOR_BASE_HUE + pulse * CONFIG.TUNNEL.COLOR_PULSE_RANGE,
-      1,
-      0.65
-    );
-    this.glowMat.color.copy(this.material.color);
+    // COLOR PULSE — LERP BASE HUE TOWARD RED (0.0) DURING SUCTION
+    const pulse   = Math.sin(this.time * 1.8) * 0.5 + 0.5;
+    const baseHue = CONFIG.TUNNEL.COLOR_BASE_HUE * (1 - si); // PURPLE → RED
+    const col = this.material.color;
+    col.setHSL(baseHue + pulse * CONFIG.TUNNEL.COLOR_PULSE_RANGE, 1, 0.55 + si * 0.15);
 
-    // VERTICAL WAVE MOTION
-    this.camera.position.y += Math.sin(this.time * CONFIG.TUNNEL.VERTICAL_WAVE_SPEED) * 
-                               CONFIG.TUNNEL.VERTICAL_WAVE_AMPLITUDE;
+    // PUSH COLOR TO ALL FOUR MATERIALS
+    this.glowMat.color.copy(col);
+    this.constrictedMat.color.copy(col);
+    this.constrictedGlowMat.color.copy(col);
+
+    // CROSSFADE NORMAL ↔ CONSTRICTED — OPACITY IS THE ONLY THING CHANGING PER FRAME
+    this.material.opacity          = 0.4  * (1 - si);
+    this.glowMat.opacity           = 0.15 * (1 - si);
+    this.constrictedMat.opacity    = 0.4  * si;
+    this.constrictedGlowMat.opacity = 0 * si;
+
+    // VERTICAL WAVE — BUMP AMPLITUDE DURING SUCTION
+    const waveAmp = CONFIG.TUNNEL.VERTICAL_WAVE_AMPLITUDE + si * 55;
+    this.camera.position.y += Math.sin(this.time * CONFIG.TUNNEL.VERTICAL_WAVE_SPEED) * waveAmp;
   }
 
   render() {
@@ -131,13 +178,13 @@ export class Tunnel {
     return this.time;
   }
 
-  // PROJECTS A POINT SLIGHTLY AHEAD ALONG THE TUNNEL CURVE INTO 2D SCREEN SPACE - RETURNS THE PIXEL COORDINATE WHERE THE TUNNEL VISUALLY CONVERGES — THE TRUE VANISHING POINT FOR THIS FRAME, WHICH SHIFTS AS THE CAMERA ROLLS AND CURVES - USED BY THE CROSSHAIR SO AIM-GRAVITY TRACKS THE TUNNEL MOUTH, NOT SCREEN CENTER.
+  // PROJECTS A POINT SLIGHTLY AHEAD ALONG THE TUNNEL CURVE INTO 2D SCREEN SPACE - RETURNS THE PIXEL COORDINATE WHERE THE TUNNEL VISUALLY CONVERGES â€” THE TRUE VANISHING POINT FOR THIS FRAME, WHICH SHIFTS AS THE CAMERA ROLLS AND CURVES - USED BY THE CROSSHAIR SO AIM-GRAVITY TRACKS THE TUNNEL MOUTH, NOT SCREEN CENTER.
   getVanishingPoint() { // SAMPLE A POINT A SHORT LOOK-AHEAD DISTANCE ALONG THE CURVE
     const progress = (this.time * CONFIG.TUNNEL.SPEED) % 1;
     const lookProgress = (progress + 0.018) % 1;
     const lookPos = this.curve.getPointAt(lookProgress);
 
-    const ndc = lookPos.clone().project(this.camera); // PROJECT WORLD-SPACE POINT → NDC → PIXEL
+    const ndc = lookPos.clone().project(this.camera); // PROJECT WORLD-SPACE POINT â†’ NDC â†’ PIXEL
     const projX = ( ndc.x + 1) / 2 * window.innerWidth;
     const projY = (-ndc.y + 1) / 2 * window.innerHeight;
 

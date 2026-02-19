@@ -349,7 +349,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   padding: 0;
   border: none;
   background-color: transparent;
-  background-image: url('../../images/icons.png');
+  background-image: url('images/icons.png');
   background-size: auto 100%;  
   background-repeat: no-repeat;
   cursor: pointer;

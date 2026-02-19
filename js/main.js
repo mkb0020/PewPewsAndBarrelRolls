@@ -131,6 +131,10 @@ function gameLoop() {
     tunnel.update(dt);
     const shipOffset = ship.getOffset();
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
+
+    // TUNNEL REACTS TO WORM ATTACK — FULL SUCTION ONLY DURING MOUTH-OPEN LOOP
+    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop';
+    tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
     ship.update(dt);
 
     crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
@@ -214,6 +218,6 @@ window.addEventListener('resize', () => {
 });
 
 // ==================== START ====================
-console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â All systems initialized');
+console.log('All systems go!');
 console.log('=== Starting game loop ===');
 gameLoop();
