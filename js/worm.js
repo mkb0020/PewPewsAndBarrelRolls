@@ -16,7 +16,7 @@ function organicNoise(t, layers) {
 const WORM = {
   NUM_SEGMENTS:     20,
   SEGMENT_SPACING:  30,    // WORLD-SPACE DISTANCE BETWEEN SEGMENTS
-  BASE_SIZE:        350,   // HEAD SPRITE SIZE AT SCALE 1.0
+  BASE_SIZE:        400,   // HEAD SPRITE SIZE AT SCALE 1.0
   TAIL_SIZE_RATIO:  0.28,  // TAIL SCALES DOWN SMALLER SINCE NO DEDICATED TAIL SPRITE
   FOCAL_LENGTH:     200,   // PERSPECTIVE FOCAL LENGTH
   START_Z:          1400,  // STARTS FAR AWAY (TINY)
@@ -30,8 +30,8 @@ const WORM = {
   TRANSITION_DURATION: 0.25, // HOW LONG THE TRANSITION FRAME HOLDS
   FRAME_ATTACK_START:   3, 
   FRAME_ATTACK_END:   8,   // 0-INDEXED: FRAME 9 = INDEX 8
-  ATTACK_INTERVAL:    7,   // SECONDS BETWEEN ATTACKS
-  ATTACK_DURATION:    4,  
+  ATTACK_INTERVAL:    15,   // SECONDS BETWEEN ATTACKS
+  ATTACK_DURATION:    7,  
   ATTACK_FPS:         10,  // FRAMES PER SECOND FOR ATTACK ANIMATION
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, //POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
@@ -60,9 +60,9 @@ const SUCTION = {
   SPAWN_RATE:       6,     // PARTICLES PER SECOND DURING ATTACK
   SMOKE_FRAMES:     9,     
   SMOKE_SPRITE:     './images/smoke.png',
-  SIZE_MIN:         70,    
-  SIZE_MAX:         150,   
-  BASE_SPEED:       400,   // BASE TRAVEL SPEED PX/S
+  SIZE_MIN:         100,    
+  SIZE_MAX:         170,   
+  BASE_SPEED:       500,   // BASE TRAVEL SPEED PX/S
   SPEED_VARIANCE:   90,
   SPIN_STRENGTH:    1.6,   // TANGENTIAL (CCW) FORCE MULTIPLIER
   PULL_STRENGTH:    0.8,   // RADIAL (INWARD) FORCE MULTIPLIER
@@ -71,9 +71,9 @@ const SUCTION = {
   KILL_RADIUS:      40,    // ABSORBED WHEN WITHIN THIS DISTANCE OF MOUTH
   FADE_IN_FRAC:     0.15,  // FRACTION OF LIFE SPENT FADING IN
   FADE_OUT_FRAC:    0.25,  // FRACTION OF LIFE SPENT FADING OUT
-  OPACITY_MIN:      0.3,
-  OPACITY_MAX:      0.4,
-  LIFE_MIN:         1,   // SECONDS
+  OPACITY_MIN:      0.4,
+  OPACITY_MAX:      0.5,
+  LIFE_MIN:         1.5,   // SECONDS
   LIFE_VARIANCE:    1.6,
   SELF_ROTATE_SPEED: 0.9,  // PARTICLE SELF-ROTATION SPEED (RAD/S)
 };
@@ -98,9 +98,8 @@ class SuctionParticle {
     this.maxLife    = SUCTION.LIFE_MIN + Math.random() * SUCTION.LIFE_VARIANCE;
     this.life       = this.maxLife;
     this.speed      = SUCTION.BASE_SPEED + Math.random() * SUCTION.SPEED_VARIANCE;
-    this.rotation   = Math.random() * Math.PI * 2;
-    // CCW SELF-SPIN (NEGATIVE = COUNTER-CLOCKWISE)
-    this.rotSpeed   = -(SUCTION.SELF_ROTATE_SPEED + Math.random() * 0.8);
+    this.rotation   = Math.random() * Math.PI * 2; 
+    this.rotSpeed   = -(SUCTION.SELF_ROTATE_SPEED + Math.random() * 0.8); // CCW SELF-SPIN (NEGATIVE = COUNTER-CLOCKWISE)
 
     this.smokeSprite     = smokeSprite;
     this.smokeFrameWidth = smokeFrameWidth;
@@ -242,12 +241,14 @@ export class WormBoss {
     // ATTACK ANIMATION STATE
     this.attackTimer     = WORM.ATTACK_INTERVAL;
     this.isAttacking     = false;
-    this.attackPhase     = 'idle';  // 'idle' | 'transIn' | 'loop'
+    this.attackPhase     = 'idle';  
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
 
     this.onAttack = null;  // OPTIONAL CALLBACK 
+    this.onIntro  = null;  // FIRES ONCE WHEN WORM FIRST BECOMES VISIBLE
+    this._introFired = false;
 
     this.headX  = WORM.SPAWN_OFFSET_X;  // HEAD WORLD-SPACE POSITION – START AT SPAWN OFFSET
     this.headY  = WORM.SPAWN_OFFSET_Y;
@@ -290,6 +291,7 @@ export class WormBoss {
     this.headX    = WORM.SPAWN_OFFSET_X;
     this.headY    = WORM.SPAWN_OFFSET_Y;
     this.suctionParticles.clear();
+    this._introFired = false;
   }
 
   // ======================= UPDATE =======================
@@ -304,6 +306,12 @@ export class WormBoss {
 
     // ============= FADE IN =============
     this.alpha += (WORM.ALPHA_FULL - this.alpha) * WORM.ALPHA_SPEED;
+
+    // FIRE INTRO SOUND ONCE WORM IS CLEARLY VISIBLE
+    if (!this._introFired && this.alpha >= 0.15) {
+      this._introFired = true;
+      if (this.onIntro) this.onIntro();
+    }
 
     // ============= ATTACK CYCLE =============
     if (this.isAttacking) {

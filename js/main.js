@@ -13,7 +13,7 @@ import { ScoreManager } from './score.js';
 import { WormBoss } from './worm.js';
 
 
-console.log('=== YOU HAVE NOW ENTERED THE NEON WORMHOLE! ===');
+console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ==================== INITIALIZATION ====================
@@ -35,8 +35,12 @@ const crosshair       = new Crosshair();
 const muzzleFlash     = new MuzzleFlash();
 const scoreManager    = new ScoreManager();
 const wormBoss        = new WormBoss();
-wormBoss.onAttack     = () => audio.playWormNoise();
+wormBoss.onAttack = () => audio.playWormNoise();
+wormBoss.onIntro  = () => audio.playWormIntro();
 wormBoss.activate(); // PLACEHOLDER
+
+// RATTLE — AMBIENT CREEP SOUND, RANDOM INTERVAL
+let rattleTimer = 12 + Math.random() * 8; // FIRST RATTLE IN 12–20s
 
 
 initKeyboard();
@@ -143,6 +147,15 @@ function gameLoop() {
     muzzleFlash.update(dt);
     scoreManager.update(dt); 
     wormBoss.update(dt);
+
+    // RATTLE — FIRE PERIODICALLY, RANDOM INTERVAL SO IT STAYS UNSETTLING
+    if (wormBoss.isActive && !wormBoss.isDead) {
+      rattleTimer -= dt;
+      if (rattleTimer <= 0) {
+        audio.playWormRattle();
+        rattleTimer = 8 + Math.random() * 12; // NEXT RATTLE IN 8–20s
+      }
+    }
     
     // COLLISION
     const projectiles = projectileManager.getProjectiles();

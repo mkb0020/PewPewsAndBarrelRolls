@@ -18,6 +18,8 @@ export class AudioManager {
     this.IMPACT_VOLUME      = 0.2;
     this.SPAWN_VOLUME       = 0.15;
     this.BARREL_ROLL_VOLUME = 0.15;
+    this.WORM_INTRO_VOLUME  = 0.7;
+    this.WORM_RATTLE_VOLUME = 0.5;
 
     this.musicEl.volume = this.MUSIC_VOLUME;
 
@@ -28,6 +30,8 @@ export class AudioManager {
       spawn:      this._createPool('./audio/spawn.m4a',      4),
       barrelRoll: this._createPool('./audio/barrelRoll.m4a', 2),
       wormNoise:  this._createPool('./audio/wormNoise.m4a',  2),
+      wormIntro:  this._createPool('./audio/wormIntro.m4a',  1),
+      wormRattle: this._createPool('./audio/wormRattle.m4a', 2),
     };
 
     this._initContext();
@@ -126,10 +130,11 @@ export class AudioManager {
     return this.isMuted;
   }
 
-  // SFX SHORTCUTS
   playLaser()      { this._playSfx('laser',      this.LASER_VOLUME);       }
   playImpact()     { this._playSfx('impact',     this.IMPACT_VOLUME);      }
   playSpawn()      { this._playSfx('spawn',      this.SPAWN_VOLUME);       }
   playBarrelRoll() { this._playSfx('barrelRoll', this.BARREL_ROLL_VOLUME); }
-  playWormNoise()  { this._playSfx('wormNoise',  0.75);                     }
+  playWormNoise()  { this._playSfx('wormNoise',  0.75);                    }
+  playWormIntro()  { this._playSfx('wormIntro',  this.WORM_INTRO_VOLUME);  }
+  playWormRattle() { this._playSfx('wormRattle', this.WORM_RATTLE_VOLUME); }
 }

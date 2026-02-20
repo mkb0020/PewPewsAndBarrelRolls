@@ -15,8 +15,8 @@ export const CONFIG = {
   },
 
   SHIP: {
-    WIDTH: 200,
-    HEIGHT: 100,
+    WIDTH: 180,
+    HEIGHT: 90,
     SPEED: 5,             
     ACCELERATION: 2400,   // px/sÃ‚Â² 
     DAMPING: 0.85,        // HIGHER = SPACE ICE
