@@ -57,6 +57,12 @@ export class Ship {
     this.suctionShakeY    = 0;
     this._rollBurstFired  = false;  // PREVENT DOUBLE-FIRING BURST PER ROLL
 
+    // ================= CINEMATIC MODE (WORM DEATH SEQUENCE) =================
+    this.cinematicMode    = false;
+    this.cinematicScale   = 1.0;
+    this.CINEMATIC_SCALE_TARGET = 1.5;
+    this.CINEMATIC_LERP   = 0.08;  // SNAPPY ENOUGH TO LAND DURING THE DEATH SEQUENCE
+
     this.particles = new ParticleSystem();
     
     this.loadSprite();
@@ -179,6 +185,32 @@ export class Ship {
 
   update(dt) {
     if (!this.isAlive) return; // DON'T UPDATE DEAD SHIP
+
+    // ================= CINEMATIC MODE — CONTROLS LOCKED, SHIP DRIFTS TO BOTTOM-CENTER =================
+    if (this.cinematicMode) {
+      // TARGET: HORIZONTALLY CENTERED, SHIFTED DOWN TOWARD BOTTOM THIRD
+      const targetOffsetX = 0;
+      const targetOffsetY = -(window.innerHeight * 0.30); // NEGATIVE = BELOW CENTER
+
+      this.velocity.x = 0;
+      this.velocity.y = 0;
+      this.offset.x += (targetOffsetX - this.offset.x) * this.CINEMATIC_LERP;
+      this.offset.y += (targetOffsetY - this.offset.y) * this.CINEMATIC_LERP;
+
+      this.x = window.innerWidth  / 2 + this.offset.x;
+      this.y = window.innerHeight / 2 - this.offset.y;
+
+      // LERP SCALE UP — SHIP FEELS BIGGER / CLOSER AS IT PULLS BACK TO WATCH
+      this.cinematicScale += (this.CINEMATIC_SCALE_TARGET - this.cinematicScale) * this.CINEMATIC_LERP;
+
+      // RETURN TO NEUTRAL TILT & STOP ROLLING
+      this.currentRotation += (0 - this.currentRotation) * 0.1;
+      this.rotation = this.currentRotation * Math.PI / 180;
+      this.isBarrelRolling = false;
+
+      this.particles.update(dt);
+      return;
+    }
 
     this.updateMovement(dt);
     
@@ -338,6 +370,8 @@ export class Ship {
     this.velocity.x = 0; this.velocity.y = 0;
     this.suctionScale = 1.0;
     this.suctionActive = false;
+    this.cinematicMode  = false;
+    this.cinematicScale = 1.0;
     this.x = window.innerWidth  / 2;
     this.y = window.innerHeight / 2;
     if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);
@@ -403,8 +437,9 @@ export class Ship {
       this.ctx.translate(this.x, this.y);
       this.ctx.rotate(this.rotation);
 
-      if (this.suctionScale < 0.999) {
-        this.ctx.scale(this.suctionScale, this.suctionScale);
+      const totalScale = this.suctionScale * this.cinematicScale;
+      if (totalScale !== 1.0) {
+        this.ctx.scale(totalScale, totalScale);
       }
       
       const sx = this.currentFrame * this.frameWidth;
@@ -425,6 +460,19 @@ export class Ship {
     }
     
     this.particles.draw(this.ctx);
+  }
+
+  // ======================= CINEMATIC MODE =======================
+  enterCinematic() {
+    this.cinematicMode  = true;
+    this.velocity.x     = 0;
+    this.velocity.y     = 0;
+    this.isBarrelRolling = false;
+  }
+
+  exitCinematic() {
+    this.cinematicMode  = false;
+    this.cinematicScale = 1.0; // SNAP SCALE BACK — LERP WOULD FEEL WEIRD ON RESPAWN
   }
 
   getOffset() {

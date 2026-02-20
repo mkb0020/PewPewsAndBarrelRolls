@@ -542,6 +542,138 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 
+/* ════════════════════════════  BOSS HEALTH BAR — TOP CENTER ════════════════════════════ */
+#boss-health-container {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  font-family: 'SpaceLetters';
+}
+
+.boss-label {
+  letter-spacing: 0.3em;
+  color: #ff4466;
+  text-shadow: 0 0 12px rgba(255, 50, 80, 0.8);
+  white-space: nowrap;
+}
+
+#boss-bar-track {
+  position: relative;
+  width: 320px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+}
+
+#boss-bar-track::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  background: transparent;
+  border: 1px solid rgba(255, 50, 80, 0.25);
+  pointer-events: none;
+}
+
+#boss-bar-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 3px
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+#boss-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to right, #ff0044, #ff3300, #ff7700, #ffaa00);
+  background-size: 330px 100%;
+  transition: width 0.1s ease-out;
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.boss-tick {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(0,0,0,0.3);
+  z-index: 3;
+  pointer-events: none;
+}
+
+#boss-hp-text {
+  font-size: 0.65rem;
+  color: rgba(255, 120, 120, 0.7);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  min-width: 52px;
+}
+
+@keyframes boss-bar-hit {
+  0%   { filter: brightness(2.0) drop-shadow(0 0 8px #ff4466); }
+  100% { filter: brightness(1); }
+}
+#boss-bar-fill.hit-flash {
+  animation: boss-bar-hit 0.25s ease-out forwards;
+}
+
+/* ════════════════════════════  BOSS DEFEATED TEXT ════════════════════════════ */
+#boss-defeated {
+  position: fixed;
+  inset: 0;
+  z-index: 450;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+#boss-defeated.active { opacity: 1; }
+
+.boss-defeated-title {
+  font-family: 'GothNerd';
+  font-size: clamp(2rem, 7vw, 4.5rem);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  background: linear-gradient(to right, #ff4466, #ff8800, #ffcc00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 30px rgba(255,100,50,0.6));
+  animation: defeated-flicker 0.12s ease-in-out 5;
+}
+
+.boss-defeated-sub {
+  font-family: 'SpaceLetters';
+  font-size: 0.8rem;
+  letter-spacing: 0.35em;
+  color: rgba(255, 200, 100, 0.55);
+}
+
+@keyframes defeated-flicker {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
 /* ════════════════════════════════ GAME OVER OVERLAY  ══════════════════════════════ */
 #gameover-overlay {
   position: fixed;

@@ -53,9 +53,27 @@
   <span id="lives-count">X 3</span>
 </div>
 
+<!-- ========================= BOSS HEALTH BAR ========================= -->
+<div id="boss-health-container">
+  <div class="hud-label boss-label">WORM</div>
+  <div id="boss-bar-track">
+    <div id="boss-bar-fill"></div>
+    <div class="boss-tick" style="left:25%"></div>
+    <div class="boss-tick" style="left:50%"></div>
+    <div class="boss-tick" style="left:75%"></div>
+  </div>
+  <div id="boss-hp-text">150 / 150</div>
+</div>
+
+<!-- ========================= BOSS DEFEATED / GAME OVER OVERLAY ========================= -->
+<div id="boss-defeated">
+  <div class="boss-defeated-title">YOU DID IT!</div>
+  <div class="boss-defeated-sub">...</div>
+</div>
+
 <div id="gameover-overlay">
-  <div class="gameover-title">CONSUMED</div>
-  <div class="gameover-sub">the wormhole claims another</div>
+  <div class="gameover-title">GAME OVER</div>
+  <div class="gameover-sub">you've disappointed everyone...</div>
   <button id="btn-restart" class="gameover-btn">ENTER AGAIN</button>
   <div class="gameover-hint">or press &nbsp;R</div>
 </div>

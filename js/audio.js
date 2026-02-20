@@ -32,6 +32,7 @@ export class AudioManager {
       wormNoise:  this._createPool('./audio/wormNoise.m4a',  2),
       wormIntro:  this._createPool('./audio/wormIntro.m4a',  1),
       wormRattle: this._createPool('./audio/wormRattle.m4a', 2),
+      wormDeath:  this._createPool('./audio/wormDeath.m4a',  1),
       warning:    this._createPool('./audio/warning.m4a',    1),
     };
 
@@ -111,7 +112,15 @@ export class AudioManager {
     this.musicEl.currentTime = 0;
   }
 
-  /** Toggle mute â€” affects both music and SFX */
+  stopMusic() {
+    this.musicEl.pause();
+  }
+
+  startMusic() {
+    if (this.isMuted) return;
+    this.musicEl.play().catch(() => {});
+  }
+
   toggleMute() {
     this.isMuted = !this.isMuted;
 
@@ -138,5 +147,6 @@ export class AudioManager {
   playWormNoise()  { this._playSfx('wormNoise',  0.75);                    }
   playWormIntro()  { this._playSfx('wormIntro',  this.WORM_INTRO_VOLUME);  }
   playWormRattle() { this._playSfx('wormRattle', this.WORM_RATTLE_VOLUME); }
+  playWormDeath()  { this._playSfx('wormDeath',  0.9);                     }
   playWarning()    { this._playSfx('warning',    0.8);                     }
 }

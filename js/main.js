@@ -39,6 +39,79 @@ wormBoss.onAttack = () => audio.playWormNoise();
 wormBoss.onIntro  = () => audio.playWormIntro();
 wormBoss.activate(); // PLACEHOLDER
 
+// ==================== BOSS HEALTH BAR HELPERS ====================
+const _bossBarFill      = document.getElementById('boss-bar-fill');
+const _bossBarContainer = document.getElementById('boss-health-container');
+const _bossHPText       = document.getElementById('boss-hp-text');
+const _bossDefeated     = document.getElementById('boss-defeated');
+
+function updateBossHealthBar(pct) {
+  if (_bossBarFill)  _bossBarFill.style.width  = (pct * 100) + '%';
+  if (_bossHPText)   _bossHPText.textContent    =
+    Math.ceil(pct * WORM_MAX_HP) + ' / ' + WORM_MAX_HP;
+  if (_bossBarContainer) {
+    const vis = wormBoss.isActive && !wormBoss.isDead && wormBoss.alpha > 0.15;
+    const targetOpacity = vis ? Math.min(1, (wormBoss.alpha - 0.15) / 0.25) : 0;
+    _bossBarContainer.style.opacity = targetOpacity;
+  }
+}
+
+function flashBossBar() {
+  if (!_bossBarFill) return;
+  _bossBarFill.classList.remove('hit-flash');
+  void _bossBarFill.offsetWidth; // REFLOW TO RESTART ANIMATION
+  _bossBarFill.classList.add('hit-flash');
+}
+
+let _bossDefeatedTimeout = null;
+function showBossDefeated() {
+  if (!_bossDefeated) { console.warn('boss-defeated element not found'); return; }
+  _bossDefeated.classList.add('active');
+  clearTimeout(_bossDefeatedTimeout);
+  _bossDefeatedTimeout = setTimeout(() => {
+    _bossDefeated.classList.remove('active');
+  }, 6000); 
+}
+
+function hideBossDefeated() {
+  if (_bossDefeated) _bossDefeated.classList.remove('active');
+  clearTimeout(_bossDefeatedTimeout);
+}
+
+// READ WORM MAX HP FROM WORM'S OWN CONFIG (INTERNAL CONST) — USE 150 AS DEFINED IN WORM.JS
+const WORM_MAX_HP = 150;
+
+// ==================== WORM CALLBACKS ====================
+wormBoss.onSegmentDeath = (x, y, segIndex) => {
+  audio.stopMusic();
+  // CHAIN EXPLOSIONS — BIGGER BURST FOR THE HEAD (SEGMENT 0)
+  projectileManager.createExplosion(x, y);
+  if (segIndex === 0) {
+    // EXTRA HEAD EXPLOSION — SPECTACULAR FINALE
+    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
+    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
+  }
+};
+
+wormBoss.onDeath = () => {
+  updateBossHealthBar(0);
+  showBossDefeated();           
+  audio.stopMusic();
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  scoreManager.addScore(2000, cx, cy - 60);
+
+  // RESPAWN AFTER 10 SECONDS
+  setTimeout(() => {
+    if (!isGameOver) {
+      wormBoss.activate();
+      ship.exitCinematic();
+      audio.playWormIntro();
+      audio.startMusic();
+    }
+  }, 10000);
+};
+
 // ==================== SHIP HP CALLBACKS ====================
 ship.onHPChange    = (hp, max) => updateHPBar(hp, max);
 ship.onLivesChange = (lives)   => updateLivesDisplay(lives);
@@ -117,11 +190,13 @@ function restartGame() {
   isGameOver      = false;
   _warningSounded = false;
   hideGameOver();
-  ship.resetForNewGame();
+  hideBossDefeated();
+  ship.resetForNewGame(); 
   scoreManager.reset();
   enemyManager.clear();
   projectileManager.clear();
   wormBoss.activate();
+  updateBossHealthBar(1);
   audio.stop();
   audio.start();
 }
@@ -211,6 +286,7 @@ function gameLoop() {
     muzzleFlash.update(dt);
     scoreManager.update(dt); 
     wormBoss.update(dt);
+    updateBossHealthBar(wormBoss.getHealthPercent());
 
     // ================== WORM SUCTION PHYSICS ==================
     // ACTIVE ONLY DURING THE MOUTH-OPEN LOOP — MATCHES PARTICLE VORTEX TIMING
@@ -238,7 +314,7 @@ function gameLoop() {
       rattleTimer -= dt;
       if (rattleTimer <= 0) {
         audio.playWormRattle();
-        rattleTimer = 8 + Math.random() * 12; // NEXT RATTLE IN 8–20s
+        rattleTimer = 8 + Math.random() * 12; // 8–20s BETWEEN RATTLES
       }
     }
     
@@ -278,9 +354,13 @@ function gameLoop() {
         if (wormHit.hit) {
           projectileManager.removeProjectile(projectile);
           audio.playImpact();
+          flashBossBar();
+          updateBossHealthBar(wormBoss.getHealthPercent());
           if (wormHit.killed) {
             projectileManager.createExplosion(wormHit.x, wormHit.y);
             scoreManager.addScore(500, wormHit.x, wormHit.y);
+            audio.playWormDeath();  // FIRES ON KILL SHOT — PLAYS OVER THE FULL DEATH THRASH
+            ship.enterCinematic();  // LOCK CONTROLS — SHIP DRIFTS DOWN TO WATCH
           } else {
             projectileManager.createExplosion(wormHit.x, wormHit.y);
             const segScore = wormHit.segIndex === 0 ? 25 : 10;

@@ -30,6 +30,7 @@ const WORM = {
   TRANSITION_DURATION: 0.25, // HOW LONG THE TRANSITION FRAME HOLDS
   FRAME_ATTACK_START:   3, 
   FRAME_ATTACK_END:   8,   // 0-INDEXED: FRAME 9 = INDEX 8
+  DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
   ATTACK_INTERVAL:    15,   // SECONDS BETWEEN ATTACKS
   ATTACK_DURATION:    7,  
   ATTACK_FPS:         10,  // FRAMES PER SECOND FOR ATTACK ANIMATION
@@ -246,9 +247,16 @@ export class WormBoss {
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
 
-    this.onAttack = null;  // OPTIONAL CALLBACK 
-    this.onIntro  = null;  // FIRES ONCE WHEN WORM FIRST BECOMES VISIBLE
-    this._introFired = false;
+    this.onAttack       = null;  // OPTIONAL CALLBACK 
+    this.onIntro        = null;  // FIRES ONCE WHEN WORM FIRST BECOMES VISIBLE
+    this.onSegmentDeath = null;  // CALLBACK(x, y, segIndex) — FIRE AS EACH SEGMENT EXPLODES
+    this.onDeath        = null;  // CALLBACK() — FIRE WHEN ALL SEGMENTS GONE
+    this._introFired    = false;
+
+    // DEATH SEQUENCE STATE
+    this.isDying       = false;
+    this.dyingTimer    = 0;
+    this.dyingSegIndex = 0;  // HOW MANY SEGMENTS HAVE BEEN POPPED SO FAR (TAIL→HEAD)
 
     this.headX  = WORM.SPAWN_OFFSET_X;  // HEAD WORLD-SPACE POSITION – START AT SPAWN OFFSET
     this.headY  = WORM.SPAWN_OFFSET_Y;
@@ -262,6 +270,9 @@ export class WormBoss {
       hitRadius:   0,
       health:      i === 0 ? WORM.HEAD_HEALTH_MULT : WORM.SEGMENT_HEALTH,
       flashTimer:  0,
+      isDead:      false,  // FLAGGED TRUE AS DEATH SEQUENCE POPS THIS SEGMENT
+      rippleX:     0,      // SCREEN-SPACE RIPPLE OFFSET — ONLY USED DURING DEATH THRASH
+      rippleY:     0,
     }));
 
     this.sprite      = new Image();
@@ -283,13 +294,36 @@ export class WormBoss {
   }
 
   activate() {
-    this.isActive = true;
-    this.z        = WORM.START_Z;
-    this.alpha    = WORM.ALPHA_START;
-    this.health   = WORM.HEALTH;
-    this.isDead   = false;
-    this.headX    = WORM.SPAWN_OFFSET_X;
-    this.headY    = WORM.SPAWN_OFFSET_Y;
+    this.isActive     = true;
+    this.z            = WORM.START_Z;
+    this.alpha        = WORM.ALPHA_START;
+    this.health       = WORM.HEALTH;
+    this.isDead       = false;
+    this.isDying      = false;
+    this.dyingTimer   = 0;
+    this.dyingSegIndex = 0;
+    this.headX        = WORM.SPAWN_OFFSET_X;
+    this.headY        = WORM.SPAWN_OFFSET_Y;
+
+    // RESET ATTACK CYCLE
+    this.isAttacking     = false;
+    this.attackPhase     = 'idle';
+    this.attackTimer     = WORM.ATTACK_INTERVAL;
+    this.attackProgress  = 0;
+    this.attackFrame     = WORM.FRAME_ATTACK_START;
+    this.attackFrameTime = 0;
+
+    for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { // RESET ALL SEGMENTS
+      const seg    = this.segments[i];
+      seg.isDead   = false;
+      seg.health   = i === 0 ? WORM.HEAD_HEALTH_MULT : WORM.SEGMENT_HEALTH;
+      seg.flashTimer = 0;
+      seg.rippleX  = 0;
+      seg.rippleY  = 0;
+      seg.x        = WORM.SPAWN_OFFSET_X;
+      seg.y        = WORM.SPAWN_OFFSET_Y + i * WORM.SEGMENT_SPACING;
+    }
+
     this.suctionParticles.clear();
     this._introFired = false;
   }
@@ -300,9 +334,115 @@ export class WormBoss {
 
     this.time += dt;
 
-    // ============= APPROACH =============
+    // ============= APPROACH / SCALE (ALWAYS NEEDED — EVEN WHILE DYING) =============
     this.z       += (WORM.IDLE_Z - this.z) * WORM.APPROACH_SPEED;
     this.baseScale = WORM.FOCAL_LENGTH / (WORM.FOCAL_LENGTH + this.z);
+
+    // ============= DYING SEQUENCE — HEAD STAYS PUT, RIPPLE WAVE DOWN THE BODY =============
+    if (this.isDying) { // HEAD  STAYS ROUGHLY IN PLACE
+      const t = this.time + this.phaseOffset;
+      const tremble = organicNoise(t, WORM.WIGGLE_X) * 0.25;  
+      this.headX += (tremble - this.headX) * WORM.HEAD_SMOOTH;
+      this.headY += (0       - this.headY) * WORM.HEAD_SMOOTH;
+      this.segments[0].x = this.headX;
+      this.segments[0].y = this.headY;
+
+      for (let i = 1; i < WORM.NUM_SEGMENTS; i++) { // CHAIN  — KEEP BODY CONNECTED
+        const prev = this.segments[i - 1];
+        const curr = this.segments[i];
+        const dx   = curr.x - prev.x;
+        const dy   = curr.y - prev.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > WORM.SEGMENT_SPACING) {
+          const ratio = WORM.SEGMENT_SPACING / dist;
+          curr.x = prev.x + dx * ratio;
+          curr.y = prev.y + dy * ratio;
+        }
+      }
+
+      // UPDATE SCREEN POSITIONS
+      const cx = window.innerWidth  / 2;
+      const cy = window.innerHeight / 2;
+      const bs = this.baseScale;
+      for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
+        const seg = this.segments[i];
+        if (seg.isDead) { seg.rippleX = 0; seg.rippleY = 0; continue; }
+        const taper  = i / (WORM.NUM_SEGMENTS - 1);
+        const aScale = 1.0 - taper * (1.0 - WORM.TAIL_SIZE_RATIO);
+        seg.screenX  = cx + seg.x * bs;
+        seg.screenY  = cy + seg.y * bs;
+        seg.drawSize  = WORM.BASE_SIZE * bs * aScale;
+        seg.hitRadius = seg.drawSize * 0.45;
+
+        if (seg.flashTimer <= 0) seg.flashTimer = 0.05 + Math.random() * 0.04;  // RAPID CONTINUOUS FLASH
+        else seg.flashTimer -= dt;
+
+        // === TRAVELING SINE RIPPLE — ONLY AFTER DEATH PAUSE ===
+        if (this.dyingTimer < WORM.DEATH_PAUSE_DURATION) {
+          seg.rippleX = 0;
+          seg.rippleY = 0;
+        } else {
+        // PERPENDICULAR TO THE BODY DIRECTION AT THIS SEGMENT - DIRECTION: FROM THIS SEGMENT TOWARD THE ONE AHEAD (HEAD SIDE)
+        let fdx = 0, fdy = -1; // FALLBACK — POINT UP
+        if (i > 0) {
+          const prev  = this.segments[i - 1];
+          const ddx   = prev.screenX - seg.screenX;
+          const ddy   = prev.screenY - seg.screenY;
+          const ddist = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+          fdx = ddx / ddist;
+          fdy = ddy / ddist;
+        }
+        const px = -fdy;
+        const py =  fdx;
+
+        // WAVE TRAVELS HEAD→TAIL: PHASE INCREASES WITH SEGMENT INDEX
+        const RIPPLE_SPEED   = 18;   // HOW FAST THE WAVE TRAVELS DOWN - HIGH FREQUENCY FOR FAST NERVOUS RIPPLING
+        const RIPPLE_PHASE   = 0.55; // RADIANS PER SEGMENT —  WAVE DENSITY
+        const RIPPLE_AMP_PX  = 40;   // PEAK DISPLACEMENT IN SCREEN PIXELS
+        const ampScale = 0.15 + (i / (WORM.NUM_SEGMENTS - 1)) * 0.85; // AMPLITUDE RAMPS UP FROM HEAD → TAIL (HEAD BARELY MOVES, TAIL THRASHES)
+        const wave = Math.sin(this.time * RIPPLE_SPEED - i * RIPPLE_PHASE);
+
+        seg.rippleX = px * wave * RIPPLE_AMP_PX * ampScale;
+        seg.rippleY = py * wave * RIPPLE_AMP_PX * ampScale;
+        } 
+      } 
+
+      // POP SEGMENTS TAIL → HEAD
+      this.dyingTimer += dt;
+
+      // DRAMATIC PAUSE 
+      if (this.dyingTimer < WORM.DEATH_PAUSE_DURATION) {
+        // ZERO OUT RIPPLES DURING THE FREEZE
+        for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
+          this.segments[i].rippleX = 0;
+          this.segments[i].rippleY = 0;
+        }
+        this.suctionParticles.update(dt, false, this.segments[0].screenX, this.segments[0].screenY);
+        return;
+      }
+
+      const SEG_INTERVAL = 0.18;
+      const elapsed      = this.dyingTimer - WORM.DEATH_PAUSE_DURATION; // COUNT FROM AFTER THE PAUSE
+      const targetKills  = Math.floor(elapsed / SEG_INTERVAL);
+      while (this.dyingSegIndex < targetKills && this.dyingSegIndex < WORM.NUM_SEGMENTS) {
+        const i   = WORM.NUM_SEGMENTS - 1 - this.dyingSegIndex; // TAIL FIRST
+        const seg = this.segments[i];
+        seg.isDead = true;
+        if (this.onSegmentDeath) this.onSegmentDeath(seg.screenX, seg.screenY, i);
+        this.dyingSegIndex++;
+      }
+
+      // DRAIN REMAINING SUCTION PARTICLES (NO NEW SPAWNS)
+      this.suctionParticles.update(dt, false, this.segments[0].screenX, this.segments[0].screenY);
+
+      // ALL SEGMENTS GONE — FULLY DEAD
+      if (this.dyingSegIndex >= WORM.NUM_SEGMENTS) {
+        this.isDead   = true;
+        this.isActive = false;
+        if (this.onDeath) this.onDeath();
+      }
+      return;
+    }
 
     // ============= FADE IN =============
     this.alpha += (WORM.ALPHA_FULL - this.alpha) * WORM.ALPHA_SPEED;
@@ -317,7 +457,7 @@ export class WormBoss {
     if (this.isAttacking) {
       this.attackProgress += dt;
 
-      if (this.attackPhase === 'transIn') { // HOLD TRANSITION FRAME BRIEFLY THEN START LOOP
+      if (this.attackPhase === 'transIn') { 
         if (this.attackProgress >= WORM.TRANSITION_DURATION) {
           this.attackPhase     = 'loop';
           this.attackProgress  = 0;
@@ -326,7 +466,7 @@ export class WormBoss {
         }
 
       } else if (this.attackPhase === 'loop') {
-        this.attackFrameTime += dt; // CYCLE ATTACK FRAMES AT ATTACK_FPS
+        this.attackFrameTime += dt; 
         const frameDur = 1 / WORM.ATTACK_FPS;
         if (this.attackFrameTime >= frameDur) {
           this.attackFrameTime -= frameDur;
@@ -416,6 +556,7 @@ export class WormBoss {
     ctx.globalAlpha = this.alpha;
     for (let i = WORM.NUM_SEGMENTS - 1; i >= 0; i--) {
       const seg  = this.segments[i];
+      if (seg.isDead) continue;          
       const size = seg.drawSize;
       if (size < 1) continue;
 
@@ -431,7 +572,7 @@ export class WormBoss {
       }
 
       ctx.save();
-      ctx.translate(seg.screenX, seg.screenY);
+      ctx.translate(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0));
 
       if (i === 0) {  // ROTATION - HEAD: TINY ALIVE WIGGLE
         const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
@@ -468,11 +609,11 @@ export class WormBoss {
   }
 
   checkProjectileHit(seg) {  //CHECK A PROJECTILE SEGMENT AGAINST EVERY WORM SEGMENT. RETURNS { hit, segIndex, killed, x, y } OR { hit: false }
-    if (!this.isActive || this.isDead) return { hit: false };
+    if (!this.isActive || this.isDead || this.isDying) return { hit: false };
 
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
       const ws = this.segments[i];
-      if (ws.hitRadius < 1) continue;
+      if (ws.hitRadius < 1 || ws.isDead) continue;
 
       const dx   = seg.x1 - ws.screenX;
       const dy   = seg.y1 - ws.screenY;
@@ -485,7 +626,12 @@ export class WormBoss {
 
         this.health  -= damage;
         const killed  = this.health <= 0;
-        if (killed) this.isDead = true;
+        if (killed) {
+          // KICK OFF DEATH SEQUENCE INSTEAD OF INSTANT REMOVAL
+          this.isDying      = true;
+          this.dyingTimer   = 0;
+          this.dyingSegIndex = 0;
+        }
 
         return { hit: true, segIndex: i, killed, x: ws.screenX, y: ws.screenY };
       }
