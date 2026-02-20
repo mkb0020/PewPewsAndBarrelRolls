@@ -39,6 +39,17 @@ export class Ship {
     this.shootCooldown = 0;
     this.canShoot = true;
 
+    // ================= HP & LIVES =================
+    this.maxHP             = CONFIG.SHIP_HP.MAX_HP;
+    this.hp                = CONFIG.SHIP_HP.MAX_HP;
+    this.lives             = CONFIG.SHIP_HP.MAX_LIVES;
+    this.isInvincible      = false;
+    this.invincibilityTimer = 0;
+    this.isAlive           = true;   // FALSE DURING DEATH SEQUENCE
+    this.onDeath           = null;   // CALLBACK → main.js (game over / lose life)
+    this.onHPChange        = null;   // CALLBACK → main.js (update HUD)
+    this.onLivesChange     = null;   // CALLBACK → main.js (update HUD)
+
     // ================= SUCTION STATE =================
     this.suctionActive    = false;
     this.suctionScale     = 1.0;    // VISUAL SHRINK — 1.0 = NORMAL, 0.3 = NEARLY GONE
@@ -167,12 +178,23 @@ export class Ship {
   }
 
   update(dt) {
+    if (!this.isAlive) return; // DON'T UPDATE DEAD SHIP
+
     this.updateMovement(dt);
     
     if (this.shootCooldown > 0) {
       this.shootCooldown -= dt;
       if (this.shootCooldown <= 0) {
         this.canShoot = true;
+      }
+    }
+
+    // INVINCIBILITY COUNTDOWN
+    if (this.isInvincible) {
+      this.invincibilityTimer -= dt;
+      if (this.invincibilityTimer <= 0) {
+        this.isInvincible       = false;
+        this.invincibilityTimer = 0;
       }
     }
     
@@ -236,9 +258,9 @@ export class Ship {
     // OUTWARD BURST AT ROLL PEAK (progress 0.4→0.6) — FIRES ONCE PER ROLL
     if (rolling && this.barrelRollProgress > 0.45 && !this._rollBurstFired) {
       this._rollBurstFired = true;
-      // PUSH AWAY FROM MOUTH IN OFFSET SPACE (FLIP Y FOR SCREEN→OFFSET)
+      // PUSH AWAY FROM MOUTH IN OFFSET SPACE (flip Y for screen→offset)
       this.velocity.x -= snx * SC.ROLL_BURST_FORCE;
-      this.velocity.y += sny * SC.ROLL_BURST_FORCE; // FLIP Y: SCREEN DOWN → OFFSET UP
+      this.velocity.y += sny * SC.ROLL_BURST_FORCE; // flip Y: screen down → offset up
     }
 
     // ── COMPOSE FINAL FORCE IN SCREEN SPACE → CONVERT TO OFFSET SPACE ──
@@ -250,7 +272,7 @@ export class Ship {
                       sty * SC.SPIN_STRENGTH   * spinMult) * forceMag;
 
     this.velocity.x += screenFX * dt;
-    this.velocity.y -= screenFY * dt; // FLIP: SCREEN Y DOWN → OFFSET Y UP
+    this.velocity.y -= screenFY * dt; // FLIP: screen Y down → offset Y up
   }
 
   clearSuction() {
@@ -264,6 +286,71 @@ export class Ship {
   getSuctionScale() {
     return this.suctionScale;
   }
+
+  // ======================= HP & LIVES =======================
+  takeDamage(amount) {
+    if (this.isInvincible || !this.isAlive) return false;
+
+    this.hp = Math.max(0, this.hp - amount);
+    if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
+
+    if (this.hp <= 0) {
+      this._triggerDeath();
+    } else {
+      // BRIEF IFRAMES SO ONE HIT DOESN'T SHRED THE WHOLE BAR
+      this._startInvincibility(CONFIG.SHIP_HP.INVINCIBILITY_DURATION);
+    }
+    return true;
+  }
+
+  _triggerDeath() {
+    this.isAlive       = false;
+    this.lives         = Math.max(0, this.lives - 1);
+    if (this.onLivesChange) this.onLivesChange(this.lives);
+    if (this.onDeath)       this.onDeath(this.lives);
+  }
+
+  respawn() {
+    this.hp      = this.maxHP;
+    this.isAlive = true;
+    // RESET POSITION TO CENTER
+    this.offset.x   = 0;
+    this.offset.y   = 0;
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+    this.x = window.innerWidth  / 2;
+    this.y = window.innerHeight / 2;
+    // CLEAR SUCTION
+    this.suctionScale  = 1.0;
+    this.suctionActive = false;
+    if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);
+    // LONGER IFRAMES AFTER RESPAWN FROM DEATH
+    this._startInvincibility(CONFIG.SHIP_HP.RESPAWN_INVINCIBILITY);
+  }
+
+  resetForNewGame() {
+    this.hp    = this.maxHP;
+    this.lives = CONFIG.SHIP_HP.MAX_LIVES;
+    this.isAlive = true;
+    this.isInvincible = false;
+    this.invincibilityTimer = 0;
+    this.offset.x = 0; this.offset.y = 0;
+    this.velocity.x = 0; this.velocity.y = 0;
+    this.suctionScale = 1.0;
+    this.suctionActive = false;
+    this.x = window.innerWidth  / 2;
+    this.y = window.innerHeight / 2;
+    if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);
+    if (this.onLivesChange) this.onLivesChange(this.lives);
+  }
+
+  _startInvincibility(duration) {
+    this.isInvincible       = true;
+    this.invincibilityTimer = duration;
+  }
+
+  getHP()    { return this.hp; }
+  getLives() { return this.lives; }
 
   shoot(targetX, targetY) {
     if (!this.canShoot) return false;
@@ -280,14 +367,24 @@ export class Ship {
   }
 
   draw() {
+    if (!this.isAlive) return; // DON'T DRAW DEAD SHIP
+
+    // INVINCIBILITY FLASH — SKIP EVERY OTHER FLASH INTERVAL SO SHIP BLINKS
+    if (this.isInvincible) {
+      const flashInterval = 1 / CONFIG.SHIP_HP.INVINCIBILITY_FLASH_HZ;
+      const flashPhase = Math.floor(this.invincibilityTimer / flashInterval);
+      if (flashPhase % 2 === 0) return; // BLINK OFF
+    }
+
     if (this.isBarrelRolling) {
       const flashIntensity = Math.sin(this.barrelRollProgress * Math.PI) * 0.15;
       this.ctx.fillStyle = `rgba(0, 255, 255, ${flashIntensity})`;
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    if (this.suctionActive && this.suctionScale < 0.92) {  // SUCTION VIGNETTE — SCREEN EDGES PULSE RED AS PULL INTENSIFIES
-      const intensity = Math.max(0, (0.92 - this.suctionScale) / 0.62); // 0→1 AS SCALE DROPS 0.92→0.3
+    // SUCTION VIGNETTE — SCREEN EDGES PULSE RED AS PULL INTENSIFIES
+    if (this.suctionActive && this.suctionScale < 0.92) {
+      const intensity = Math.max(0, (0.92 - this.suctionScale) / 0.62);
       const pulseAlpha = intensity * (0.12 + 0.07 * Math.sin(Date.now() * 0.008));
       const grad = this.ctx.createRadialGradient(
         this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.35,
@@ -306,7 +403,6 @@ export class Ship {
       this.ctx.translate(this.x, this.y);
       this.ctx.rotate(this.rotation);
 
-      // SCALE DOWN AS SUCTION PULLS SHIP IN — LOOKS LIKE IT'S RECEDING INTO TUNNEL
       if (this.suctionScale < 0.999) {
         this.ctx.scale(this.suctionScale, this.suctionScale);
       }

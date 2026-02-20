@@ -39,6 +39,25 @@ wormBoss.onAttack = () => audio.playWormNoise();
 wormBoss.onIntro  = () => audio.playWormIntro();
 wormBoss.activate(); // PLACEHOLDER
 
+// ==================== SHIP HP CALLBACKS ====================
+ship.onHPChange    = (hp, max) => updateHPBar(hp, max);
+ship.onLivesChange = (lives)   => updateLivesDisplay(lives);
+ship.onDeath       = (livesLeft) => {
+  if (livesLeft <= 0) {
+    isGameOver = true;
+    showGameOver();
+  } else {
+    // STILL HAS LIVES — RESPAWN AFTER A SHORT DELAY
+    setTimeout(() => {
+      if (!isGameOver) ship.respawn();
+    }, 800);
+  }
+};
+
+// INIT HUD TO STARTING VALUES
+updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP);
+updateLivesDisplay(ship.getLives());
+
 // RATTLE — AMBIENT CREEP SOUND, RANDOM INTERVAL
 let rattleTimer = 12 + Math.random() * 8; // FIRST RATTLE IN 12–20s
 
@@ -64,9 +83,48 @@ initMobileControls(
 );
 
 // ==================== GAME STATE ====================
-let isPaused = false;
-let isMuted  = false;
+let isPaused    = false;
+let isMuted     = false;
+let isGameOver  = false;
 let _warningSounded = false; // RESETS EACH ATTACK — FIRES ONCE WHEN SHIP HITS HALFWAY DISTANCE
+
+// ==================== HUD HELPERS ====================
+// QUERY AT CALL TIME — AVOIDS TEMPORAL DEAD ZONE DURING INITIALIZATION
+function updateHPBar(hp, maxHP) {
+  const pct   = Math.max(0, (hp / maxHP) * 100);
+  const fill  = document.getElementById('hp-bar-fill');
+  const track = document.getElementById('hp-bar-track');
+  if (fill)  fill.style.width = pct + '%';
+  if (track) track.classList.toggle('hp-critical', pct < 30);
+}
+
+function updateLivesDisplay(lives) {
+  const el = document.getElementById('lives-count');
+  if (el) el.textContent = lives;
+}
+
+function showGameOver() {
+  const overlay = document.getElementById('gameover-overlay');
+  if (overlay) overlay.classList.add('active');
+}
+
+function hideGameOver() {
+  const overlay = document.getElementById('gameover-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function restartGame() {
+  isGameOver      = false;
+  _warningSounded = false;
+  hideGameOver();
+  ship.resetForNewGame();
+  scoreManager.reset();
+  enemyManager.clear();
+  projectileManager.clear();
+  wormBoss.activate();
+  audio.stop();
+  audio.start();
+}
 
 // ==================== UI BUTTON EVENTS (DOM - NOT CANVAS) ====================
 document.getElementById('btn-sound').addEventListener('click', () => {
@@ -136,8 +194,8 @@ function gameLoop() {
   const dt  = Math.min((now - lastTime) / 1000, 0.05); 
   lastTime  = now;
 
-  // ==================== UPDATE (SKIP WHEN PAUSED) ====================
-  if (!isPaused) {
+  // ==================== UPDATE (SKIP WHEN PAUSED OR GAME OVER) ====================
+  if (!isPaused && !isGameOver) {
     tunnel.update(dt);
     const shipOffset = ship.getOffset();
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
@@ -161,10 +219,14 @@ function gameLoop() {
       ship.applySuction(headPos.x, headPos.y, dt);
 
       // WARNING ALARM — FIRES ONCE WHEN SHIP IS ~HALFWAY TO THE MOUTH
-      // suctionScale: 1.0 = far away, 0.3 = at mouth. 0.65 = roughly halfway.
       if (!_warningSounded && ship.getSuctionScale() < 0.65) {
         _warningSounded = true;
         audio.playWarning();
+      }
+
+      // FULLY CONSUMED — LOSE A LIFE
+      if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE && ship.isAlive) {
+        ship.takeDamage(CONFIG.SHIP_HP.DAMAGE_SUCKED_IN);
       }
     } else {
       ship.clearSuction();
@@ -253,7 +315,11 @@ window.addEventListener('resize', () => {
   crosshair.handleResize();
 });
 
-// ==================== START ====================
+// ==================== RESTART ====================
+document.getElementById('btn-restart')?.addEventListener('click', restartGame);
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR' && isGameOver) restartGame();
+});
 console.log('All systems go!');
 console.log('=== Starting game loop ===');
 gameLoop();

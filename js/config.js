@@ -172,6 +172,17 @@ export const CONFIG = {
     FLASH_SIZE: 50,
   },
 
+  // ======================= SHIP HP & LIVES =======================
+  SHIP_HP: {
+    MAX_HP:                  100,
+    MAX_LIVES:               3,
+    INVINCIBILITY_DURATION:  2.0,   // SECONDS OF IFRAMES AFTER TAKING DAMAGE
+    INVINCIBILITY_FLASH_HZ:  8,     // FLASHES PER SECOND WHILE INVINCIBLE
+    SUCTION_DEATH_SCALE:     0.18,  // SUCTIONSCALE BELOW THIS = FULLY CONSUMED — LOSE A LIFE
+    RESPAWN_INVINCIBILITY:   3.0,   // EXTRA IFRAMES AFTER RESPAWNING FROM SUCTION DEATH
+    DAMAGE_SUCKED_IN:        100,   // INSTANT DEATH
+  },
+
   // ======================= WORM SUCTION PHYSICS =======================
   WORM_SUCTION: {
     // FORCE PROFILE

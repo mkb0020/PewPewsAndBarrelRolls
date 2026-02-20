@@ -21,37 +21,43 @@
 
   <script type="module" src="js/main.js"></script>
 
-  <!-- UI ICON BUTTONS - DOM ELEMENTS - ZERO CANVAS COST -->
   <div id="ui-buttons">
     <button class="ui-icon" id="btn-sound" aria-label="Toggle sound"></button>
     <button class="ui-icon" id="btn-pause" aria-label="Toggle pause"></button>
   </div>
 
-  <!-- PAUSE OVERLAY - SHOWN/HIDDEN VIA ACTIVE CLASS -->
   <div id="pause-overlay">
     <div class="pause-title">PAUSED</div>
     <div class="pause-hint">press &nbsp;P&nbsp; to resume</div>
   </div>
 
-<!-- SCOREBOARD HUD -->
 <div id="hud">
   <div class="hud-block" id="score-block">
     <div class="hud-label">SCORE</div>
     <div id="score-value">000,000</div>
   </div>
+</div>
 
-  <!--<div class="hud-block hidden" id="combo-display">
-    <div id="combo-value">x1</div>
-    <div class="hud-label">COMBO</div>
-    <div id="combo-bar">
-      <div id="combo-bar-fill"></div>
-    </div>
-  </div>-->
+<div id="hp-container">
+  <div class="hud-label">HP</div>
+  <div id="hp-bar-track">
+    <div id="hp-bar-fill"></div>
+    <div class="hp-tick" style="left:25%"></div>
+    <div class="hp-tick" style="left:50%"></div>
+    <div class="hp-tick" style="left:75%"></div>
+  </div>
+</div>
 
-  <!--<div class="hud-block" id="hiscore-block">
-    <div class="hud-label">BEST</div>
-    <div id="hiscore-value">000,000</div>
-  </div>-->
+<div id="lives-container">
+  <img src="./images/lives.png" id="lives-icon" alt="Lives" />
+  <span id="lives-count">X 3</span>
+</div>
+
+<div id="gameover-overlay">
+  <div class="gameover-title">CONSUMED</div>
+  <div class="gameover-sub">the wormhole claims another</div>
+  <button id="btn-restart" class="gameover-btn">ENTER AGAIN</button>
+  <div class="gameover-hint">or press &nbsp;R</div>
 </div>
 
 </body>
