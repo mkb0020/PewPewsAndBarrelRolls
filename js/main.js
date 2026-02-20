@@ -66,6 +66,7 @@ initMobileControls(
 // ==================== GAME STATE ====================
 let isPaused = false;
 let isMuted  = false;
+let _warningSounded = false; // RESETS EACH ATTACK — FIRES ONCE WHEN SHIP HITS HALFWAY DISTANCE
 
 // ==================== UI BUTTON EVENTS (DOM - NOT CANVAS) ====================
 document.getElementById('btn-sound').addEventListener('click', () => {
@@ -111,11 +112,16 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // BARREL ROLL
-  if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !ship.isBarrelRolling) {
+  // BARREL ROLL — Q = LEFT (CCW), E = RIGHT (CW / the actual counter to suction spiral)
+  if (e.code === 'KeyQ' && !ship.isBarrelRolling) {
     e.preventDefault();
-    const direction = isKeyPressed('a') || isKeyPressed('arrowleft') ? -1 : 1;
-    ship.startBarrelRoll(direction);
+    ship.startBarrelRoll(-1);
+    audio.playBarrelRoll();
+    return;
+  }
+  if (e.code === 'KeyE' && !ship.isBarrelRolling) {
+    e.preventDefault();
+    ship.startBarrelRoll(1);
     audio.playBarrelRoll();
     return;
   }
@@ -147,6 +153,23 @@ function gameLoop() {
     muzzleFlash.update(dt);
     scoreManager.update(dt); 
     wormBoss.update(dt);
+
+    // ================== WORM SUCTION PHYSICS ==================
+    // ACTIVE ONLY DURING THE MOUTH-OPEN LOOP — MATCHES PARTICLE VORTEX TIMING
+    if (wormBoss.isActive && !wormBoss.isDead && wormBoss.attackPhase === 'loop') {
+      const headPos = wormBoss.getHeadPosition();
+      ship.applySuction(headPos.x, headPos.y, dt);
+
+      // WARNING ALARM — FIRES ONCE WHEN SHIP IS ~HALFWAY TO THE MOUTH
+      // suctionScale: 1.0 = far away, 0.3 = at mouth. 0.65 = roughly halfway.
+      if (!_warningSounded && ship.getSuctionScale() < 0.65) {
+        _warningSounded = true;
+        audio.playWarning();
+      }
+    } else {
+      ship.clearSuction();
+      _warningSounded = false; // RESET SO IT CAN FIRE AGAIN NEXT ATTACK
+    }
 
     // RATTLE — FIRE PERIODICALLY, RANDOM INTERVAL SO IT STAYS UNSETTLING
     if (wormBoss.isActive && !wormBoss.isDead) {

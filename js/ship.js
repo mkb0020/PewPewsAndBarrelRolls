@@ -39,10 +39,17 @@ export class Ship {
     this.shootCooldown = 0;
     this.canShoot = true;
 
+    // ================= SUCTION STATE =================
+    this.suctionActive    = false;
+    this.suctionScale     = 1.0;    // VISUAL SHRINK — 1.0 = NORMAL, 0.3 = NEARLY GONE
+    this.suctionShakeX    = 0;      // FRAME SHAKE OFFSET
+    this.suctionShakeY    = 0;
+    this._rollBurstFired  = false;  // PREVENT DOUBLE-FIRING BURST PER ROLL
+
     this.particles = new ParticleSystem();
     
     this.loadSprite();
-    console.log('✔ Ship initialized');
+    console.log('âœ” Ship initialized');
   }
 
   loadSprite() {
@@ -50,14 +57,14 @@ export class Ship {
     this.spaceshipImg.src = './images/spaceship.png';
     
     this.spaceshipImg.onload = () => {
-      console.log('✔ Spaceship sprite loaded');
+      console.log('âœ” Spaceship sprite loaded');
       this.spriteLoaded = true;
       this.spriteWidth = this.spaceshipImg.width;
       this.frameWidth = this.spriteWidth / CONFIG.SHIP.SPRITE_FRAMES;
     };
     
     this.spaceshipImg.onerror = () => {
-      console.error('✗ Failed to load spaceship sprite');
+      console.error('âœ— Failed to load spaceship sprite');
     };
   }
 
@@ -66,6 +73,7 @@ export class Ship {
       this.isBarrelRolling = true;
       this.barrelRollProgress = 0;
       this.barrelRollDirection = direction;
+      this._rollBurstFired = false; // RESET SO BURST CAN FIRE AT PEAK
       console.log('DO A BARREL ROLL!');
     }
   }
@@ -102,16 +110,21 @@ export class Ship {
     this.offset.y += this.velocity.y * dt;
 
     // ================= CLAMP TO PLAY FIELD =================
+    // EXPAND BOUNDS DURING SUCTION SO THE WORM CAN ACTUALLY DRAG THE SHIP
+    const clampMult = this.suctionActive ? CONFIG.WORM_SUCTION.MAX_OFFSET_EXPAND : 1.0;
+    const maxX = CONFIG.SHIP.MAX_OFFSET_X * clampMult;
+    const maxY = CONFIG.SHIP.MAX_OFFSET_Y * clampMult;
+
     const prevX = this.offset.x;
     const prevY = this.offset.y;
-    this.offset.x = Math.max(-CONFIG.SHIP.MAX_OFFSET_X, Math.min(CONFIG.SHIP.MAX_OFFSET_X, this.offset.x));
-    this.offset.y = Math.max(-CONFIG.SHIP.MAX_OFFSET_Y, Math.min(CONFIG.SHIP.MAX_OFFSET_Y, this.offset.y));
+    this.offset.x = Math.max(-maxX, Math.min(maxX, this.offset.x));
+    this.offset.y = Math.max(-maxY, Math.min(maxY, this.offset.y));
 
     if (this.offset.x !== prevX) this.velocity.x = 0;
     if (this.offset.y !== prevY) this.velocity.y = 0;
 
-    this.x = window.innerWidth  / 2 + this.offset.x;
-    this.y = window.innerHeight / 2 - this.offset.y;
+    this.x = window.innerWidth  / 2 + this.offset.x + this.suctionShakeX;
+    this.y = window.innerHeight / 2 - this.offset.y + this.suctionShakeY;
 
     // ================= SPRITE FRAME SELECTION =================
     let desiredFrame = CONFIG.SHIP.NEUTRAL_FRAME;
@@ -170,6 +183,88 @@ export class Ship {
     this.particles.update(dt);
   }
 
+  // ======================= WORM SUCTION =======================
+  // mouthX/Y = SCREEN SPACE COORDINATES OF WORM HEAD
+  applySuction(mouthX, mouthY, dt) {
+    this.suctionActive = true;
+    const SC = CONFIG.WORM_SUCTION;
+
+    // ── SHIP POSITION IN SCREEN SPACE ──
+    const shipScreenX = window.innerWidth  / 2 + this.offset.x;
+    const shipScreenY = window.innerHeight / 2 - this.offset.y; // offset Y is up-positive
+
+    // ── SCREEN-SPACE DELTA: SHIP → MOUTH ──
+    const sdx  = mouthX - shipScreenX;
+    const sdy  = mouthY - shipScreenY;
+    const dist = Math.sqrt(sdx * sdx + sdy * sdy);
+
+    // LERP SCALE: CLOSER = SMALLER
+    const closeness   = Math.max(0, 1 - dist / SC.MAX_DISTANCE);
+    const targetScale = SC.SCALE_FAR - closeness * (SC.SCALE_FAR - SC.SCALE_NEAR);
+    this.suctionScale += (targetScale - this.suctionScale) * SC.SCALE_LERP;
+
+    // SHAKE — SUBTLE TREMOR PROPORTIONAL TO PULL STRENGTH
+    if (closeness > 0.1) {
+      const shakeAmt = SC.SHAKE_INTENSITY * closeness;
+      this.suctionShakeX = (Math.random() - 0.5) * shakeAmt;
+      this.suctionShakeY = (Math.random() - 0.5) * shakeAmt;
+    } else {
+      this.suctionShakeX = 0;
+      this.suctionShakeY = 0;
+    }
+
+    if (dist < 1) return; // AT MOUTH — DON'T DIVIDE BY ZERO
+
+    // ── NORMALIZED SCREEN-SPACE DIRECTIONS ──
+    const snx = sdx / dist; // RADIAL (toward mouth), screen X
+    const sny = sdy / dist; // RADIAL (toward mouth), screen Y (down-positive)
+
+    // CCW TANGENTIAL IN SCREEN SPACE: rotate radial 90° CCW = (-sny, snx)
+    const stx = -sny;
+    const sty =  snx;
+
+    // ── FORCE MAGNITUDE — RAMPS UP EXPONENTIALLY AS SHIP CLOSES IN ──
+    const rawForce   = SC.BASE_FORCE * Math.pow(closeness, SC.RAMP_EXPONENT);
+    const forceMag   = Math.min(rawForce, SC.MAX_FORCE);
+
+    // ── BARREL ROLL RESISTANCE ──
+    // ROLLING GENERATES COUNTER-ANGULAR MOMENTUM — FIGHTS THE SPIRAL PULL
+    const rolling    = this.isBarrelRolling;
+    const spinMult   = rolling ? SC.ROLL_SPIN_RESIST : 1.0;
+    const pullMult   = rolling ? SC.ROLL_PULL_RESIST : 1.0;
+
+    // OUTWARD BURST AT ROLL PEAK (progress 0.4→0.6) — FIRES ONCE PER ROLL
+    if (rolling && this.barrelRollProgress > 0.45 && !this._rollBurstFired) {
+      this._rollBurstFired = true;
+      // PUSH AWAY FROM MOUTH IN OFFSET SPACE (FLIP Y FOR SCREEN→OFFSET)
+      this.velocity.x -= snx * SC.ROLL_BURST_FORCE;
+      this.velocity.y += sny * SC.ROLL_BURST_FORCE; // FLIP Y: SCREEN DOWN → OFFSET UP
+    }
+
+    // ── COMPOSE FINAL FORCE IN SCREEN SPACE → CONVERT TO OFFSET SPACE ──
+    // Offset X = screen X  →  forceOffsetX = screenForceX
+    // Offset Y = -screen Y →  forceOffsetY = -screenForceY
+    const screenFX = (snx * SC.PULL_STRENGTH  * pullMult +
+                      stx * SC.SPIN_STRENGTH   * spinMult) * forceMag;
+    const screenFY = (sny * SC.PULL_STRENGTH  * pullMult +
+                      sty * SC.SPIN_STRENGTH   * spinMult) * forceMag;
+
+    this.velocity.x += screenFX * dt;
+    this.velocity.y -= screenFY * dt; // FLIP: SCREEN Y DOWN → OFFSET Y UP
+  }
+
+  clearSuction() {
+    this.suctionActive = false;
+    this.suctionShakeX = 0;
+    this.suctionShakeY = 0;
+    // SCALE RECOVERS NATURALLY VIA LERP IN NEXT applySuction CALL — OR HERE
+    this.suctionScale += (1.0 - this.suctionScale) * CONFIG.WORM_SUCTION.SCALE_LERP;
+  }
+
+  getSuctionScale() {
+    return this.suctionScale;
+  }
+
   shoot(targetX, targetY) {
     if (!this.canShoot) return false;
     
@@ -190,6 +285,19 @@ export class Ship {
       this.ctx.fillStyle = `rgba(0, 255, 255, ${flashIntensity})`;
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
+
+    if (this.suctionActive && this.suctionScale < 0.92) {  // SUCTION VIGNETTE — SCREEN EDGES PULSE RED AS PULL INTENSIFIES
+      const intensity = Math.max(0, (0.92 - this.suctionScale) / 0.62); // 0→1 AS SCALE DROPS 0.92→0.3
+      const pulseAlpha = intensity * (0.12 + 0.07 * Math.sin(Date.now() * 0.008));
+      const grad = this.ctx.createRadialGradient(
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.35,
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.85
+      );
+      grad.addColorStop(0, `rgba(180, 0, 0, 0)`);
+      grad.addColorStop(1, `rgba(200, 0, 30, ${pulseAlpha})`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
     
     this.ctx.globalAlpha = 1;
     
@@ -197,6 +305,11 @@ export class Ship {
       this.ctx.save();
       this.ctx.translate(this.x, this.y);
       this.ctx.rotate(this.rotation);
+
+      // SCALE DOWN AS SUCTION PULLS SHIP IN — LOOKS LIKE IT'S RECEDING INTO TUNNEL
+      if (this.suctionScale < 0.999) {
+        this.ctx.scale(this.suctionScale, this.suctionScale);
+      }
       
       const sx = this.currentFrame * this.frameWidth;
       const sy = 0;

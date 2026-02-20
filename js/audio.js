@@ -32,13 +32,14 @@ export class AudioManager {
       wormNoise:  this._createPool('./audio/wormNoise.m4a',  2),
       wormIntro:  this._createPool('./audio/wormIntro.m4a',  1),
       wormRattle: this._createPool('./audio/wormRattle.m4a', 2),
+      warning:    this._createPool('./audio/warning.m4a',    1),
     };
 
     this._initContext();
     console.log('âœ” AudioManager initialized');
   }
 
-  // WEB AUDIO â€” SFX ONLY
+  // WEB AUDIO - SFX ONLY
   _initContext() {
     try {
       this.context    = new (window.AudioContext || window.webkitAudioContext)();
@@ -137,4 +138,5 @@ export class AudioManager {
   playWormNoise()  { this._playSfx('wormNoise',  0.75);                    }
   playWormIntro()  { this._playSfx('wormIntro',  this.WORM_INTRO_VOLUME);  }
   playWormRattle() { this._playSfx('wormRattle', this.WORM_RATTLE_VOLUME); }
+  playWarning()    { this._playSfx('warning',    0.8);                     }
 }
