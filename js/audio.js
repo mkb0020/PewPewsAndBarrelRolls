@@ -8,8 +8,7 @@ export class AudioManager {
     this.isMuted    = false;
     this._preMuteVolume = 1.0;
 
-    // BACKGROUND MUSIC 
-    this.musicEl = new Audio('./audio/wormholeTheme.m4a');
+    this.musicEl = new Audio('./audio/wormholeTheme.m4a'); // BACKGROUND MUSIC 
     this.musicEl.loop    = true;
     this.musicEl.preload = 'auto';
 
@@ -23,25 +22,26 @@ export class AudioManager {
 
     this.musicEl.volume = this.MUSIC_VOLUME;
 
-    // SFX POOLS
     this.sfxPools = {
       laser:      this._createPool('./audio/laser.m4a',      6),
       impact:     this._createPool('./audio/impact.m4a',     6),
-      spawn:      this._createPool('./audio/spawn.m4a',      4),
-      barrelRoll: this._createPool('./audio/barrelRoll.m4a', 2),
-      wormNoise:  this._createPool('./audio/wormNoise.m4a',  2),
-      wormIntro:  this._createPool('./audio/wormIntro.m4a',  1),
-      wormRattle: this._createPool('./audio/wormRattle.m4a', 2),
-      wormDeath:  this._createPool('./audio/wormDeath.m4a',  1),
-      warning:    this._createPool('./audio/warning.m4a',    1),
+      spawn:      this._createPool('./audio/spawn.m4a',      4), // ENEMY SPAWN
+      barrelRoll: this._createPool('./audio/barrelRoll.m4a', 2), // WOOSH SOUND
+      wormNoise:  this._createPool('./audio/wormNoise.m4a',  2), // CREEPY WORM SOUND
+      wormIntro:  this._createPool('./audio/wormIntro.m4a',  1), // WORM ENTERS THE SCENE
+      wormRattle:  this._createPool('./audio/wormRattle.m4a',  2), // CREEPY WORM RATTLE SOUND
+      wormDeath1:  this._createPool('./audio/wormDeath1.m4a', 1), // KILL SHOT — PLAYS DURING FREEZE PAUSE
+      wormDeath2:  this._createPool('./audio/wormDeath2.m4a', 1), // SEGMENT POP WAVE — PLAYS WHEN POPPING STARTS
+      wormDeath3:  this._createPool('./audio/wormDeath3.m4a', 1), // HEAD POP + COOLDOWN (~10s) — PLAYS ON FINAL SEGMENT
+      consumed:    this._createPool('./audio/consumed.m4a',   1), // SHIP SPIRALS INTO WORM MOUTH
+      warning:     this._createPool('./audio/warning.m4a',    1),
     };
 
     this._initContext();
     console.log('âœ” AudioManager initialized');
   }
 
-  // WEB AUDIO - SFX ONLY
-  _initContext() {
+  _initContext() {  // WEB AUDIO - SFX ONLY
     try {
       this.context    = new (window.AudioContext || window.webkitAudioContext)();
       this.masterGain = this.context.createGain();
@@ -80,23 +80,40 @@ export class AudioManager {
   }
 
   // ==================== PUBLIC API ====================
+
+  // IOS REQUIRES EVERY <audio> ELEMENT TO BE INDIVIDUALLY UNLOCKED VIA A USER GESTURE.
+  // SILENTLY PLAYS+PAUSES EVERY POOL INSTANCE AT VOLUME 0 ON FIRST INTERACTION,
+  // SO LATER CALLS FROM setTimeout / GAME LOOP WONT BE BLOCKED BY THE AUTOPLAY POLICY.
+  _primeAllAudio() {
+    for (const pool of Object.values(this.sfxPools)) {
+      for (const instance of pool.instances) {
+        instance.volume = 0;
+        instance.play().then(() => {
+          instance.pause();
+          instance.currentTime = 0;
+        }).catch(() => {});
+      }
+    }
+  }
+
   start() {
     if (this.isStarted) return;
     this.isStarted = true;
 
-    // RESUME AUDIOCONTEXT 
-    if (this.context && this.context.state === 'suspended') {
+    if (this.context && this.context.state === 'suspended') { // RESUME AUDIOCONTEXT
       this.context.resume().catch(() => {});
     }
 
-    // PLAY MUSIC - IOS SAFARI BLOCKS .play() IF ANY AWAIT HAS OCCURED FIRST IN THE CALL STACK
+    this._primeAllAudio();  // UNLOCK ALL SFX POOL ELEMENTS WHILE WE ARE INSIDE A USER GESTURE
+
+    // PLAY MUSIC - IOS SAFARI BLOCKS .play() IF ANY AWAIT HAS OCCURRED FIRST IN THE CALL STACK
     this.musicEl.play().then(() => {
-      console.log('âœ” Background music started');
+      console.log('Background music started');
     }).catch(e => {
-      console.warn('âš  Could not autoplay music (will retry on next interaction):', e);
+      console.warn('Could not autoplay music (will retry on next interaction):', e);
       const retry = () => {
         this.musicEl.play().then(() => {
-          console.log('âœ” Music started on retry');
+          console.log('Music started on retry');
         }).catch(() => {});
         window.removeEventListener('touchstart', retry);
         window.removeEventListener('click',      retry);
@@ -116,9 +133,15 @@ export class AudioManager {
     this.musicEl.pause();
   }
 
-  startMusic() {
+  startMusic() { // IOS: .play() FROM setTimeout IS NOT A USER GESTURE — RETRY ON NEXT TOUCH/CLICK IF BLOCKED
     if (this.isMuted) return;
-    this.musicEl.play().catch(() => {});
+    this.musicEl.play().catch(() => {
+      const retry = () => {
+        this.musicEl.play().catch(() => {});
+      };
+      window.addEventListener('touchstart', retry, { once: true });
+      window.addEventListener('click',      retry, { once: true });
+    });
   }
 
   toggleMute() {
@@ -146,7 +169,10 @@ export class AudioManager {
   playBarrelRoll() { this._playSfx('barrelRoll', this.BARREL_ROLL_VOLUME); }
   playWormNoise()  { this._playSfx('wormNoise',  0.75);                    }
   playWormIntro()  { this._playSfx('wormIntro',  this.WORM_INTRO_VOLUME);  }
-  playWormRattle() { this._playSfx('wormRattle', this.WORM_RATTLE_VOLUME); }
-  playWormDeath()  { this._playSfx('wormDeath',  0.9);                     }
-  playWarning()    { this._playSfx('warning',    0.8);                     }
+  playWormRattle()  { this._playSfx('wormRattle',  this.WORM_RATTLE_VOLUME); }
+  playWormDeath1()  { this._playSfx('wormDeath1',  0.9); } // KILL SHOT / FREEZE
+  playWormDeath2()  { this._playSfx('wormDeath2',  0.9); } // SEGMENT POP WAVE
+  playWormDeath3()  { this._playSfx('wormDeath3',  0.9); } // HEAD POP + COOLDOWN
+  playConsumed()    { this._playSfx('consumed',     0.9); } // SHIP SPIRAL-IN DEATH
+  playWarning()     { this._playSfx('warning',     0.8); }
 }

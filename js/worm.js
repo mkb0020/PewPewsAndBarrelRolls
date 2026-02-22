@@ -32,7 +32,8 @@ const WORM = {
   FRAME_ATTACK_END:   8,   // 0-INDEXED: FRAME 9 = INDEX 8
   DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
   ATTACK_INTERVAL:    15,   // SECONDS BETWEEN ATTACKS
-  ATTACK_DURATION:    7,  
+  ATTACK_DURATION:    7,
+  BABY_ATTACK_DURATION: 9,  // BABY WORM ATTACK LASTS LONGER — MORE TIME FOR WORMS TO REACH YOU
   ATTACK_FPS:         10,  // FRAMES PER SECOND FOR ATTACK ANIMATION
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, //POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
@@ -242,21 +243,27 @@ export class WormBoss {
     // ATTACK ANIMATION STATE
     this.attackTimer     = WORM.ATTACK_INTERVAL;
     this.isAttacking     = false;
-    this.attackPhase     = 'idle';  
+    this.attackPhase     = 'idle';
+    this.attackType      = 'suction';  // ALTERNATES: 'suction' | 'babyworm'
+    this._attackIndex    = 0;          // INCREMENTS EACH ATTACK TO DRIVE ALTERNATION
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
+    this._babySpawnFired = false;      // ENSURES onSpawnBabyWorms FIRES EXACTLY ONCE PER ATTACK
 
-    this.onAttack       = null;  // OPTIONAL CALLBACK 
-    this.onIntro        = null;  // FIRES ONCE WHEN WORM FIRST BECOMES VISIBLE
-    this.onSegmentDeath = null;  // CALLBACK(x, y, segIndex) — FIRE AS EACH SEGMENT EXPLODES
-    this.onDeath        = null;  // CALLBACK() — FIRE WHEN ALL SEGMENTS GONE
-    this._introFired    = false;
+    this.onAttack         = null;
+    this.onIntro          = null;
+    this.onSegmentDeath   = null;
+    this.onDeathPauseEnd  = null;
+    this.onDeath          = null;
+    this.onSpawnBabyWorms = null;  // CALLBACK(mouthX, mouthY) — FIRES ONCE AT BABY ATTACK LOOP START
+    this._introFired      = false;
 
     // DEATH SEQUENCE STATE
     this.isDying       = false;
     this.dyingTimer    = 0;
     this.dyingSegIndex = 0;  // HOW MANY SEGMENTS HAVE BEEN POPPED SO FAR (TAIL→HEAD)
+    this._pauseEndFired = false; // ENSURES onDeathPauseEnd FIRES EXACTLY ONCE
 
     this.headX  = WORM.SPAWN_OFFSET_X;  // HEAD WORLD-SPACE POSITION – START AT SPAWN OFFSET
     this.headY  = WORM.SPAWN_OFFSET_Y;
@@ -302,16 +309,21 @@ export class WormBoss {
     this.isDying      = false;
     this.dyingTimer   = 0;
     this.dyingSegIndex = 0;
+    this._pauseEndFired = false;
+    this._pauseEndFired = false;
     this.headX        = WORM.SPAWN_OFFSET_X;
     this.headY        = WORM.SPAWN_OFFSET_Y;
 
     // RESET ATTACK CYCLE
     this.isAttacking     = false;
     this.attackPhase     = 'idle';
+    this.attackType      = 'suction';
+    this._attackIndex    = 0;
     this.attackTimer     = WORM.ATTACK_INTERVAL;
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
+    this._babySpawnFired = false;
 
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { // RESET ALL SEGMENTS
       const seg    = this.segments[i];
@@ -421,6 +433,12 @@ export class WormBoss {
         return;
       }
 
+      // PAUSE JUST ENDED — FIRE CALLBACK EXACTLY ONCE SO AUDIO CUE 2 CAN START
+      if (!this._pauseEndFired) {
+        this._pauseEndFired = true;
+        if (this.onDeathPauseEnd) this.onDeathPauseEnd();
+      }
+
       const SEG_INTERVAL = 0.18;
       const elapsed      = this.dyingTimer - WORM.DEATH_PAUSE_DURATION; // COUNT FROM AFTER THE PAUSE
       const targetKills  = Math.floor(elapsed / SEG_INTERVAL);
@@ -457,7 +475,7 @@ export class WormBoss {
     if (this.isAttacking) {
       this.attackProgress += dt;
 
-      if (this.attackPhase === 'transIn') { 
+      if (this.attackPhase === 'transIn') {
         if (this.attackProgress >= WORM.TRANSITION_DURATION) {
           this.attackPhase     = 'loop';
           this.attackProgress  = 0;
@@ -466,25 +484,48 @@ export class WormBoss {
         }
 
       } else if (this.attackPhase === 'loop') {
-        this.attackFrameTime += dt; 
-        const frameDur = 1 / WORM.ATTACK_FPS;
-        if (this.attackFrameTime >= frameDur) {
-          this.attackFrameTime -= frameDur;
-          this.attackFrame++;
-          if (this.attackFrame > WORM.FRAME_ATTACK_END) {
-            this.attackFrame = WORM.FRAME_ATTACK_START;
+
+        if (this.attackType === 'suction') {
+          // CYCLE ATTACK FRAMES FOR SUCTION
+          this.attackFrameTime += dt;
+          const frameDur = 1 / WORM.ATTACK_FPS;
+          if (this.attackFrameTime >= frameDur) {
+            this.attackFrameTime -= frameDur;
+            this.attackFrame++;
+            if (this.attackFrame > WORM.FRAME_ATTACK_END) {
+              this.attackFrame = WORM.FRAME_ATTACK_START;
+            }
           }
-        }
-        if (this.attackProgress >= WORM.ATTACK_DURATION) {  // AFTER ATTACK_DURATION, RETURN TO IDLE
-          this.isAttacking  = false;
-          this.attackPhase  = 'idle';
-          this.attackTimer  = WORM.ATTACK_INTERVAL;
+          if (this.attackProgress >= WORM.ATTACK_DURATION) {
+            this.isAttacking = false;
+            this.attackPhase = 'idle';
+            this.attackTimer = WORM.ATTACK_INTERVAL;
+          }
+
+        } else {
+          // BABY WORM ATTACK — HOLD MOUTH OPEN FRAME, FIRE SPAWN CALLBACK ONCE
+          this.attackFrame = WORM.FRAME_ATTACK_START;
+          if (!this._babySpawnFired) {
+            this._babySpawnFired = true;
+            const head = this.segments[0];
+            if (this.onSpawnBabyWorms) this.onSpawnBabyWorms(head.screenX, head.screenY);
+          }
+          if (this.attackProgress >= WORM.BABY_ATTACK_DURATION) {
+            this.isAttacking     = false;
+            this.attackPhase     = 'idle';
+            this.attackTimer     = WORM.ATTACK_INTERVAL;
+            this._babySpawnFired = false;
+          }
         }
       }
 
     } else {
       this.attackTimer -= dt;
       if (this.attackTimer <= 0 && this.alpha > 0.8) {
+        this._attackIndex++;
+        // ALTERNATE: ODD = SUCTION, EVEN = BABYWORM  
+        // (FIRST ATTACK IS INDEX 1 = SUCTION SO PLAYER LEARNS MECHANIC FIRST)
+        this.attackType     = (this._attackIndex % 2 === 1) ? 'suction' : 'babyworm';
         this.isAttacking    = true;
         this.attackPhase    = 'transIn';
         this.attackProgress = 0;
@@ -541,9 +582,9 @@ export class WormBoss {
       if (seg.flashTimer > 0) seg.flashTimer -= dt;
     }
 
-    // ============= SUCTION PARTICLES - ONLY ACTIVE DURING ATTACK LOOP PHASE (MOUTH IS FULLY OPEN) =============
+    // ============= SUCTION PARTICLES - ONLY DURING SUCTION ATTACK LOOP (MOUTH IS FULLY OPEN) =============
     const headScreen = this.segments[0];
-    const suctionActive = this.isAttacking && this.attackPhase === 'loop';
+    const suctionActive = this.isAttacking && this.attackPhase === 'loop' && this.attackType === 'suction';
     this.suctionParticles.update(dt, suctionActive, headScreen.screenX, headScreen.screenY);
   }
 

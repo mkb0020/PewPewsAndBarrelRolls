@@ -1,17 +1,17 @@
 // config.js
 export const CONFIG = {
   TUNNEL: {
-    RADIUS: 2400, // INCREASED
+    RADIUS: 2400, 
     SEGMENTS: 700,
-    TUBE_RADIUS: 330, // INCREASED
+    TUBE_RADIUS: 330, 
     TUBE_SEGMENTS: 120,
     TUBE_RADIAL_SEGMENTS: 12,
     SPEED: 210,
     ROLL_AMOUNT: 0.95,
-    COLOR_BASE_HUE: 0.7, // INCREASED 
-    COLOR_PULSE_RANGE: 0.07, // DECREASED
+    COLOR_BASE_HUE: 0.7, 
+    COLOR_PULSE_RANGE: 0.07, 
     VERTICAL_WAVE_SPEED: 0.5,
-    VERTICAL_WAVE_AMPLITUDE: 0, // LEAVING THIS AT 0 RIGHT NOW - STILL DECIDING IF I LIKE IT BETTER WITHOUT THE VERTICAL WAVE
+    VERTICAL_WAVE_AMPLITUDE: 0, // 0 DURING NNORMAL GAME PLAY
   },
 
   SHIP: {
@@ -53,7 +53,7 @@ export const CONFIG = {
   },
 
   SCENE: {
-    FOG_DENSITY: 0.00069, // DECREASED FROM 0.00075 SO YOU CAN SEE THE OUTSIDE OF THE FAR TUNNEL - AFTER THE CURVE - THROUGH THE MESH
+    FOG_DENSITY: 0.00069, 
     BACKGROUND_COLOR: 0x0a0015,
     CAMERA_FOV: 75,
     CAMERA_NEAR: 0.1,
@@ -184,8 +184,7 @@ export const CONFIG = {
   },
 
   // ======================= WORM SUCTION PHYSICS =======================
-  WORM_SUCTION: {
-    // FORCE PROFILE
+  WORM_SUCTION: { // FORCE PROFILE
     BASE_FORCE:        600,    // px/s² at max distance  
     RAMP_EXPONENT:     1.8,    // HOW AGGRESSIVELY FORCE GROWS AS SHIP GETS CLOSER (>1 = exponential ramp)
     MAX_FORCE:         3200,   // HARD CAP — PREVENTS INSTANT VACUUM
@@ -201,7 +200,7 @@ export const CONFIG = {
     ROLL_BURST_FORCE:  900,    // OUTWARD BURST AT ROLL PEAK (progress ~0.5) 
 
     // VISUAL SCALE — SHIP SHRINKS AS IT GETS SUCKED IN
-    SCALE_NEAR:        0.30,   // SMALLEST SCALE AT MOUTH
+    SCALE_NEAR:        0.05,   // SMALLEST SCALE AT MOUTH — MUST BE BELOW SUCTION_DEATH_SCALE
     SCALE_FAR:         1.0,    // NORMAL SCALE AT MAX_DISTANCE
     SCALE_LERP:        0.06,   // HOW FAST SCALE RECOVERS / RESPONDS
 
@@ -212,10 +211,43 @@ export const CONFIG = {
     MAX_OFFSET_EXPAND: 1.6,    // MULTIPLIER ON NORMAL MAX_OFFSET DURING ATTACK
   },
 
-  EXPLOSIONS: {
+EXPLOSIONS: {
     SPRITE: './images/boom.png',
     FRAMES: 6,
     FRAME_DURATION: 0.05, 
     SIZE: 150,
+  },
+
+  // ======================= BABY WORM ATTACK =======================
+  BABY_WORM: {
+    SPRITE_PATH:         './images/babyWorm.png',
+    SPRITE_FRAMES:       2,
+    HEAD_SIZE:           80,
+    SEGMENT_SIZE_RATIO:  1,
+    NUM_SEGMENTS:        6,
+    SEGMENT_SPACING:     11,
+
+    SPAWN_COUNT:         5,
+    SPAWN_INTERVAL:      0.30,
+
+    SEEK_SPEED:          175,
+    SEEK_ACCEL:          55,
+    MAX_SPEED:           310,
+    WIGGLE_AMP:          38,
+    WIGGLE_FREQ:         3.8,
+
+    LATCH_RADIUS:        38,
+    LATCH_ORBIT_SPEED:   0.9,
+    LATCH_ORBIT_DIST:    52,
+    LATCH_DAMAGE_RATE:   8,
+
+    TRAIL_LENGTH:        40,
+    TRAIL_COLOR:         '#55ff88',
+    TRAIL_GLOW:          '#00ff44',
+    TRAIL_MAX_SIZE:      13,
+    TRAIL_MIN_SIZE:      2,
+    TRAIL_MAX_ALPHA:     0.65,
+
+    ATTACK_DURATION:     9.0,
   },
 };

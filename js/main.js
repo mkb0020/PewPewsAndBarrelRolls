@@ -11,6 +11,8 @@ import { AudioManager } from './audio.js';
 import { GameUI } from './ui.js';
 import { ScoreManager } from './score.js';
 import { WormBoss } from './worm.js';
+import { BabyWormManager } from './babyWorm.js';
+import { Monster } from './monster.js';
 
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
@@ -34,9 +36,13 @@ const projectileManager = new ProjectileManager();
 const crosshair       = new Crosshair();
 const muzzleFlash     = new MuzzleFlash();
 const scoreManager    = new ScoreManager();
-const wormBoss        = new WormBoss();
+const wormBoss          = new WormBoss();
+const babyWormManager   = new BabyWormManager();
+const monster           = new Monster(); // TEMP — VISUAL TEST ONLY
 wormBoss.onAttack = () => audio.playWormNoise();
 wormBoss.onIntro  = () => audio.playWormIntro();
+wormBoss.onDeathPauseEnd  = () => audio.playWormDeath2();
+wormBoss.onSpawnBabyWorms = (mx, my) => babyWormManager.spawnWave(mx, my);
 wormBoss.activate(); // PLACEHOLDER
 
 // ==================== BOSS HEALTH BAR HELPERS ====================
@@ -78,17 +84,15 @@ function hideBossDefeated() {
   clearTimeout(_bossDefeatedTimeout);
 }
 
-// READ WORM MAX HP FROM WORM'S OWN CONFIG (INTERNAL CONST) — USE 150 AS DEFINED IN WORM.JS
-const WORM_MAX_HP = 150;
+const WORM_MAX_HP = 150; // READ WORM MAX HP FROM WORM'S OWN CONFIG (INTERNAL CONST) — USE 150 AS DEFINED IN WORM.JS
 
 // ==================== WORM CALLBACKS ====================
 wormBoss.onSegmentDeath = (x, y, segIndex) => {
-  audio.stopMusic();
-  // CHAIN EXPLOSIONS — BIGGER BURST FOR THE HEAD (SEGMENT 0)
-  projectileManager.createExplosion(x, y);
+  projectileManager.createExplosion(x, y); // CHAIN EXPLOSIONS — BIGGER BURST FOR THE HEAD (SEGMENT 0)
   if (segIndex === 0) {
-    // EXTRA HEAD EXPLOSION — SPECTACULAR FINALE
-    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
+    audio.playWormDeath3(); // HEAD POPPED — CUE 3 STARTS NOW (PLAYS THROUGH THE 10s COOLDOWN)
+    audio.stopMusic(); // ENSURE MUSIC IS STILL OFF THROUGH COOLDOWN
+    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);  // EXTRA HEAD EXPLOSIONS — SPECTACULAR FINALE
     setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
   }
 };
@@ -96,13 +100,11 @@ wormBoss.onSegmentDeath = (x, y, segIndex) => {
 wormBoss.onDeath = () => {
   updateBossHealthBar(0);
   showBossDefeated();           
-  audio.stopMusic();
   const cx = window.innerWidth / 2;
   const cy = window.innerHeight / 2;
   scoreManager.addScore(2000, cx, cy - 60);
 
-  // RESPAWN AFTER 10 SECONDS
-  setTimeout(() => {
+  setTimeout(() => { // RESPAWN AFTER 10 SECONDS — TIMED TO LET wormDeath3 FINISH BEFORE MUSIC RETURNS
     if (!isGameOver) {
       wormBoss.activate();
       ship.exitCinematic();
@@ -116,23 +118,20 @@ wormBoss.onDeath = () => {
 ship.onHPChange    = (hp, max) => updateHPBar(hp, max);
 ship.onLivesChange = (lives)   => updateLivesDisplay(lives);
 ship.onDeath       = (livesLeft) => {
+  audio.stopMusic();
   if (livesLeft <= 0) {
     isGameOver = true;
     showGameOver();
   } else {
-    // STILL HAS LIVES — RESPAWN AFTER A SHORT DELAY
-    setTimeout(() => {
-      if (!isGameOver) ship.respawn();
-    }, 800);
+    const inWormBattle = wormBoss.isActive && !wormBoss.isDead;     // SHOW DIED SCREEN 
+    showDiedScreen(inWormBattle);
   }
 };
 
-// INIT HUD TO STARTING VALUES
-updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP);
+updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP); // INIT HUD TO STARTING VALUES
 updateLivesDisplay(ship.getLives());
 
-// RATTLE — AMBIENT CREEP SOUND, RANDOM INTERVAL
-let rattleTimer = 12 + Math.random() * 8; // FIRST RATTLE IN 12–20s
+let rattleTimer = 12 + Math.random() * 8; // RATTLE — AMBIENT CREEP SOUND, RANDOM INTERVAL - FIRST RATTLE IN 12–20s
 
 
 initKeyboard();
@@ -156,13 +155,20 @@ initMobileControls(
 );
 
 // ==================== GAME STATE ====================
-let isPaused    = false;
-let isMuted     = false;
-let isGameOver  = false;
-let _warningSounded = false; // RESETS EACH ATTACK — FIRES ONCE WHEN SHIP HITS HALFWAY DISTANCE
+let isPaused        = false;
+let isMuted         = false;
+let isGameOver      = false;
+let isDeadScreen    = false;
+let _warningSounded  = false;
+let _prevBarrelRolling = false; // TRACK RISING EDGE OF BARREL ROLL FOR DETACH
 
-// ==================== HUD HELPERS ====================
-// QUERY AT CALL TIME — AVOIDS TEMPORAL DEAD ZONE DURING INITIALIZATION
+// ==================== CHECKPOINT SYSTEM ====================
+// SAVED AT GAME START AND WHEN WORM BATTLE BEGINS
+// RESTORED ON DEATH-WITH-LIVES SO PLAYER DOESN'T LOSE EVERYTHING
+let checkpointScore  = 0;
+let _wormBattleStarted = false; // TRACKS WHETHER WE'VE ENTERED WORM PHASE THIS LIFE
+
+// ==================== HUD HELPERS / QUERY AT CALL TIME — AVOIDS TEMPORAL DEAD ZONE DURING INITIALIZATION ====================
 function updateHPBar(hp, maxHP) {
   const pct   = Math.max(0, (hp / maxHP) * 100);
   const fill  = document.getElementById('hp-bar-fill');
@@ -186,19 +192,79 @@ function hideGameOver() {
   if (overlay) overlay.classList.remove('active');
 }
 
+// ==================== DIED OVERLAY  ====================
+function showDiedScreen(inWormBattle) {
+  isDeadScreen = true;
+  const overlay  = document.getElementById('died-overlay');
+  const subEl    = document.getElementById('died-sub');
+  const livesEl  = document.getElementById('died-lives');
+  const livesLeft = ship.getLives();
+
+  if (subEl) {
+    subEl.textContent = inWormBattle
+      ? 'pull yourself up by your bootstraps and get back out there, kiddo!'
+      : 'returning to last checkpoint';
+  }
+  if (livesEl) {
+    livesEl.textContent = `${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} remaining`;
+  }
+  if (overlay) overlay.classList.add('active');
+}
+
+function hideDiedScreen() {
+  isDeadScreen = false;
+  const overlay = document.getElementById('died-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function saveCheckpoint() {   // READ CURRENT SCORE FROM THE HUD — SCORE MANAGER UPDATES THIS EACH FRAME
+  const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
+  checkpointScore = parseInt(raw, 10) || 0;
+}
+
+function restoreCheckpoint() {   // RESET SCORE MANAGER THEN RE-ADD CHECKPOINT SILENTLY (NO POPUP — X/Y OFF SCREEN)
+  scoreManager.reset();
+  if (checkpointScore > 0) {
+    scoreManager.addScore(checkpointScore, -9999, -9999); // FAR OFF SCREEN = NO VISIBLE POPUP
+  }
+}
+
 function restartGame() {
-  isGameOver      = false;
-  _warningSounded = false;
+  isGameOver           = false;
+  isDeadScreen         = false;
+  _warningSounded      = false;
+  _wormBattleStarted   = false;
+  checkpointScore      = 0;
   hideGameOver();
+  hideDiedScreen();
   hideBossDefeated();
-  ship.resetForNewGame(); 
+  ship.resetForNewGame();
   scoreManager.reset();
   enemyManager.clear();
   projectileManager.clear();
+  babyWormManager.clear();
   wormBoss.activate();
   updateBossHealthBar(1);
   audio.stop();
   audio.start();
+}
+
+function handleContinue() {
+  if (!isDeadScreen) return;
+  const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
+
+  hideDiedScreen();
+  restoreCheckpoint();       // SCORE SNAPS BACK TO CHECKPOINT
+
+  if (inWormBattle) {
+    wormBoss.activate();
+    babyWormManager.clear(); // KILL ANY WORMS STILL ON SCREEN
+    updateBossHealthBar(1);
+    _wormBattleStarted = false;
+  }
+
+  ship.respawn();            // IFRAMES + FULL HP + CENTERED
+  audio.startMusic();
 }
 
 // ==================== UI BUTTON EVENTS (DOM - NOT CANVAS) ====================
@@ -238,15 +304,13 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // SHOOT - SPACE
-  if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {
+  if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {  // SHOOT - SPACE
     e.preventDefault();
     doShoot();
     return;
   }
 
-  // BARREL ROLL — Q = LEFT (CCW), E = RIGHT (CW / the actual counter to suction spiral)
-  if (e.code === 'KeyQ' && !ship.isBarrelRolling) {
+  if (e.code === 'KeyQ' && !ship.isBarrelRolling) {   // BARREL ROLL — Q = LEFT (CCW), E = RIGHT (CW / the actual counter to suction spiral)
     e.preventDefault();
     ship.startBarrelRoll(-1);
     audio.playBarrelRoll();
@@ -269,14 +333,12 @@ function gameLoop() {
   const dt  = Math.min((now - lastTime) / 1000, 0.05); 
   lastTime  = now;
 
-  // ==================== UPDATE (SKIP WHEN PAUSED OR GAME OVER) ====================
-  if (!isPaused && !isGameOver) {
+  if (!isPaused && !isGameOver && !isDeadScreen) { //  UPDATE (SKIP WHEN PAUSED, GAME OVER, OR DIED SCREEN)
     tunnel.update(dt);
     const shipOffset = ship.getOffset();
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
 
-    // TUNNEL REACTS TO WORM ATTACK — FULL SUCTION ONLY DURING MOUTH-OPEN LOOP
-    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop';
+    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop';     // TUNNEL REACTS TO WORM ATTACK — FULL SUCTION ONLY DURING MOUTH-OPEN LOOP
     tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
     ship.update(dt);
 
@@ -286,31 +348,49 @@ function gameLoop() {
     muzzleFlash.update(dt);
     scoreManager.update(dt); 
     wormBoss.update(dt);
-    updateBossHealthBar(wormBoss.getHealthPercent());
 
-    // ================== WORM SUCTION PHYSICS ==================
-    // ACTIVE ONLY DURING THE MOUTH-OPEN LOOP — MATCHES PARTICLE VORTEX TIMING
-    if (wormBoss.isActive && !wormBoss.isDead && wormBoss.attackPhase === 'loop') {
-      const headPos = wormBoss.getHeadPosition();
-      ship.applySuction(headPos.x, headPos.y, dt);
+    babyWormManager.update(dt, ship); // BABY WORM UPDATE 
+    monster.update(dt); // TEMP
 
-      // WARNING ALARM — FIRES ONCE WHEN SHIP IS ~HALFWAY TO THE MOUTH
-      if (!_warningSounded && ship.getSuctionScale() < 0.65) {
+    if (ship.isBarrelRolling && !_prevBarrelRolling) { // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
+      const detached = babyWormManager.detachAll();
+      if (detached > 0) audio.playImpact();
+    }
+    _prevBarrelRolling = ship.isBarrelRolling;
+
+    if (wormBoss.isActive && !wormBoss.isDead     // WORM SUCTION PHYSICS - ACTIVE ONLY DURING SUCTION ATTACK LOOP — NOT DURING BABY WORM ATTACK
+
+        && wormBoss.attackPhase === 'loop'
+        && wormBoss.attackType  === 'suction') {
+      if (ship.isAlive && !ship.consumedMode) {       // ONLY APPLY SUCTION PHYSICS WHEN SHIP IS ALIVE — PREVENTS SUCTIONSCALE FROM BEING DRAGGED DOWN DURING THE DEAD WINDOW BETWEEN DEATH AND RESPAWN
+        const headPos = wormBoss.getHeadPosition();
+        ship.applySuction(headPos.x, headPos.y, dt);
+      }
+
+      if (!_warningSounded && ship.getSuctionScale() < 0.65) {       // WARNING ALARM — FIRES ONCE WHEN SHIP IS ~HALFWAY TO THE MOUTH
+
         _warningSounded = true;
         audio.playWarning();
       }
 
-      // FULLY CONSUMED — LOSE A LIFE
-      if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE && ship.isAlive) {
-        ship.takeDamage(CONFIG.SHIP_HP.DAMAGE_SUCKED_IN);
+      if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE       // FULLY CONSUMED — DIE IMMEDIATELY (animation + audio added back once mechanics confirmed)
+
+          && ship.isAlive
+          && !ship.isInvincible) {
+        ship.takeDamage(ship.maxHP); // INSTANT KILL — BYPASSES ANIMATION FOR NOW
       }
     } else {
-      ship.clearSuction();
-      _warningSounded = false; // RESET SO IT CAN FIRE AGAIN NEXT ATTACK
+      if (!ship.consumedMode) ship.clearSuction();
+      _warningSounded = false;
     }
 
-    // RATTLE — FIRE PERIODICALLY, RANDOM INTERVAL SO IT STAYS UNSETTLING
-    if (wormBoss.isActive && !wormBoss.isDead) {
+    // ============= CHECKPOINT — SAVE WHEN WORM FIRST BECOMES VISIBLE =============
+    if (!_wormBattleStarted && wormBoss.isActive && wormBoss.alpha >= 0.15) {
+      _wormBattleStarted = true;
+      saveCheckpoint(); // LOCK IN SCORE BEFORE THE HARD PART
+    }
+
+    if (wormBoss.isActive && !wormBoss.isDead) {  // RATTLE — FIRE PERIODICALLY, RANDOM INTERVAL SO IT STAYS UNSETTLING
       rattleTimer -= dt;
       if (rattleTimer <= 0) {
         audio.playWormRattle();
@@ -318,8 +398,7 @@ function gameLoop() {
       }
     }
     
-    // COLLISION
-    const projectiles = projectileManager.getProjectiles();
+    const projectiles = projectileManager.getProjectiles(); // COLLISION
     const enemies     = enemyManager.getEnemies();
 
     for (let i = projectiles.length - 1; i >= 0; i--) {
@@ -347,8 +426,7 @@ function gameLoop() {
         }
       }
 
-      // ================== WORM BOSS COLLISION ==================
-      if (!projectile.isDead) {
+      if (!projectile.isDead) { //  WORM BOSS COLLISION
         const seg      = projectile.getSegment();
         const wormHit  = wormBoss.checkProjectileHit(seg);
         if (wormHit.hit) {
@@ -359,8 +437,9 @@ function gameLoop() {
           if (wormHit.killed) {
             projectileManager.createExplosion(wormHit.x, wormHit.y);
             scoreManager.addScore(500, wormHit.x, wormHit.y);
-            audio.playWormDeath();  // FIRES ON KILL SHOT — PLAYS OVER THE FULL DEATH THRASH
-            ship.enterCinematic();  // LOCK CONTROLS — SHIP DRIFTS DOWN TO WATCH
+            audio.stopMusic();
+            audio.playWormDeath1();
+            ship.enterCinematic();
           } else {
             projectileManager.createExplosion(wormHit.x, wormHit.y);
             const segScore = wormHit.segIndex === 0 ? 25 : 10;
@@ -368,16 +447,31 @@ function gameLoop() {
           }
         }
       }
+
+      if (!projectile.isDead) { // BABY WORM COLLISION - LATCHED BABY WORMS ARE IMMUNE TO PROJECTILES — BARREL ROLL ONLY
+        const seg      = projectile.getSegment();
+        const babyHit  = babyWormManager.checkProjectileHit(seg);
+        if (babyHit.hit) {
+          projectileManager.removeProjectile(projectile);
+          audio.playImpact();
+          projectileManager.createExplosion(babyHit.x, babyHit.y);
+          scoreManager.addScore(15, babyHit.x, babyHit.y);
+        }
+      }
     }
   }
 
   tunnel.render();
+
+  updateBossHealthBar(wormBoss.getHealthPercent()); // ALWAYS UPDATE BOSS BAR — MUST RUN EVEN WHEN PAUSED/DEAD SO IT DOESN'T FREEZE OR VANISH
 
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
   projectileManager.draw(ctx);
   crosshair.draw(ctx);
   wormBoss.draw(ctx);
+  babyWormManager.draw(ctx);
+  monster.draw(ctx); // TEMP
   enemyManager.draw(ctx);
   muzzleFlash.draw(ctx);
   ship.draw();
@@ -396,9 +490,12 @@ window.addEventListener('resize', () => {
 });
 
 // ==================== RESTART ====================
+document.getElementById('btn-continue')?.addEventListener('click', handleContinue);
+
 document.getElementById('btn-restart')?.addEventListener('click', restartGame);
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyR' && isGameOver) restartGame();
+  if (e.code === 'KeyC' && isDeadScreen) handleContinue();
+  if (e.code === 'KeyR' && isGameOver)   restartGame();
 });
 console.log('All systems go!');
 console.log('=== Starting game loop ===');

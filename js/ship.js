@@ -57,6 +57,15 @@ export class Ship {
     this.suctionShakeY    = 0;
     this._rollBurstFired  = false;  // PREVENT DOUBLE-FIRING BURST PER ROLL
 
+    // ================= CONSUMED (SUCKED IN DEATH) SEQUENCE =================
+    this.consumedMode        = false;   // TRUE WHILE SPIRAL-IN ANIMATION IS PLAYING
+    this.consumedTimer       = 0;
+    this.consumedDuration    = 1.1;     // SECONDS FOR THE FULL SPIRAL-IN
+    this.consumedTargetX     = 0;       // WORM MOUTH SCREEN POSITION
+    this.consumedTargetY     = 0;
+    this._consumedDeathFired = false;   // ENSURES _triggerDeath FIRES EXACTLY ONCE
+    this.consumedFlashAlpha  = 0;       // RADIAL FLASH OVERLAY ALPHA (0→1→0)
+
     // ================= CINEMATIC MODE (WORM DEATH SEQUENCE) =================
     this.cinematicMode    = false;
     this.cinematicScale   = 1.0;
@@ -117,8 +126,7 @@ export class Ship {
     this.velocity.x += inputX * accel;
     this.velocity.y += inputY * accel;
 
-    // DAMPING - EXPONENTIAL DECAY
-    const damp = Math.pow(CONFIG.SHIP.DAMPING, dt * 60);
+    const damp = Math.pow(CONFIG.SHIP.DAMPING, dt * 60);  // DAMPING - EXPONENTIAL DECAY
     this.velocity.x *= damp;
     this.velocity.y *= damp;
 
@@ -126,8 +134,7 @@ export class Ship {
     this.offset.x += this.velocity.x * dt;
     this.offset.y += this.velocity.y * dt;
 
-    // ================= CLAMP TO PLAY FIELD =================
-    // EXPAND BOUNDS DURING SUCTION SO THE WORM CAN ACTUALLY DRAG THE SHIP
+    // ================= CLAMP TO PLAY FIELD - EXPAND BOUNDS DURING SUCTION SO THE WORM CAN ACTUALLY DRAG THE SHIP =================
     const clampMult = this.suctionActive ? CONFIG.WORM_SUCTION.MAX_OFFSET_EXPAND : 1.0;
     const maxX = CONFIG.SHIP.MAX_OFFSET_X * clampMult;
     const maxY = CONFIG.SHIP.MAX_OFFSET_Y * clampMult;
@@ -186,10 +193,16 @@ export class Ship {
   update(dt) {
     if (!this.isAlive) return; // DON'T UPDATE DEAD SHIP
 
+    // ================= CONSUMED SEQUENCE — CONTROLS LOCKED, SHIP SPIRALS TO MOUTH =================
+    if (this.consumedMode) {
+      this._updateConsumed(dt);
+      this.particles.update(dt);
+      return;
+    }
+
     // ================= CINEMATIC MODE — CONTROLS LOCKED, SHIP DRIFTS TO BOTTOM-CENTER =================
-    if (this.cinematicMode) {
-      // TARGET: HORIZONTALLY CENTERED, SHIFTED DOWN TOWARD BOTTOM THIRD
-      const targetOffsetX = 0;
+    if (this.cinematicMode) { // TARGET: HORIZONTALLY CENTERED, SHIFTED DOWN TOWARD BOTTOM THIRD
+      const targetOffsetX = 0; 
       const targetOffsetY = -(window.innerHeight * 0.30); // NEGATIVE = BELOW CENTER
 
       this.velocity.x = 0;
@@ -200,11 +213,9 @@ export class Ship {
       this.x = window.innerWidth  / 2 + this.offset.x;
       this.y = window.innerHeight / 2 - this.offset.y;
 
-      // LERP SCALE UP — SHIP FEELS BIGGER / CLOSER AS IT PULLS BACK TO WATCH
-      this.cinematicScale += (this.CINEMATIC_SCALE_TARGET - this.cinematicScale) * this.CINEMATIC_LERP;
+      this.cinematicScale += (this.CINEMATIC_SCALE_TARGET - this.cinematicScale) * this.CINEMATIC_LERP; // LERP SCALE UP — SHIP FEELS BIGGER / CLOSER AS IT PULLS BACK TO WATCH
 
-      // RETURN TO NEUTRAL TILT & STOP ROLLING
-      this.currentRotation += (0 - this.currentRotation) * 0.1;
+      this.currentRotation += (0 - this.currentRotation) * 0.1; // RETURN TO NEUTRAL TILT & STOP ROLLING
       this.rotation = this.currentRotation * Math.PI / 180;
       this.isBarrelRolling = false;
 
@@ -221,8 +232,7 @@ export class Ship {
       }
     }
 
-    // INVINCIBILITY COUNTDOWN
-    if (this.isInvincible) {
+    if (this.isInvincible) { // INVINCIBILITY COUNTDOWN
       this.invincibilityTimer -= dt;
       if (this.invincibilityTimer <= 0) {
         this.isInvincible       = false;
@@ -238,27 +248,25 @@ export class Ship {
   }
 
   // ======================= WORM SUCTION =======================
-  // mouthX/Y = SCREEN SPACE COORDINATES OF WORM HEAD
-  applySuction(mouthX, mouthY, dt) {
+  applySuction(mouthX, mouthY, dt) { // mouthX/Y = SCREEN SPACE COORDINATES OF WORM HEAD
+    if (this.consumedMode) return; // SPIRAL ANIMATION OWNS MOVEMENT NOW
     this.suctionActive = true;
     const SC = CONFIG.WORM_SUCTION;
 
-    // ── SHIP POSITION IN SCREEN SPACE ──
+    //  SHIP POSITION IN SCREEN SPACE 
     const shipScreenX = window.innerWidth  / 2 + this.offset.x;
     const shipScreenY = window.innerHeight / 2 - this.offset.y; // offset Y is up-positive
 
-    // ── SCREEN-SPACE DELTA: SHIP → MOUTH ──
+    //  SCREEN-SPACE DELTA: SHIP → MOUTH 
     const sdx  = mouthX - shipScreenX;
     const sdy  = mouthY - shipScreenY;
     const dist = Math.sqrt(sdx * sdx + sdy * sdy);
 
-    // LERP SCALE: CLOSER = SMALLER
-    const closeness   = Math.max(0, 1 - dist / SC.MAX_DISTANCE);
+    const closeness   = Math.max(0, 1 - dist / SC.MAX_DISTANCE);  // LERP SCALE: CLOSER = SMALLER
     const targetScale = SC.SCALE_FAR - closeness * (SC.SCALE_FAR - SC.SCALE_NEAR);
     this.suctionScale += (targetScale - this.suctionScale) * SC.SCALE_LERP;
 
-    // SHAKE — SUBTLE TREMOR PROPORTIONAL TO PULL STRENGTH
-    if (closeness > 0.1) {
+    if (closeness > 0.1) { // SHAKE — SUBTLE TREMOR PROPORTIONAL TO PULL STRENGTH
       const shakeAmt = SC.SHAKE_INTENSITY * closeness;
       this.suctionShakeX = (Math.random() - 0.5) * shakeAmt;
       this.suctionShakeY = (Math.random() - 0.5) * shakeAmt;
@@ -269,29 +277,23 @@ export class Ship {
 
     if (dist < 1) return; // AT MOUTH — DON'T DIVIDE BY ZERO
 
-    // ── NORMALIZED SCREEN-SPACE DIRECTIONS ──
+    //  NORMALIZED SCREEN-SPACE DIRECTIONS 
     const snx = sdx / dist; // RADIAL (toward mouth), screen X
     const sny = sdy / dist; // RADIAL (toward mouth), screen Y (down-positive)
 
-    // CCW TANGENTIAL IN SCREEN SPACE: rotate radial 90° CCW = (-sny, snx)
-    const stx = -sny;
+    const stx = -sny; // CCW TANGENTIAL IN SCREEN SPACE: rotate radial 90° CCW = (-sny, snx)
     const sty =  snx;
 
-    // ── FORCE MAGNITUDE — RAMPS UP EXPONENTIALLY AS SHIP CLOSES IN ──
-    const rawForce   = SC.BASE_FORCE * Math.pow(closeness, SC.RAMP_EXPONENT);
+    const rawForce   = SC.BASE_FORCE * Math.pow(closeness, SC.RAMP_EXPONENT); // FORCE MAGNITUDE — RAMPS UP EXPONENTIALLY AS SHIP CLOSES IN 
     const forceMag   = Math.min(rawForce, SC.MAX_FORCE);
 
-    // ── BARREL ROLL RESISTANCE ──
-    // ROLLING GENERATES COUNTER-ANGULAR MOMENTUM — FIGHTS THE SPIRAL PULL
-    const rolling    = this.isBarrelRolling;
+    const rolling    = this.isBarrelRolling; // BARREL ROLL RESISTANCE - ROLLING GENERATES COUNTER-ANGULAR MOMENTUM — FIGHTS THE SPIRAL PULL
     const spinMult   = rolling ? SC.ROLL_SPIN_RESIST : 1.0;
     const pullMult   = rolling ? SC.ROLL_PULL_RESIST : 1.0;
 
-    // OUTWARD BURST AT ROLL PEAK (progress 0.4→0.6) — FIRES ONCE PER ROLL
-    if (rolling && this.barrelRollProgress > 0.45 && !this._rollBurstFired) {
+    if (rolling && this.barrelRollProgress > 0.45 && !this._rollBurstFired) {     // OUTWARD BURST AT ROLL PEAK (progress 0.4→0.6) — FIRES ONCE PER ROLL
       this._rollBurstFired = true;
-      // PUSH AWAY FROM MOUTH IN OFFSET SPACE (flip Y for screen→offset)
-      this.velocity.x -= snx * SC.ROLL_BURST_FORCE;
+      this.velocity.x -= snx * SC.ROLL_BURST_FORCE;       // PUSH AWAY FROM MOUTH IN OFFSET SPACE (flip Y for screen→offset)
       this.velocity.y += sny * SC.ROLL_BURST_FORCE; // flip Y: screen down → offset up
     }
 
@@ -308,15 +310,64 @@ export class Ship {
   }
 
   clearSuction() {
+    if (this.consumedMode) return; // CONSUMED ANIMATION OWNS SCALE — DON'T FIGHT IT
     this.suctionActive = false;
     this.suctionShakeX = 0;
     this.suctionShakeY = 0;
-    // SCALE RECOVERS NATURALLY VIA LERP IN NEXT applySuction CALL — OR HERE
     this.suctionScale += (1.0 - this.suctionScale) * CONFIG.WORM_SUCTION.SCALE_LERP;
   }
 
   getSuctionScale() {
     return this.suctionScale;
+  }
+
+  // ======================= CONSUMED SEQUENCE =======================
+  enterConsumed(targetX, targetY) {
+    if (this.consumedMode || !this.isAlive) return;
+    this.consumedMode        = true;
+    this.consumedTimer       = 0;
+    this.consumedTargetX     = targetX;
+    this.consumedTargetY     = targetY;
+    this._consumedDeathFired = false;
+    this.consumedFlashAlpha  = 0;
+    this.isInvincible        = true;  // PREVENT ANY OTHER DAMAGE DURING SEQUENCE
+    this.isBarrelRolling     = false;
+    this.velocity.x          = 0;
+    this.velocity.y          = 0;
+  }
+
+  _updateConsumed(dt) {
+    this.consumedTimer += dt;
+    const t    = Math.min(this.consumedTimer / this.consumedDuration, 1.0);
+    const ease = t * t * t; // CUBIC — SLOW START, ROCKETS INTO THE MOUTH AT THE END
+
+    const targetOffsetX =  this.consumedTargetX - window.innerWidth  / 2;     // LERP OFFSET TOWARD WORM MOUTH — CONVERT SCREEN SPACE → OFFSET SPACE
+    const targetOffsetY = -(this.consumedTargetY - window.innerHeight / 2);
+    const chaseSpeed = 0.08 + ease * 0.28; // ACCELERATES AS IT GETS PULLED IN
+    this.offset.x += (targetOffsetX - this.offset.x) * chaseSpeed;
+    this.offset.y += (targetOffsetY - this.offset.y) * chaseSpeed;
+    this.x = window.innerWidth  / 2 + this.offset.x;
+    this.y = window.innerHeight / 2 - this.offset.y;
+
+    this.rotation -= Math.PI * 4 * dt * (0.6 + ease * 3.5);     // RAPID CCW SPIN — MATCHES SUCTION VORTEX DIRECTION, ACCELERATES
+
+    this.suctionScale = Math.max(0, 1.0 - ease * 0.98);     // VISUAL SHRINK — SHIP DISAPPEARS INTO THE MOUTH
+
+    this.consumedFlashAlpha = t > 0.7 ? (t - 0.7) / 0.3 : 0;     // SCREEN FLASH BUILDS IN FINAL 30% OF THE ANIMATION
+
+    if (t >= 1.0 && !this._consumedDeathFired) {     // FIRE DEATH EXACTLY ONCE AT THE END
+      this._consumedDeathFired = true;
+      this.consumedFlashAlpha  = 0;
+      this.consumedMode        = false;
+      this._triggerDeath();
+    }
+  }
+
+  takeLatchDamage(amount) { // CONTINUOUS DAMAGE FROM LATCHED BABY WORMS — NO IFRAMES SO IT TICKS EACH FRAME
+    if (!this.isAlive || this.isInvincible) return;
+    this.hp = Math.max(0, this.hp - amount);
+    if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
+    if (this.hp <= 0) this._triggerDeath();
   }
 
   // ======================= HP & LIVES =======================
@@ -329,8 +380,7 @@ export class Ship {
     if (this.hp <= 0) {
       this._triggerDeath();
     } else {
-      // BRIEF IFRAMES SO ONE HIT DOESN'T SHRED THE WHOLE BAR
-      this._startInvincibility(CONFIG.SHIP_HP.INVINCIBILITY_DURATION);
+      this._startInvincibility(CONFIG.SHIP_HP.INVINCIBILITY_DURATION);       // BRIEF IFRAMES SO ONE HIT DOESN'T SHRED THE WHOLE BAR
     }
     return true;
   }
@@ -345,19 +395,22 @@ export class Ship {
   respawn() {
     this.hp      = this.maxHP;
     this.isAlive = true;
-    // RESET POSITION TO CENTER
-    this.offset.x   = 0;
+    this.offset.x   = 0;     // RESET POSITION TO CENTER
     this.offset.y   = 0;
     this.velocity.x = 0;
     this.velocity.y = 0;
     this.x = window.innerWidth  / 2;
     this.y = window.innerHeight / 2;
-    // CLEAR SUCTION
-    this.suctionScale  = 1.0;
+    this.suctionScale  = 1.0;     // CLEAR SUCTION — HARD RESET SO LOW SCALE CAN'T LINGER AND RETRIGGER DEATH
     this.suctionActive = false;
+    this.suctionShakeX = 0;
+    this.suctionShakeY = 0;
+    this.consumedMode        = false;     // CLEAR CONSUMED
+    this.consumedTimer       = 0;
+    this.consumedFlashAlpha  = 0;
+    this._consumedDeathFired = false;
     if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);
-    // LONGER IFRAMES AFTER RESPAWN FROM DEATH
-    this._startInvincibility(CONFIG.SHIP_HP.RESPAWN_INVINCIBILITY);
+    this._startInvincibility(CONFIG.SHIP_HP.RESPAWN_INVINCIBILITY);     // LONGER IFRAMES AFTER RESPAWN FROM DEATH
   }
 
   resetForNewGame() {
@@ -370,6 +423,10 @@ export class Ship {
     this.velocity.x = 0; this.velocity.y = 0;
     this.suctionScale = 1.0;
     this.suctionActive = false;
+    this.consumedMode        = false;
+    this.consumedTimer       = 0;
+    this.consumedFlashAlpha  = 0;
+    this._consumedDeathFired = false;
     this.cinematicMode  = false;
     this.cinematicScale = 1.0;
     this.x = window.innerWidth  / 2;
@@ -401,10 +458,9 @@ export class Ship {
   }
 
   draw() {
-    if (!this.isAlive) return; // DON'T DRAW DEAD SHIP
+    if (!this.isAlive && !this.consumedMode) return; // DON'T DRAW DEAD SHIP ( DO DRAW DURING CONSUMED ANIMATION)
 
-    // INVINCIBILITY FLASH — SKIP EVERY OTHER FLASH INTERVAL SO SHIP BLINKS
-    if (this.isInvincible) {
+    if (this.isInvincible && !this.consumedMode) { // INVINCIBILITY FLASH 
       const flashInterval = 1 / CONFIG.SHIP_HP.INVINCIBILITY_FLASH_HZ;
       const flashPhase = Math.floor(this.invincibilityTimer / flashInterval);
       if (flashPhase % 2 === 0) return; // BLINK OFF
@@ -415,9 +471,7 @@ export class Ship {
       this.ctx.fillStyle = `rgba(0, 255, 255, ${flashIntensity})`;
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
-
-    // SUCTION VIGNETTE — SCREEN EDGES PULSE RED AS PULL INTENSIFIES
-    if (this.suctionActive && this.suctionScale < 0.92) {
+    if (this.suctionActive && this.suctionScale < 0.92) { // SUCTION VIGNETTE — SCREEN EDGES PULSE RED AS PULL INTENSIFIES
       const intensity = Math.max(0, (0.92 - this.suctionScale) / 0.62);
       const pulseAlpha = intensity * (0.12 + 0.07 * Math.sin(Date.now() * 0.008));
       const grad = this.ctx.createRadialGradient(
@@ -460,6 +514,20 @@ export class Ship {
     }
     
     this.particles.draw(this.ctx);
+
+    if (this.consumedFlashAlpha > 0) {  // CONSUMED FLASH — RADIAL RED/WHITE BURST EXPANDING FROM WORM MOUTH
+      const r    = window.innerHeight * 1.2; // BIG ENOUGH TO COVER SCREEN
+      const grad = this.ctx.createRadialGradient(
+        this.consumedTargetX, this.consumedTargetY, 0,
+        this.consumedTargetX, this.consumedTargetY, r
+      );
+      grad.addColorStop(0,    `rgba(255, 220, 220, ${this.consumedFlashAlpha * 0.95})`);
+      grad.addColorStop(0.15, `rgba(255,  60,  80, ${this.consumedFlashAlpha * 0.85})`);
+      grad.addColorStop(0.5,  `rgba(180,   0,  40, ${this.consumedFlashAlpha * 0.5})`);
+      grad.addColorStop(1,    `rgba( 80,   0,  20, 0)`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
   }
 
   // ======================= CINEMATIC MODE =======================

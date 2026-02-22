@@ -11,6 +11,11 @@ export class Tunnel {
     this.shipOffset = { x: 0, y: 0 };
     this._suctionIntensity = 0;
     this._suctionTarget    = 0;
+
+    // CONSUMED SEQUENCE — DRIVES ITS OWN SEPARATE SET OF LERPS
+    this._consumedIntensity = 0;  // 0 = NORMAL, 1 = FULL HELLSCAPE
+    this._consumedTarget    = 0;
+    this._consumedSpeedMult = 1;  // CACHED SPEED MULTIPLIER FOR update()
     
     this.initScene();
     this.initTunnel();
@@ -122,44 +127,78 @@ export class Tunnel {
     this._suctionTarget = Math.max(0, Math.min(1, t));
   }
 
+  // CALL FROM MAIN.JS — t: 0=NORMAL TUNNEL, 1=FULL BLACK-RED VORTEX
+  setConsumedIntensity(t) {
+    this._consumedTarget = Math.max(0, Math.min(1, t));
+  }
+
   update(dt) {
     // FIXED TIMESTAMP FOR SMOOTH TUNNEL
     this.time += 0.016;
 
-    // LERP SUCTION INTENSITY — SNAPPY IN, SLOW RELEASE
-    const lerpSpeed = this._suctionTarget > this._suctionIntensity ? 0.03 : 0.015;
-    this._suctionIntensity += (this._suctionTarget - this._suctionIntensity) * lerpSpeed;
-    const si = this._suctionIntensity; // SHORTHAND
+    // ── SUCTION LERP ──────────────────────────────────────────────────────────
+    const sLerp = this._suctionTarget > this._suctionIntensity ? 0.03 : 0.015;
+    this._suctionIntensity += (this._suctionTarget - this._suctionIntensity) * sLerp;
+    const si = this._suctionIntensity;
+
+    // ── CONSUMED LERP — SNAPPY IN, INSTANT RESET ──────────────────────────────
+    const cLerp = this._consumedTarget > this._consumedIntensity ? 0.08 : 0.12;
+    this._consumedIntensity += (this._consumedTarget - this._consumedIntensity) * cLerp;
+    const ci = this._consumedIntensity;
+
+    // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP ─────────────────
+    const speedMult = 1 + si * 0.4 + ci * 3.5; // CONSUMED: UP TO 4.5× SPEED
+    this._consumedSpeedMult = speedMult;
 
     // PROGRESS ALONG CURVE
-    const progress = (this.time * CONFIG.TUNNEL.SPEED) % 1;
-    const pos = this.curve.getPointAt(progress);
-    const tangent = this.curve.getTangentAt(progress);
+    const progress = (this.time * CONFIG.TUNNEL.SPEED * speedMult) % 1;
+    const pos      = this.curve.getPointAt(progress);
+    const tangent  = this.curve.getTangentAt(progress);
 
-    // UPDATE CAMERA POS
+    // ── CAMERA POSITION ───────────────────────────────────────────────────────
     this.camera.position.copy(pos);
     const lookTarget = pos.clone().add(tangent);
     this.camera.lookAt(lookTarget);
-    this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * CONFIG.TUNNEL.ROLL_AMOUNT);
 
-    // COLOR PULSE — LERP BASE HUE TOWARD RED (0.0) DURING SUCTION
+    // ROLL — CONSUMED SPINS HARD, MATCHING THE SHIP'S CCW SPIRAL
+    const rollAmt = CONFIG.TUNNEL.ROLL_AMOUNT + ci * 2.2;
+    this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * rollAmt);
+
+    // ── BACKGROUND COLOR — DEEP PURPLE → PURE BLACK ───────────────────────────
+    const bgColor = new THREE.Color();
+    bgColor.lerpColors(
+      new THREE.Color(CONFIG.SCENE.BACKGROUND_COLOR),  // 0x0a0015
+      new THREE.Color(0x000000),
+      ci
+    );
+    this.scene.background.copy(bgColor);
+    this.scene.fog.color.copy(bgColor);
+
+    // ── FOG DENSITY — THICKENS SO TUNNEL WALLS DISSOLVE INTO DARKNESS ─────────
+    this.scene.fog.density = CONFIG.SCENE.FOG_DENSITY + ci * 0.018;
+
+    // ── WIREFRAME COLOR ───────────────────────────────────────────────────────
+    // SUCTION LERPS PURPLE → RED (existing behaviour)
+    // CONSUMED THEN LERPS RED → DEEP BLOOD CRIMSON AND DIMS
     const pulse   = Math.sin(this.time * 1.8) * 0.5 + 0.5;
-    const baseHue = CONFIG.TUNNEL.COLOR_BASE_HUE * (1 - si); // PURPLE → RED
+    const baseHue = CONFIG.TUNNEL.COLOR_BASE_HUE * (1 - si) * (1 - ci * 0.85);
+    const lightness = (0.55 + si * 0.15) * (1 - ci * 0.45); // DIMS TOWARD BLACK
     const col = this.material.color;
-    col.setHSL(baseHue + pulse * CONFIG.TUNNEL.COLOR_PULSE_RANGE, 1, 0.55 + si * 0.15);
+    col.setHSL(baseHue + pulse * CONFIG.TUNNEL.COLOR_PULSE_RANGE * (1 - ci * 0.8), 1, lightness);
 
     // PUSH COLOR TO ALL FOUR MATERIALS
     this.glowMat.color.copy(col);
     this.constrictedMat.color.copy(col);
     this.constrictedGlowMat.color.copy(col);
 
-    // CROSSFADE NORMAL ↔ CONSTRICTED — OPACITY IS THE ONLY THING CHANGING PER FRAME
-    this.material.opacity          = 0.4  * (1 - si);
-    this.glowMat.opacity           = 0.15 * (1 - si);
-    this.constrictedMat.opacity    = 0.4  * si;
-    this.constrictedGlowMat.opacity = 0 * si;
+    // ── OPACITY — CONSUMED DIMS NORMAL TUBE, PULSES CONSTRICTED FOR VORTEX FEEL
+    const consumedPulse = 0.5 + 0.5 * Math.sin(this.time * 12 * (1 + ci * 3)); // FAST STROBE AS CI RISES
+    this.material.opacity           = (0.4  * (1 - si)) * (1 - ci * 0.6);
+    this.glowMat.opacity            = (0.15 * (1 - si)) * (1 - ci * 0.7) + ci * 0.08 * consumedPulse;
+    this.constrictedMat.opacity     = (0.4  * si)       + ci * 0.55 * consumedPulse;
+    this.constrictedGlowMat.opacity =                      ci * 0.22 * consumedPulse;
 
-    // VERTICAL WAVE — BUMP AMPLITUDE DURING SUCTION
+    // ── VERTICAL WAVE ─────────────────────────────────────────────────────────
     const waveAmp = CONFIG.TUNNEL.VERTICAL_WAVE_AMPLITUDE + si * 55;
     this.camera.position.y += Math.sin(this.time * CONFIG.TUNNEL.VERTICAL_WAVE_SPEED) * waveAmp;
   }
