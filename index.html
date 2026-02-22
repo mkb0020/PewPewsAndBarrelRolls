@@ -53,6 +53,7 @@
   <span id="lives-count">X 3</span>
 </div>
 
+
 <!-- ========================= BOSS HEALTH BAR ========================= -->
 <div id="boss-health-container">
   <div class="hud-label boss-label">WORM</div>
@@ -65,17 +66,20 @@
   <div id="boss-hp-text">150 / 150</div>
 </div>
 
-<!-- ========================= BOSS DEFEATED / GAME OVER OVERLAY ========================= -->
-<div id="boss-defeated">
-  <div class="boss-defeated-title">YOU DID IT!</div>
-  <div class="boss-defeated-sub">...</div>
+
+<div id="died-overlay">
+  <div class="died-title">YOU DIED</div>
+  <div class="died-sub" id="died-sub">pull yourself up by your bootstraps and get back out there, kiddo!</div>
+  <div class="died-lives" id="died-lives"></div>
+  <button id="btn-continue" class="died-btn">CONTINUE</button>
+  <!--<div class="died-hint">or press &nbsp;C&nbsp; to continue</div>-->
 </div>
 
 <div id="gameover-overlay">
   <div class="gameover-title">GAME OVER</div>
-  <div class="gameover-sub">you've disappointed everyone...</div>
-  <button id="btn-restart" class="gameover-btn">ENTER AGAIN</button>
-  <div class="gameover-hint">or press &nbsp;R</div>
+  <div class="gameover-sub">you've disappointed everyone</div>
+  <button id="btn-restart" class="gameover-btn">REDEEM YOURSELF</button>
+  <!--<div class="gameover-hint">or press &nbsp;R</div>-->
 </div>
 
 </body>

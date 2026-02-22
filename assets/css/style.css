@@ -289,7 +289,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   animation: combo-pulse-anim 0.25s ease-out forwards;
 }
 
-/* COMBO DECAY BAR */
 #combo-bar {
   width: 100px;
   height: 3px;
@@ -411,7 +410,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   font-family: 'SpaceLetters';
 }
 
-/* ════════════════════════════  HP BAR — BOTTOM LEFT ════════════════════════════ */
+/* ════════════════════════════  HP BAR  ════════════════════════════ */
 #hp-container {
   position: fixed;
   top: 70px;
@@ -432,7 +431,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   overflow: visible; 
 }
 
-/* OUTER GLOW RING */
 #hp-bar-track::before {
   content: '';
   position: absolute;
@@ -443,7 +441,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   pointer-events: none;
 }
 
-/* SCANLINE OVERLAY */
 #hp-bar-track::after {
   content: '';
   position: absolute;
@@ -471,16 +468,14 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
     #67febd,
     #58e84c
   );
-  background-size: 270px 100%; /* FIXED SIZE — BAR SHRINKS, GRADIENT STAYS ANCHORED */
+  background-size: 270px 100%; 
   transition: width 0.12s ease-out;
   position: relative;
   z-index: 1;
 
-  /* SUBTLE INNER SHINE */
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
 }
 
-/* SEGMENT TICKS */
 .hp-tick {
   position: absolute;
   top: 0;
@@ -491,7 +486,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   pointer-events: none;
 }
 
-/*  CRITICAL HP — PULSING GLOW  */
 #hp-bar-track.hp-critical #hp-bar-fill {
   animation: hp-pulse 0.6s ease-in-out infinite alternate;
 }
@@ -502,7 +496,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 
-/* LIVES */
 #lives-container {
   position: fixed;
   top: 115px;
@@ -531,7 +524,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   min-width: 1.2ch; /* STOPS LAYOUT SHIFT WHEN NUMBER CHANGES */
 }
 
-/* FLASH ANIMATION — TRIGGERED BY JS ADDING .flash CLASS  */
 #lives-container.flash #lives-count {
   animation: lives-flash 0.5s ease-out;
 }
@@ -632,7 +624,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   animation: boss-bar-hit 0.25s ease-out forwards;
 }
 
-/* ════════════════════════════  BOSS DEFEATED TEXT ════════════════════════════ */
+/* ════════════════════════════  BOSS DEFEATED  ════════════════════════════ */
 #boss-defeated {
   position: fixed;
   inset: 0;
@@ -674,7 +666,96 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   50%       { opacity: 0.3; }
 }
 
-/* ════════════════════════════════ GAME OVER OVERLAY  ══════════════════════════════ */
+/* ════════════════════════════════ YOU DIED  ══════════════════════════════ */
+#died-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 490;               
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(10, 0, 21, 0.6) 0%,
+    rgba(10, 0, 21, 0.88) 100%
+  );
+}
+
+#died-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.died-title {
+  font-family: 'GothNerd';
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: linear-gradient(to right, #ff8800, #c71585, #ff8800);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(255, 160, 0, 0.5));
+  animation: died-flicker 2.5s ease-in-out infinite;
+}
+
+@keyframes died-flicker {
+  0%, 100% { opacity: 1; }
+  90%       { opacity: 1; }
+  92%       { opacity: 0.5; }
+  94%       { opacity: 1; }
+}
+
+.died-sub {
+  font-family: 'GothNerd';
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  color: #FFC7FF;
+  margin-top: -4px;
+}
+
+.died-lives {
+  font-family: 'GothNerd';
+  font-size: 1.3rem;
+  letter-spacing: 0.2em;
+  color: #FFC7FF;
+  margin-top: 4px;
+}
+
+.died-btn {
+  margin-top: 25px;
+  padding: 12px 40px;
+  font-size: 1.2rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #FFC7FF;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  font-family: 'GothNerd';
+}
+
+.died-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #FFC7FF;
+  color: #ffffff;
+}
+
+.died-hint {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+}
+
+/* ════════════════════════════════ GAME OVER   ══════════════════════════════ */
 #gameover-overlay {
   position: fixed;
   inset: 0;
@@ -701,12 +782,13 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 .gameover-title {
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  font-weight: 900;
+  font-size: clamp(2.7rem, 8vw, 5rem);
+  font-weight: 700;
+  font-family: 'GothNerd';
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #ffffff;
-  background: linear-gradient(to right, #e25513, #c71585, #8a2be2, #00ffff);
+  background: linear-gradient(to right, #c71585, #ff0044, #ff3300);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -724,31 +806,32 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 .gameover-sub {
-  font-size: 0.8rem;
+  font-size: 1.5rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.4);
   margin-top: -6px;
+  font-family: 'GothNerd';
 }
 
 .gameover-btn {
   margin-top: 20px;
   padding: 12px 40px;
-  font-size: 0.85rem;
+  font-size: 1.1rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: #00ffff;
+  color: #FFC7FF;
   background: transparent;
-  border: 1px solid rgba(0, 255, 255, 0.45);
+  border: 1px solid #FFC7FF;
   cursor: pointer;
   clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
   transition: background 0.2s, color 0.2s, border-color 0.2s;
-  font-family: inherit;
+  font-family: 'GothNerd';
 }
 
 .gameover-btn:hover {
   background: rgba(0, 255, 255, 0.12);
-  border-color: rgba(0, 255, 255, 0.9);
+  border-color: #FFC7FF;
   color: #ffffff;
 }
 
@@ -757,4 +840,108 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   letter-spacing: 0.2em;
   color: rgba(255, 255, 255, 0.25);
   text-transform: uppercase;
+}
+
+/* ====================== MOBILE =========================*/
+@media (max-width: 980px) {
+  #ui-buttons {
+    top: 10px;
+    left: 12px;
+    gap: 12px;
+  }
+  .ui-icon {
+    width: 28px;
+    height: 28px;
+    background-size: auto 100%;
+  }
+  #btn-sound          { background-position:    0px 0; }
+  #btn-sound.muted    { background-position:  -28px 0; }
+  #btn-pause          { background-position:  -56px 0; }
+  #btn-pause.paused   { background-position:  -84px 0; }
+
+  #hud {
+    top: 4px;
+    right: 12px;
+    height: 48px;
+  }
+  #score-value,
+  #hiscore-value {
+    font-size: 1.1rem;
+  }
+  .hud-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+  }
+
+  #combo-value {
+    font-size: 1.1rem;
+  }
+  #combo-bar {
+    width: 70px;
+    height: 3px;
+  }
+
+  #hp-container {
+    top: 54px;
+    right: 12px;
+    gap: 8px;
+  }
+  #hp-bar-track {
+    width: 170px;
+    height: 18px;
+  }
+  #hp-bar-fill {
+    background-size: 180px 100%;
+  }
+
+  #lives-container {
+    top: 82px;
+    right: 12px;
+    gap: 6px;
+  }
+  #lives-icon {
+    width: 38px;
+  }
+  #lives-count {
+    font-size: 0.95rem;
+  }
+
+  #boss-health-container {
+    top: 10px;
+    gap: 8px;
+  }
+  .boss-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+  }
+  #boss-bar-track {
+    width: 190px;
+    height: 16px;
+  }
+  #boss-hp-text {
+    font-size: 0.6rem;
+  }
+
+  .boss-defeated-title {
+    font-size: 2rem;
+    letter-spacing: 0.15em;
+  }
+  .boss-defeated-sub {
+    font-size: 0.65rem;
+  }
+
+  .pause-title {
+    font-size: 3rem;
+  }
+  .pause-hint {
+    font-size: 0.95rem;
+  }
+
+  .gameover-title {
+    font-size: clamp(2rem, 10vw, 3.5rem);
+  }
+  .gameover-btn {
+    padding: 10px 28px;
+    font-size: 0.75rem;
+  }
 }
