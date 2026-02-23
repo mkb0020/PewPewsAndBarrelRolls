@@ -1,8 +1,8 @@
 // projectiles.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
-import { isKeyPressed, analogInput, isMobile } from './controls.js';
-import { segmentCircleCollision } from './collision.js';
+import { isKeyPressed, analogInput, isMobile } from '../utils/controls.js';
+import { segmentCircleCollision } from '../utils/collision.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export class Projectile {

@@ -1,8 +1,8 @@
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
-import { keys, virtualKeys, isKeyPressed } from './controls.js';
-import { ParticleSystem } from './particles.js';
+import { keys, virtualKeys, isKeyPressed } from '../utils/controls.js';
+import { ParticleSystem } from '../visuals/particles.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export class Ship {
