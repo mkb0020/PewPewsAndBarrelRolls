@@ -68,59 +68,45 @@ export const CONFIG = {
   MAX_PIXEL_RATIO: 2,
 
   ENEMIES: {
-    MAX_COUNT: 0, // TEMPORARY WHILE CONFIGURING WORM
+    MAX_COUNT: 10, 
     SPAWN_INTERVAL_MIN: 3.0, 
     SPAWN_INTERVAL_MAX: 5.0,
     SPAWN_DISTANCE: 300, 
-    
-    
-    SPRITE_PATH: './images/glitches.png',
-    SPRITE_FRAMES: 15,       // TOTAL FRAMES IN SHEET
-    SPRITE_SIZE: 80,
+    SPRITE_SIZE: 150,
 
-  
-    FRAME_RANGES: {
-      TANK:   { start: 8, count: 3 },
-      BASIC:  { start: 0, count: 4 },
-      FAST:   { start: 4, count: 4 },
-      ZIGZAG: { start: 11, count: 4 },
-    },
-
-    // HOW FAST EACH TYPE CYCLES FRAMES 
-    ANIM_SPEEDS: {
-      TANK:   7,   
-      BASIC:  9,  
-      FAST:   12, 
-      ZIGZAG: 9,  
-    },
-    
    
     TYPES: {
-      BASIC: {
+      BASIC: { // GLORK
         SIZE: 40,
         SPEED: 180, 
         COLOR: '#ff00ff',
         GLOW_COLOR: '#ff00ff',
         HEALTH: 1,
         SCORE: 10,
+        SPRITE_FRAMES: 5, 
+        ANIM_SPEED: 9
       },
-      FAST: {
+      FAST: { // ZIP ZAP
         SIZE: 30,
         SPEED: 300,
         COLOR: '#ff3366',
         GLOW_COLOR: '#ff3366',
         HEALTH: 1,
         SCORE: 20,
+        SPRITE_FRAMES: 6, 
+        ANIM_SPEED: 12
       },
-      TANK: {
+      TANK: { // PHIL
         SIZE: 60,
         SPEED: 120,
         COLOR: '#ff9900',
         GLOW_COLOR: '#ffaa00',
         HEALTH: 3,
         SCORE: 50,
+        SPRITE_FRAMES: 5, 
+        ANIM_SPEED: 7
       },
-      ZIGZAG: {
+      ZIGZAG: { // GLIP GLOP AND GLITCH
         SIZE: 35,
         SPEED: 200,
         COLOR: '#00ff88',
@@ -129,6 +115,8 @@ export const CONFIG = {
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 80,
         ZIGZAG_FREQUENCY: 3,
+        SPRITE_FRAMES: 5, 
+        ANIM_SPEED: 9
       },
     },
     
@@ -149,11 +137,9 @@ export const CONFIG = {
     PROJECTILE_GLOW_COLOR: '#00ffff',
     MAX_PROJECTILES: 50,
     
-    CROSSHAIR_SPRITE: './images/crosshair.png',
     CROSSHAIR_SIZE: 60,
-    CROSSHAIR_FRAMES: 3,               // SPRITE SHEET: 0=NORMAL(PURPLE), 1=RED(LOCK), 2=YELLOW(LOCK)
     CROSSHAIR_AIM_DEFLECT_PX: 500,    // MAX px FROM CENTER Ã¢â‚¬â€ CROSSHAIR RANGE OF MOTION
-    CROSSHAIR_OFFSET_MULTIPLIER: 0.55, // FALLBACK
+    CROSSHAIR_OFFSET_MULTIPLIER: 0.55,
     CROSSHAIR_CENTER_PULL: 0.35,       // 0=NONE, 1=LOCKED TO CENTER
     CROSSHAIR_INNER_LAG: 0.22,         // LOWER = MORE LAG
     CROSSHAIR_INPUT_SMOOTHING: 0.03,   // LOWER = FLOATIER
@@ -163,10 +149,7 @@ export const CONFIG = {
     CROSSHAIR_LOCK_RADIUS_MULTIPLIER: 0.6,
     CROSSHAIR_FLASH_SPEED: 0.08,
 
-    // MOUSE AIM 
-    MOUSE_AIM_MAX_RADIUS: 320,         
-    
-    FLASH_SPRITE: './images/flash.png',
+    FLASH_SPRITE: './images/flash.png', // NO LONGER USING THIS SPRITE BUT GAME BREAKS IF I DELETE THIS
     FLASH_FRAMES: 2,
     FLASH_DURATION: 0.1, 
     FLASH_SIZE: 50,
@@ -176,11 +159,11 @@ export const CONFIG = {
   SHIP_HP: {
     MAX_HP:                  100,
     MAX_LIVES:               3,
-    INVINCIBILITY_DURATION:  2.0,   // SECONDS OF IFRAMES AFTER TAKING DAMAGE
+    INVINCIBILITY_DURATION:  2.0,   
     INVINCIBILITY_FLASH_HZ:  8,     // FLASHES PER SECOND WHILE INVINCIBLE
     SUCTION_DEATH_SCALE:     0.18,  // SUCTIONSCALE BELOW THIS = FULLY CONSUMED — LOSE A LIFE
-    RESPAWN_INVINCIBILITY:   3.0,   // EXTRA IFRAMES AFTER RESPAWNING FROM SUCTION DEATH
-    DAMAGE_SUCKED_IN:        100,   // INSTANT DEATH
+    RESPAWN_INVINCIBILITY:   3.0,  
+    DAMAGE_SUCKED_IN:        100,   
   },
 
   // ======================= WORM SUCTION PHYSICS =======================
@@ -189,24 +172,18 @@ export const CONFIG = {
     RAMP_EXPONENT:     1.8,    // HOW AGGRESSIVELY FORCE GROWS AS SHIP GETS CLOSER (>1 = exponential ramp)
     MAX_FORCE:         3200,   // HARD CAP — PREVENTS INSTANT VACUUM
     MAX_DISTANCE:      900,    // BEYOND THIS DISTANCE: ZERO SUCTION FORCE
-
-    // SPIRAL COMPONENT — CCW, MATCHING PARTICLE VORTEX DIRECTION
     SPIN_STRENGTH:     0.55,   // TANGENTIAL FORCE MULTIPLIER (sideways pull)
     PULL_STRENGTH:     1.0,    // RADIAL FORCE MULTIPLIER (straight-in pull)
-
     // BARREL ROLL COUNTER
     ROLL_SPIN_RESIST:  0.06,   // SPIRAL REDUCED TO THIS FRACTION WHILE ROLLING
     ROLL_PULL_RESIST:  0.40,   // RADIAL REDUCED TO THIS FRACTION WHILE ROLLING
     ROLL_BURST_FORCE:  900,    // OUTWARD BURST AT ROLL PEAK (progress ~0.5) 
-
     // VISUAL SCALE — SHIP SHRINKS AS IT GETS SUCKED IN
     SCALE_NEAR:        0.05,   // SMALLEST SCALE AT MOUTH — MUST BE BELOW SUCTION_DEATH_SCALE
     SCALE_FAR:         1.0,    // NORMAL SCALE AT MAX_DISTANCE
     SCALE_LERP:        0.06,   // HOW FAST SCALE RECOVERS / RESPONDS
-
     // SCREEN SHAKE — INTENSITY WHEN SUCTION IS ACTIVE
     SHAKE_INTENSITY:   4,      // px
-
     // CLAMP EXPANSION — SUCTION CAN PULL SHIP PAST NORMAL PLAY FIELD
     MAX_OFFSET_EXPAND: 1.6,    // MULTIPLIER ON NORMAL MAX_OFFSET DURING ATTACK
   },
