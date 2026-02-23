@@ -1,18 +1,18 @@
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
-import { CONFIG } from './config.js';
-import { initKeyboard, initMobileControls, isMobile, keys, isKeyPressed } from './controls.js';
-import { Tunnel } from './tunnel.js';
-import { Ship } from './ship.js';
-import { EnemyManager } from './enemies.js';
-import { ProjectileManager, Crosshair, MuzzleFlash } from './projectiles.js';
-import { circleCollision, segmentCircleCollision } from './collision.js';
-import { AudioManager } from './audio.js';
-import { GameUI } from './ui.js';
-import { ScoreManager } from './score.js';
-import { WormBoss } from './worm.js';
-import { BabyWormManager } from './babyWorm.js';
-import { Monster } from './monster.js';
+import { CONFIG } from './utils/config.js';
+import { initKeyboard, initMobileControls, isMobile, keys, isKeyPressed } from './utils/controls.js';
+import { Tunnel } from './visuals/tunnel.js';
+import { Ship } from './entities/ship.js';
+import { EnemyManager } from './entities/enemies.js';
+import { ProjectileManager, Crosshair, MuzzleFlash } from './entities/projectiles.js';
+import { circleCollision, segmentCircleCollision } from './utils/collision.js';
+import { AudioManager } from './utils/audio.js';
+import { GameUI } from './utils/ui.js';
+import { ScoreManager } from './utils/score.js';
+import { WormBoss } from './entities/worm.js';
+import { BabyWormManager } from './entities/babyWorm.js';
+import { Monster } from './temp/monster.js';
 
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
