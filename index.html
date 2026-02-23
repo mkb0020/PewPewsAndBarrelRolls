@@ -21,6 +21,29 @@
 
   <script type="module" src="js/main.js"></script>
 
+  <div id="menu-overlay">
+    <div class="dev-badge">Dev Mode</div>
+    <div class="menu-title">Wormholes</div>
+    <div class="menu-subtitle">ALL THE WAY DOWN</div>
+    <div class="menu-btn-group">
+      <button class="menu-btn gameplay" data-mode="gameplay">
+        <span class="btn-label">&#9654; &nbsp; regular gameplay</span>
+      </button>
+      <button class="menu-btn boss" data-mode="bossBattle">
+        <span class="btn-label">&#9760; &nbsp; to the worm! </span>
+      </button>
+
+    </div>
+    <div class="dev-controls">
+      <div class="dev-row">
+        <span>Enemy count</span>
+        <input type="range" id="dev-enemy-count" min="0" max="20" value="5" step="1">
+        <span class="dev-value" id="dev-enemy-value">5</span>
+      </div>
+    </div>
+    <div class="menu-footer">© Wormholes All The Way Down</div>
+  </div>
+
   <div id="ui-buttons">
     <button class="ui-icon" id="btn-sound" aria-label="Toggle sound"></button>
     <button class="ui-icon" id="btn-pause" aria-label="Toggle pause"></button>
@@ -28,7 +51,6 @@
 
   <div id="pause-overlay">
     <div class="pause-title">PAUSED</div>
-    <div class="pause-hint">press &nbsp;P&nbsp; to resume</div>
   </div>
 
 <div id="hud">
@@ -72,14 +94,12 @@
   <div class="died-sub" id="died-sub">pull yourself up by your bootstraps and get back out there, kiddo!</div>
   <div class="died-lives" id="died-lives"></div>
   <button id="btn-continue" class="died-btn">CONTINUE</button>
-  <!--<div class="died-hint">or press &nbsp;C&nbsp; to continue</div>-->
 </div>
 
 <div id="gameover-overlay">
   <div class="gameover-title">GAME OVER</div>
   <div class="gameover-sub">you've disappointed everyone</div>
   <button id="btn-restart" class="gameover-btn">REDEEM YOURSELF</button>
-  <!--<div class="gameover-hint">or press &nbsp;R</div>-->
 </div>
 
 </body>
