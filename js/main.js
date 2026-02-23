@@ -1,64 +1,106 @@
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
-import { CONFIG } from './utils/config.js';
-import { initKeyboard, initMobileControls, isMobile, keys, isKeyPressed } from './utils/controls.js';
-import { Tunnel } from './visuals/tunnel.js';
-import { Ship } from './entities/ship.js';
-import { EnemyManager } from './entities/enemies.js';
+import { CONFIG }                                    from './utils/config.js';
+import { initKeyboard, initMobileControls }          from './utils/controls.js';
+import { segmentCircleCollision }                    from './utils/collision.js';
+import { AudioManager }                              from './utils/audio.js';
+import { GameUI }                                    from './utils/ui.js';
+import { ScoreManager }                              from './utils/score.js';
+import { ImageLoader }                               from './utils/imageLoader.js';
+import { Tunnel }                                    from './visuals/tunnel.js';
+import { Ship }                                      from './entities/ship.js';
+import { EnemyManager }                              from './entities/enemies.js';
 import { ProjectileManager, Crosshair, MuzzleFlash } from './entities/projectiles.js';
-import { circleCollision, segmentCircleCollision } from './utils/collision.js';
-import { AudioManager } from './utils/audio.js';
-import { GameUI } from './utils/ui.js';
-import { ScoreManager } from './utils/score.js';
-import { WormBoss } from './entities/worm.js';
-import { BabyWormManager } from './entities/babyWorm.js';
-import { Monster } from './temp/monster.js';
-
+import { WormBoss }                                  from './entities/worm.js';
+import { BabyWormManager }                           from './entities/babyWorm.js';
+import { Menu }                                      from './scenes/menu.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ==================== INITIALIZATION ====================
-const gameCanvas = document.createElement('canvas');
-gameCanvas.id = 'game-canvas';
-gameCanvas.width = window.innerWidth;
-gameCanvas.height = window.innerHeight;
+// ==================== CANVAS ====================
+const gameCanvas    = document.createElement('canvas');
+gameCanvas.id       = 'game-canvas';
+gameCanvas.width    = window.innerWidth;
+gameCanvas.height   = window.innerHeight;
 document.body.appendChild(gameCanvas);
-
 const ctx = gameCanvas.getContext('2d');
 
-const tunnel          = new Tunnel();
-const ship            = new Ship(gameCanvas, ctx);
-const audio           = new AudioManager();
-const ui              = new GameUI();
-const enemyManager    = new EnemyManager(ship.particles, tunnel);
+// ==================== INSTANCES ====================
+const tunnel            = new Tunnel();
+const ship              = new Ship(gameCanvas, ctx);
+const audio             = new AudioManager();
+const ui                = new GameUI();
+const enemyManager      = new EnemyManager(ship.particles, tunnel);
 const projectileManager = new ProjectileManager();
-const crosshair       = new Crosshair();
-const muzzleFlash     = new MuzzleFlash();
-const scoreManager    = new ScoreManager();
+const crosshair         = new Crosshair();
+const muzzleFlash       = new MuzzleFlash();
+const scoreManager      = new ScoreManager();
 const wormBoss          = new WormBoss();
 const babyWormManager   = new BabyWormManager();
-const monster           = new Monster(); // TEMP — VISUAL TEST ONLY
-wormBoss.onAttack = () => audio.playWormNoise();
-wormBoss.onIntro  = () => audio.playWormIntro();
-wormBoss.onDeathPauseEnd  = () => audio.playWormDeath2();
-wormBoss.onSpawnBabyWorms = (mx, my) => babyWormManager.spawnWave(mx, my);
-wormBoss.activate(); // PLACEHOLDER
+const menu              = new Menu();
 
-// ==================== BOSS HEALTH BAR HELPERS ====================
+// ==================== WORM CALLBACKS ====================
+wormBoss.onAttack        = () => audio.playWormNoise();
+wormBoss.onIntro         = () => audio.playWormIntro();
+wormBoss.onDeathPauseEnd = () => audio.playWormDeath2();
+wormBoss.onSpawnBabyWorms = (mx, my) => babyWormManager.spawnWave(mx, my);
+
+wormBoss.onSegmentDeath = (x, y, segIndex) => {
+  projectileManager.createExplosion(x, y);
+  if (segIndex === 0) {
+    // HEAD POPPED — SPECTACULAR CHAIN FINISH
+    audio.playWormDeath3();
+    audio.stopMusic();
+    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
+    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
+  }
+};
+
+wormBoss.onDeath = () => {
+  updateBossHealthBar(0);
+  showBossDefeated();
+  const cx = window.innerWidth  / 2;
+  const cy = window.innerHeight / 2;
+  scoreManager.addScore(2000, cx, cy - 60);
+
+  // RESPAWN AFTER 10s — TIMED TO LET wormDeath3 FINISH BEFORE MUSIC RETURNS
+  setTimeout(() => {
+    if (!isGameOver) {
+      wormBoss.activate();
+      ship.exitCinematic();
+      audio.playWormIntro();
+      audio.startMusic();
+    }
+  }, 10000);
+};
+
+// ==================== SHIP CALLBACKS ====================
+ship.onHPChange    = (hp, max)   => updateHPBar(hp, max);
+ship.onLivesChange = (lives)     => updateLivesDisplay(lives);
+ship.onDeath       = (livesLeft) => {
+  audio.stopMusic();
+  if (livesLeft <= 0) {
+    isGameOver = true;
+    showGameOver();
+  } else {
+    const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
+    showDiedScreen(inWormBattle);
+  }
+};
+
+// ==================== BOSS HEALTH BAR ====================
 const _bossBarFill      = document.getElementById('boss-bar-fill');
 const _bossBarContainer = document.getElementById('boss-health-container');
 const _bossHPText       = document.getElementById('boss-hp-text');
 const _bossDefeated     = document.getElementById('boss-defeated');
+const WORM_MAX_HP       = 150; 
 
 function updateBossHealthBar(pct) {
-  if (_bossBarFill)  _bossBarFill.style.width  = (pct * 100) + '%';
-  if (_bossHPText)   _bossHPText.textContent    =
-    Math.ceil(pct * WORM_MAX_HP) + ' / ' + WORM_MAX_HP;
+  if (_bossBarFill) _bossBarFill.style.width = (pct * 100) + '%';
+  if (_bossHPText)  _bossHPText.textContent  = Math.ceil(pct * WORM_MAX_HP) + ' / ' + WORM_MAX_HP;
   if (_bossBarContainer) {
     const vis = wormBoss.isActive && !wormBoss.isDead && wormBoss.alpha > 0.15;
-    const targetOpacity = vis ? Math.min(1, (wormBoss.alpha - 0.15) / 0.25) : 0;
-    _bossBarContainer.style.opacity = targetOpacity;
+    _bossBarContainer.style.opacity = vis ? Math.min(1, (wormBoss.alpha - 0.15) / 0.25) : 0;
   }
 }
 
@@ -74,9 +116,7 @@ function showBossDefeated() {
   if (!_bossDefeated) { console.warn('boss-defeated element not found'); return; }
   _bossDefeated.classList.add('active');
   clearTimeout(_bossDefeatedTimeout);
-  _bossDefeatedTimeout = setTimeout(() => {
-    _bossDefeated.classList.remove('active');
-  }, 6000); 
+  _bossDefeatedTimeout = setTimeout(() => _bossDefeated.classList.remove('active'), 6000);
 }
 
 function hideBossDefeated() {
@@ -84,91 +124,7 @@ function hideBossDefeated() {
   clearTimeout(_bossDefeatedTimeout);
 }
 
-const WORM_MAX_HP = 150; // READ WORM MAX HP FROM WORM'S OWN CONFIG (INTERNAL CONST) — USE 150 AS DEFINED IN WORM.JS
-
-// ==================== WORM CALLBACKS ====================
-wormBoss.onSegmentDeath = (x, y, segIndex) => {
-  projectileManager.createExplosion(x, y); // CHAIN EXPLOSIONS — BIGGER BURST FOR THE HEAD (SEGMENT 0)
-  if (segIndex === 0) {
-    audio.playWormDeath3(); // HEAD POPPED — CUE 3 STARTS NOW (PLAYS THROUGH THE 10s COOLDOWN)
-    audio.stopMusic(); // ENSURE MUSIC IS STILL OFF THROUGH COOLDOWN
-    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);  // EXTRA HEAD EXPLOSIONS — SPECTACULAR FINALE
-    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
-  }
-};
-
-wormBoss.onDeath = () => {
-  updateBossHealthBar(0);
-  showBossDefeated();           
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
-  scoreManager.addScore(2000, cx, cy - 60);
-
-  setTimeout(() => { // RESPAWN AFTER 10 SECONDS — TIMED TO LET wormDeath3 FINISH BEFORE MUSIC RETURNS
-    if (!isGameOver) {
-      wormBoss.activate();
-      ship.exitCinematic();
-      audio.playWormIntro();
-      audio.startMusic();
-    }
-  }, 10000);
-};
-
-// ==================== SHIP HP CALLBACKS ====================
-ship.onHPChange    = (hp, max) => updateHPBar(hp, max);
-ship.onLivesChange = (lives)   => updateLivesDisplay(lives);
-ship.onDeath       = (livesLeft) => {
-  audio.stopMusic();
-  if (livesLeft <= 0) {
-    isGameOver = true;
-    showGameOver();
-  } else {
-    const inWormBattle = wormBoss.isActive && !wormBoss.isDead;     // SHOW DIED SCREEN 
-    showDiedScreen(inWormBattle);
-  }
-};
-
-updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP); // INIT HUD TO STARTING VALUES
-updateLivesDisplay(ship.getLives());
-
-let rattleTimer = 12 + Math.random() * 8; // RATTLE — AMBIENT CREEP SOUND, RANDOM INTERVAL - FIRST RATTLE IN 12–20s
-
-
-initKeyboard();
-
-
-// ==================== SHARED SHOOT FUNCTION ====================
-function doShoot() {
-  if (isPaused || ship.isBarrelRolling) return;
-  const crosshairPos = crosshair.getPosition();
-  const shootData = ship.shoot(crosshairPos.x, crosshairPos.y);
-  if (shootData) {
-    projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
-    muzzleFlash.trigger(shootData.x, shootData.y);
-    audio.playLaser();
-  }
-}
-
-initMobileControls(
-  (direction) => { ship.startBarrelRoll(direction); audio.playBarrelRoll(); },
-  () => doShoot()
-);
-
-// ==================== GAME STATE ====================
-let isPaused        = false;
-let isMuted         = false;
-let isGameOver      = false;
-let isDeadScreen    = false;
-let _warningSounded  = false;
-let _prevBarrelRolling = false; // TRACK RISING EDGE OF BARREL ROLL FOR DETACH
-
-// ==================== CHECKPOINT SYSTEM ====================
-// SAVED AT GAME START AND WHEN WORM BATTLE BEGINS
-// RESTORED ON DEATH-WITH-LIVES SO PLAYER DOESN'T LOSE EVERYTHING
-let checkpointScore  = 0;
-let _wormBattleStarted = false; // TRACKS WHETHER WE'VE ENTERED WORM PHASE THIS LIFE
-
-// ==================== HUD HELPERS / QUERY AT CALL TIME — AVOIDS TEMPORAL DEAD ZONE DURING INITIALIZATION ====================
+// ==================== HUD HELPERS ====================
 function updateHPBar(hp, maxHP) {
   const pct   = Math.max(0, (hp / maxHP) * 100);
   const fill  = document.getElementById('hp-bar-fill');
@@ -182,6 +138,7 @@ function updateLivesDisplay(lives) {
   if (el) el.textContent = lives;
 }
 
+// ==================== OVERLAY HELPERS ====================
 function showGameOver() {
   const overlay = document.getElementById('gameover-overlay');
   if (overlay) overlay.classList.add('active');
@@ -192,12 +149,11 @@ function hideGameOver() {
   if (overlay) overlay.classList.remove('active');
 }
 
-// ==================== DIED OVERLAY  ====================
 function showDiedScreen(inWormBattle) {
   isDeadScreen = true;
-  const overlay  = document.getElementById('died-overlay');
-  const subEl    = document.getElementById('died-sub');
-  const livesEl  = document.getElementById('died-lives');
+  const overlay   = document.getElementById('died-overlay');
+  const subEl     = document.getElementById('died-sub');
+  const livesEl   = document.getElementById('died-lives');
   const livesLeft = ship.getLives();
 
   if (subEl) {
@@ -205,9 +161,7 @@ function showDiedScreen(inWormBattle) {
       ? 'pull yourself up by your bootstraps and get back out there, kiddo!'
       : 'returning to last checkpoint';
   }
-  if (livesEl) {
-    livesEl.textContent = `${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} remaining`;
-  }
+  if (livesEl) livesEl.textContent = `${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} remaining`;
   if (overlay) overlay.classList.add('active');
 }
 
@@ -217,24 +171,38 @@ function hideDiedScreen() {
   if (overlay) overlay.classList.remove('active');
 }
 
-function saveCheckpoint() {   // READ CURRENT SCORE FROM THE HUD — SCORE MANAGER UPDATES THIS EACH FRAME
+// ==================== CHECKPOINT ====================
+function saveCheckpoint() {
   const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
   checkpointScore = parseInt(raw, 10) || 0;
 }
 
-function restoreCheckpoint() {   // RESET SCORE MANAGER THEN RE-ADD CHECKPOINT SILENTLY (NO POPUP — X/Y OFF SCREEN)
+function restoreCheckpoint() {
   scoreManager.reset();
   if (checkpointScore > 0) {
-    scoreManager.addScore(checkpointScore, -9999, -9999); // FAR OFF SCREEN = NO VISIBLE POPUP
+    scoreManager.addScore(checkpointScore, -9999, -9999); // OFF SCREEN = NO POPUP
   }
 }
 
+// ==================== SHOOT ====================
+function doShoot() {
+  if (isPaused || ship.isBarrelRolling) return;
+  const crosshairPos = crosshair.getPosition();
+  const shootData    = ship.shoot(crosshairPos.x, crosshairPos.y);
+  if (shootData) {
+    projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
+    muzzleFlash.trigger(shootData.x, shootData.y);
+    audio.playLaser();
+  }
+}
+
+// ==================== RESTART / CONTINUE ====================
 function restartGame() {
-  isGameOver           = false;
-  isDeadScreen         = false;
-  _warningSounded      = false;
-  _wormBattleStarted   = false;
-  checkpointScore      = 0;
+  isGameOver         = false;
+  isDeadScreen       = false;
+  _warningSounded    = false;
+  _wormBattleStarted = false;
+  checkpointScore    = 0;
   hideGameOver();
   hideDiedScreen();
   hideBossDefeated();
@@ -243,7 +211,11 @@ function restartGame() {
   enemyManager.clear();
   projectileManager.clear();
   babyWormManager.clear();
-  wormBoss.activate();
+
+  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
+  CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;
+  if (currentMode === 'bossBattle') wormBoss.activate();
+
   updateBossHealthBar(1);
   audio.stop();
   audio.start();
@@ -252,65 +224,52 @@ function restartGame() {
 function handleContinue() {
   if (!isDeadScreen) return;
   const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
-
   hideDiedScreen();
-  restoreCheckpoint();       // SCORE SNAPS BACK TO CHECKPOINT
+  restoreCheckpoint();
 
   if (inWormBattle) {
     wormBoss.activate();
-    babyWormManager.clear(); // KILL ANY WORMS STILL ON SCREEN
+    babyWormManager.clear();
     updateBossHealthBar(1);
     _wormBattleStarted = false;
   }
 
-  ship.respawn();            // IFRAMES + FULL HP + CENTERED
+  ship.respawn();
   audio.startMusic();
 }
 
-// ==================== UI BUTTON EVENTS (DOM - NOT CANVAS) ====================
-document.getElementById('btn-sound').addEventListener('click', () => {
-  isMuted = audio.toggleMute();
-  ui.update(isMuted, isPaused);
-});
+// ==================== GAME STATE ====================
+let isPaused           = false;
+let isMuted            = false;
+let isGameOver         = false;
+let isDeadScreen       = false;
+let _warningSounded    = false;
+let _prevBarrelRolling = false;
+let checkpointScore    = 0;
+let _wormBattleStarted = false;
+let rattleTimer        = 12 + Math.random() * 8; // FIRST RATTLE IN 12–20s
 
-document.getElementById('btn-pause').addEventListener('click', () => {
-  isPaused = !isPaused;
-  ui.update(isMuted, isPaused);
-});
-
-// ==================== START AUDIO ON FIRST INTERACTION ====================
-const startAudio = () => {
-  audio.start();
-  window.removeEventListener('keydown',    startAudio);
-  window.removeEventListener('click',      startAudio);
-  window.removeEventListener('touchstart', startAudio);
-};
-window.addEventListener('keydown',    startAudio, { once: true });
-window.addEventListener('click',      startAudio, { once: true });
-window.addEventListener('touchstart', startAudio, { once: true });
+let currentMode       = 'bossBattle'; // SAFE DEFAULT — OVERWRITTEN BY STARTUP
+let currentEnemyCount = 5;
 
 // ==================== KEYBOARD SHORTCUTS ====================
 window.addEventListener('keydown', (e) => {
-
-  if (e.code === 'KeyP') {  // PAUSE - P KEY
+  if (e.code === 'KeyP') {
     isPaused = !isPaused;
     ui.update(isMuted, isPaused);
     return;
   }
-
-  if (e.code === 'KeyM') { // MUTE - M KEY
+  if (e.code === 'KeyM') {
     isMuted = audio.toggleMute();
     ui.update(isMuted, isPaused);
     return;
   }
-
-  if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {  // SHOOT - SPACE
+  if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {
     e.preventDefault();
     doShoot();
     return;
   }
-
-  if (e.code === 'KeyQ' && !ship.isBarrelRolling) {   // BARREL ROLL — Q = LEFT (CCW), E = RIGHT (CW / the actual counter to suction spiral)
+  if (e.code === 'KeyQ' && !ship.isBarrelRolling) {
     e.preventDefault();
     ship.startBarrelRoll(-1);
     audio.playBarrelRoll();
@@ -322,6 +281,29 @@ window.addEventListener('keydown', (e) => {
     audio.playBarrelRoll();
     return;
   }
+  if (e.code === 'KeyC' && isDeadScreen)  handleContinue();
+  if (e.code === 'KeyR' && isGameOver)    restartGame();
+});
+
+// ==================== BUTTON EVENTS ====================
+document.getElementById('btn-continue')?.addEventListener('click', handleContinue);
+document.getElementById('btn-restart')?.addEventListener('click', restartGame);
+document.getElementById('btn-sound')?.addEventListener('click', () => {
+  isMuted = audio.toggleMute();
+  ui.update(isMuted, isPaused);
+});
+document.getElementById('btn-pause')?.addEventListener('click', () => {
+  isPaused = !isPaused;
+  ui.update(isMuted, isPaused);
+});
+
+// ==================== WINDOW RESIZE ====================
+window.addEventListener('resize', () => {
+  tunnel.handleResize();
+  gameCanvas.width  = window.innerWidth;
+  gameCanvas.height = window.innerHeight;
+  ship.handleResize();
+  crosshair.handleResize();
 });
 
 // ==================== GAME LOOP ====================
@@ -330,127 +312,125 @@ let lastTime = performance.now();
 function gameLoop() {
   requestAnimationFrame(gameLoop);
   const now = performance.now();
-  const dt  = Math.min((now - lastTime) / 1000, 0.05); 
+  const dt  = Math.min((now - lastTime) / 1000, 0.05);
   lastTime  = now;
 
-  if (!isPaused && !isGameOver && !isDeadScreen) { //  UPDATE (SKIP WHEN PAUSED, GAME OVER, OR DIED SCREEN)
+  if (!isPaused && !isGameOver && !isDeadScreen) {
     tunnel.update(dt);
     const shipOffset = ship.getOffset();
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
 
-    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop';     // TUNNEL REACTS TO WORM ATTACK — FULL SUCTION ONLY DURING MOUTH-OPEN LOOP
+    // TUNNEL REACTS TO WORM SUCTION ATTACK
+    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop';
     tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
-    ship.update(dt);
 
+    ship.update(dt);
     crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
     enemyManager.update(dt);
     projectileManager.update(dt);
     muzzleFlash.update(dt);
-    scoreManager.update(dt); 
+    scoreManager.update(dt);
     wormBoss.update(dt);
+    babyWormManager.update(dt, ship);
 
-    babyWormManager.update(dt, ship); // BABY WORM UPDATE 
-    monster.update(dt); // TEMP
-
-    if (ship.isBarrelRolling && !_prevBarrelRolling) { // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
+    // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
+    if (ship.isBarrelRolling && !_prevBarrelRolling) {
       const detached = babyWormManager.detachAll();
       if (detached > 0) audio.playImpact();
     }
     _prevBarrelRolling = ship.isBarrelRolling;
 
-    if (wormBoss.isActive && !wormBoss.isDead     // WORM SUCTION PHYSICS - ACTIVE ONLY DURING SUCTION ATTACK LOOP — NOT DURING BABY WORM ATTACK
-
+    // WORM SUCTION PHYSICS — ONLY DURING SUCTION ATTACK LOOP
+    if (wormBoss.isActive && !wormBoss.isDead
         && wormBoss.attackPhase === 'loop'
         && wormBoss.attackType  === 'suction') {
-      if (ship.isAlive && !ship.consumedMode) {       // ONLY APPLY SUCTION PHYSICS WHEN SHIP IS ALIVE — PREVENTS SUCTIONSCALE FROM BEING DRAGGED DOWN DURING THE DEAD WINDOW BETWEEN DEATH AND RESPAWN
+
+      if (ship.isAlive && !ship.consumedMode) {
         const headPos = wormBoss.getHeadPosition();
         ship.applySuction(headPos.x, headPos.y, dt);
       }
 
-      if (!_warningSounded && ship.getSuctionScale() < 0.65) {       // WARNING ALARM — FIRES ONCE WHEN SHIP IS ~HALFWAY TO THE MOUTH
-
+      // WARNING — FIRES ONCE WHEN SHIP IS ~HALFWAY TO THE MOUTH
+      if (!_warningSounded && ship.getSuctionScale() < 0.65) {
         _warningSounded = true;
         audio.playWarning();
       }
 
-      if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE       // FULLY CONSUMED — DIE IMMEDIATELY (animation + audio added back once mechanics confirmed)
-
-          && ship.isAlive
-          && !ship.isInvincible) {
-        ship.takeDamage(ship.maxHP); // INSTANT KILL — BYPASSES ANIMATION FOR NOW
+      // FULLY CONSUMED — INSTANT KILL
+      if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE
+          && ship.isAlive && !ship.isInvincible) {
+        ship.takeDamage(ship.maxHP);
       }
     } else {
       if (!ship.consumedMode) ship.clearSuction();
       _warningSounded = false;
     }
 
-    // ============= CHECKPOINT — SAVE WHEN WORM FIRST BECOMES VISIBLE =============
+    // CHECKPOINT — SAVE WHEN WORM FIRST BECOMES VISIBLE
     if (!_wormBattleStarted && wormBoss.isActive && wormBoss.alpha >= 0.15) {
       _wormBattleStarted = true;
-      saveCheckpoint(); // LOCK IN SCORE BEFORE THE HARD PART
+      saveCheckpoint();
     }
 
-    if (wormBoss.isActive && !wormBoss.isDead) {  // RATTLE — FIRE PERIODICALLY, RANDOM INTERVAL SO IT STAYS UNSETTLING
+    // RATTLE — AMBIENT CREEP SOUND, RANDOM INTERVAL
+    if (wormBoss.isActive && !wormBoss.isDead) {
       rattleTimer -= dt;
       if (rattleTimer <= 0) {
         audio.playWormRattle();
         rattleTimer = 8 + Math.random() * 12; // 8–20s BETWEEN RATTLES
       }
     }
-    
-    const projectiles = projectileManager.getProjectiles(); // COLLISION
+
+    // ── COLLISION ──────────────────────────────────────────────
+    const projectiles = projectileManager.getProjectiles();
     const enemies     = enemyManager.getEnemies();
 
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const projectile = projectiles[i];
+
+      // PROJECTILE vs ENEMIES
       for (let j = enemies.length - 1; j >= 0; j--) {
-        const enemy    = enemies[j];
-        const enemyPos = enemy.getPosition();
-        const enemySize = enemy.getSize();
-
-        const seg = projectile.getSegment();
-        const hit = segmentCircleCollision(
-          seg,
-          { x: enemyPos.x, y: enemyPos.y, radius: enemySize }
+        const enemy   = enemies[j];
+        const pos     = enemy.getPosition();
+        const hit     = segmentCircleCollision(
+          projectile.getSegment(),
+          { x: pos.x, y: pos.y, radius: enemy.getSize() }
         );
-
         if (hit) {
           projectileManager.removeProjectile(projectile);
           const destroyed = enemy.takeDamage(1);
           if (destroyed) {
-            projectileManager.createExplosion(enemyPos.x, enemyPos.y);
-            scoreManager.addScore(enemy.score, enemyPos.x, enemyPos.y);  
+            projectileManager.createExplosion(pos.x, pos.y);
+            scoreManager.addScore(enemy.score, pos.x, pos.y);
           }
           audio.playImpact();
           break;
         }
       }
 
-      if (!projectile.isDead) { //  WORM BOSS COLLISION
-        const seg      = projectile.getSegment();
-        const wormHit  = wormBoss.checkProjectileHit(seg);
+      // PROJECTILE vs WORM BOSS
+      if (!projectile.isDead) {
+        const wormHit = wormBoss.checkProjectileHit(projectile.getSegment());
         if (wormHit.hit) {
           projectileManager.removeProjectile(projectile);
           audio.playImpact();
           flashBossBar();
           updateBossHealthBar(wormBoss.getHealthPercent());
+          projectileManager.createExplosion(wormHit.x, wormHit.y);
           if (wormHit.killed) {
-            projectileManager.createExplosion(wormHit.x, wormHit.y);
             scoreManager.addScore(500, wormHit.x, wormHit.y);
             audio.stopMusic();
             audio.playWormDeath1();
             ship.enterCinematic();
           } else {
-            projectileManager.createExplosion(wormHit.x, wormHit.y);
             const segScore = wormHit.segIndex === 0 ? 25 : 10;
             scoreManager.addScore(segScore, wormHit.x, wormHit.y);
           }
         }
       }
 
-      if (!projectile.isDead) { // BABY WORM COLLISION - LATCHED BABY WORMS ARE IMMUNE TO PROJECTILES — BARREL ROLL ONLY
-        const seg      = projectile.getSegment();
-        const babyHit  = babyWormManager.checkProjectileHit(seg);
+      if (!projectile.isDead) {
+        const babyHit = babyWormManager.checkProjectileHit(projectile.getSegment());
         if (babyHit.hit) {
           projectileManager.removeProjectile(projectile);
           audio.playImpact();
@@ -461,42 +441,55 @@ function gameLoop() {
     }
   }
 
+
   tunnel.render();
-
-  updateBossHealthBar(wormBoss.getHealthPercent()); // ALWAYS UPDATE BOSS BAR — MUST RUN EVEN WHEN PAUSED/DEAD SO IT DOESN'T FREEZE OR VANISH
-
+  updateBossHealthBar(wormBoss.getHealthPercent()); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-
   projectileManager.draw(ctx);
   crosshair.draw(ctx);
   wormBoss.draw(ctx);
   babyWormManager.draw(ctx);
-  monster.draw(ctx); // TEMP
   enemyManager.draw(ctx);
   muzzleFlash.draw(ctx);
   ship.draw();
 }
 
-// ==================== WINDOW RESIZE ====================
-window.addEventListener('resize', () => {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+// ==================== STARTUP ====================
+async function startup() {
+  await ImageLoader.preloadCritical();
+  console.log('✔ Images ready');
 
-  tunnel.handleResize();
-  gameCanvas.width  = w;
-  gameCanvas.height = h;
-  ship.handleResize();
-  crosshair.handleResize();
-});
+  const { mode, enemyCount } = await menu.show(tunnel);
+  currentMode       = mode;
+  currentEnemyCount = enemyCount;
+  console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
 
-// ==================== RESTART ====================
-document.getElementById('btn-continue')?.addEventListener('click', handleContinue);
+  CONFIG.ENEMIES.MAX_COUNT = mode === 'gameplay' ? enemyCount : 0;
+  if (mode === 'bossBattle') wormBoss.activate();
 
-document.getElementById('btn-restart')?.addEventListener('click', restartGame);
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyC' && isDeadScreen) handleContinue();
-  if (e.code === 'KeyR' && isGameOver)   restartGame();
-});
-console.log('All systems go!');
-console.log('=== Starting game loop ===');
-gameLoop();
+  updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP);
+  updateLivesDisplay(ship.getLives());
+
+  initKeyboard();
+  initMobileControls(
+    (direction) => { ship.startBarrelRoll(direction); audio.playBarrelRoll(); },
+    () => doShoot()
+  );
+
+
+  const startAudio = () => {
+    audio.start();
+    window.removeEventListener('keydown',    startAudio);
+    window.removeEventListener('click',      startAudio);
+    window.removeEventListener('touchstart', startAudio);
+  };
+  window.addEventListener('keydown',    startAudio, { once: true });
+  window.addEventListener('click',      startAudio, { once: true });
+  window.addEventListener('touchstart', startAudio, { once: true });
+
+  lastTime = performance.now();
+  console.log('=== Starting game loop ===');
+  gameLoop();
+}
+
+startup();

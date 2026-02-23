@@ -3,88 +3,81 @@
 import { CONFIG } from '../utils/config.js';
 import { isKeyPressed, analogInput, isMobile } from '../utils/controls.js';
 import { segmentCircleCollision } from '../utils/collision.js';
+import { ImageLoader } from '../utils/imageLoader.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export class Projectile {
   constructor(x, y, dirX, dirY, targetX, targetY) {
-    this.x = x;
-    this.y = y;
+    this.x    = x;
+    this.y    = y;
     this.dirX = dirX;
     this.dirY = dirY;
-    this.speed = CONFIG.SHOOTING.PROJECTILE_SPEED;
-    this.size = CONFIG.SHOOTING.PROJECTILE_SIZE;
+    this.speed  = CONFIG.SHOOTING.PROJECTILE_SPEED;
+    this.size   = CONFIG.SHOOTING.PROJECTILE_SIZE;
     this.length = CONFIG.SHOOTING.PROJECTILE_LENGTH;
-    this.color = CONFIG.SHOOTING.PROJECTILE_COLOR;
-    this.glowColor = CONFIG.SHOOTING.PROJECTILE_GLOW_COLOR;
+    this.color      = CONFIG.SHOOTING.PROJECTILE_COLOR;
+    this.glowColor  = CONFIG.SHOOTING.PROJECTILE_GLOW_COLOR;
     this.isDead = false;
 
-    // 3D PERSPECTIVE - USE ACTUAL TARGET POS AS VANISHING POINT 
+    // 3D PERSPECTIVE — TARGET POS IS THE VANISHING POINT
     this.startX = x;
     this.startY = y;
     const dx = (targetX ?? window.innerWidth  / 2) - x;
     const dy = (targetY ?? window.innerHeight / 2) - y;
-    this.maxDistance = Math.sqrt(dx * dx + dy * dy); // REACH CROSS HAIR EXACTLY - ALPHA FADES TO 0 THERE
+    this.maxDistance     = Math.sqrt(dx * dx + dy * dy); // REACH CROSSHAIR EXACTLY
     this.distanceTraveled = 0;
     this.depthScale = 1.0;
-    this.alpha = 1.0;
+    this.alpha      = 1.0;
   }
 
   update(dt) {
     this.x += this.dirX * this.speed * dt;
     this.y += this.dirY * this.speed * dt;
-
     this.distanceTraveled += this.speed * dt;
 
-    const rawProgress = Math.min(this.distanceTraveled / this.maxDistance, 1.0); // EASE IN CURVE - SLOW SHRINK THEN SHRINKS FASTER - PULLING INTO TUNNEL
-    const easedProgress = rawProgress * rawProgress; // QUADRATIC EASE IN
+    // EASE IN — SLOW SHRINK THEN ACCELERATES INTO TUNNEL
+    const rawProgress   = Math.min(this.distanceTraveled / this.maxDistance, 1.0);
+    const easedProgress = rawProgress * rawProgress; // QUADRATIC
+    this.depthScale = 1.0 - easedProgress * 0.92;   // SCALES DOWN TO ~8%
 
-    this.depthScale = 1.0 - easedProgress * 0.92; // SCALES DOWN TO ~8% ORIGINAL SIZE
+    // FADE STARTS AT 55% THROUGH TRAVEL
+    const fadeStart = 0.55;
+    this.alpha = rawProgress > fadeStart
+      ? 1.0 - ((rawProgress - fadeStart) / (1.0 - fadeStart))
+      : 1.0;
 
-    
-    const fadeStart = 0.55; // FADE STARTS AT 55% THROUGH TRAVEL - 100% = FULLY GONE
-    if (rawProgress > fadeStart) {
-      this.alpha = 1.0 - ((rawProgress - fadeStart) / (1.0 - fadeStart));
-    } else {
-      this.alpha = 1.0;
-    }
-
-    if (rawProgress >= 1.0 || this.alpha <= 0.03) {
-      this.isDead = true;
-    }
+    if (rawProgress >= 1.0 || this.alpha <= 0.03) this.isDead = true;
   }
 
   draw(ctx) {
     ctx.save();
 
-    const angle = Math.atan2(this.dirY, this.dirX); // CALC ANGLE FOR LASER
-    const scaledSize = this.size * this.depthScale;
+    const angle        = Math.atan2(this.dirY, this.dirX);
+    const scaledSize   = this.size   * this.depthScale;
     const scaledLength = this.length * this.depthScale;
 
-    ctx.globalAlpha = 0.3 * this.alpha; // LASER GLOW
+    // GLOW
+    ctx.globalAlpha = 0.3 * this.alpha;
     ctx.strokeStyle = this.glowColor;
-    ctx.lineWidth = scaledSize * 2;
-    ctx.lineCap = 'round';
+    ctx.lineWidth   = scaledSize * 2;
+    ctx.lineCap     = 'round';
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
-    ctx.lineTo(
-      this.x - Math.cos(angle) * scaledLength,
-      this.y - Math.sin(angle) * scaledLength
-    );
+    ctx.lineTo(this.x - Math.cos(angle) * scaledLength, this.y - Math.sin(angle) * scaledLength);
     ctx.stroke();
 
-    ctx.globalAlpha = 1.0 * this.alpha; // CORE LASER
+    // CORE
+    ctx.globalAlpha = 1.0 * this.alpha;
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = scaledSize;
+    ctx.lineWidth   = scaledSize;
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
-    ctx.lineTo(
-      this.x - Math.cos(angle) * scaledLength,
-      this.y - Math.sin(angle) * scaledLength
-    );
+    ctx.lineTo(this.x - Math.cos(angle) * scaledLength, this.y - Math.sin(angle) * scaledLength);
     ctx.stroke();
 
+    // BRIGHT TIP
     ctx.globalAlpha = this.alpha;
-    ctx.fillStyle = '#ffffff';  // BRIGHT TIP
+    ctx.fillStyle   = '#ffffff';
     ctx.beginPath();
     ctx.arc(this.x, this.y, scaledSize / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -92,186 +85,125 @@ export class Projectile {
     ctx.restore();
   }
 
-  getPosition() {
-    return { x: this.x, y: this.y };
-  }
+  getPosition() { return { x: this.x, y: this.y }; }
+  getRadius()   { return this.size; }
 
-  getRadius() {
-    return this.size;
-  }
-
-  getSegment() {   // RETURNS TAIL POINT OF LASER - FOR SEGMENT COLLISION
+  getSegment() { // TAIL POINT — FOR SEGMENT COLLISION
     return {
       x1: this.x,
       y1: this.y,
-      x2: this.x - this.dirX * this.length * (1 / this.depthScale || 1),
-      y2: this.y - this.dirY * this.length * (1 / this.depthScale || 1),
+      x2: this.x - this.dirX * this.length * (1 / (this.depthScale || 1)),
+      y2: this.y - this.dirY * this.length * (1 / (this.depthScale || 1)),
     };
   }
 }
 
+// ======================= EXPLOSION =======================
 export class Explosion {
-  constructor(x, y, sprite, frameWidth) {
+  constructor(x, y) {
     this.x = x;
     this.y = y;
     this.currentFrame = 0;
-    this.frameTime = 0;
-    this.isDead = false;
-    this.size = CONFIG.EXPLOSIONS.SIZE;
-    this.sprite = sprite;         // SHARED 
-    this.frameWidth = frameWidth; // SHARED
+    this.frameTime    = 0;
+    this.isDead       = false;
+    this.size         = CONFIG.EXPLOSIONS.SIZE;
   }
 
   update(dt) {
     this.frameTime += dt;
-
     if (this.frameTime >= CONFIG.EXPLOSIONS.FRAME_DURATION) {
       this.frameTime = 0;
       this.currentFrame++;
-
-      if (this.currentFrame >= CONFIG.EXPLOSIONS.FRAMES) {
-        this.isDead = true;
-      }
+      if (this.currentFrame >= CONFIG.EXPLOSIONS.FRAMES) this.isDead = true;
     }
   }
 
   draw(ctx) {
-    if (!this.sprite || !this.frameWidth) return;
+    const sprite = ImageLoader.get('boom');
+    if (!sprite) return;
 
+    const frameWidth = sprite.width / CONFIG.EXPLOSIONS.FRAMES;
     ctx.save();
-    const sx = this.currentFrame * this.frameWidth;
-
     ctx.drawImage(
-      this.sprite,
-      sx, 0, this.frameWidth, this.sprite.height,
+      sprite,
+      this.currentFrame * frameWidth, 0, frameWidth, sprite.height,
       this.x - this.size / 2,
       this.y - this.size / 2,
-      this.size,
-      this.size
+      this.size, this.size
     );
     ctx.restore();
   }
 }
 
+// ======================= PROJECTILE MANAGER =======================
 export class ProjectileManager {
   constructor() {
     this.projectiles = [];
-    this.explosions = [];
-    
-    // CACHE EXPLOSION SPRITE ONCE 
-    this.explosionSprite = new Image();
-    this.explosionFrameWidth = 0;
-    this.explosionSprite.src = CONFIG.EXPLOSIONS.SPRITE;
-    this.explosionSprite.onload = () => {
-      this.explosionFrameWidth = this.explosionSprite.width / CONFIG.EXPLOSIONS.FRAMES;
-    };
-    
-    console.log('âœ” Projectile manager initialized');
+    this.explosions  = [];
   }
 
   shoot(x, y, targetX, targetY) {
     if (this.projectiles.length >= CONFIG.SHOOTING.MAX_PROJECTILES) return;
-
-    // CALC DIRECTION FROM SHIP TO TARGET
-    const dx = targetX - x; 
-    const dy = targetY - y;
-    const distance = Math.sqrt(dx * dx + dy * dy); 
-    
-    // NORMALIZE DIRECTION
-    const dirX = dx / distance;
-    const dirY = dy / distance;
-
-    const projectile = new Projectile(x, y, dirX, dirY, targetX, targetY);
-    this.projectiles.push(projectile);
+    const dx       = targetX - x;
+    const dy       = targetY - y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const dirX     = dx / distance;
+    const dirY     = dy / distance;
+    this.projectiles.push(new Projectile(x, y, dirX, dirY, targetX, targetY));
   }
 
   createExplosion(x, y) {
-    const explosion = new Explosion(x, y, this.explosionSprite, this.explosionFrameWidth);
-    this.explosions.push(explosion);
+    this.explosions.push(new Explosion(x, y));
   }
 
   update(dt) {
-    for (let i = this.projectiles.length - 1; i >= 0; i--) { // UPDATE PROJECTILES
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
       this.projectiles[i].update(dt);
-      if (this.projectiles[i].isDead) {
-        this.projectiles.splice(i, 1);
-      }
+      if (this.projectiles[i].isDead) this.projectiles.splice(i, 1);
     }
-
-    for (let i = this.explosions.length - 1; i >= 0; i--) { // UPDATE EXPLOSIONS
+    for (let i = this.explosions.length - 1; i >= 0; i--) {
       this.explosions[i].update(dt);
-      if (this.explosions[i].isDead) {
-        this.explosions.splice(i, 1);
-      }
+      if (this.explosions[i].isDead) this.explosions.splice(i, 1);
     }
   }
 
   draw(ctx) {
-    this.projectiles.forEach(p => p.draw(ctx));
-    this.explosions.forEach(e => e.draw(ctx));
+    for (const p of this.projectiles) p.draw(ctx);
+    for (const e of this.explosions)  e.draw(ctx);
   }
 
-  getProjectiles() {
-    return this.projectiles;
-  }
-
+  getProjectiles()          { return this.projectiles; }
   removeProjectile(projectile) {
-    const index = this.projectiles.indexOf(projectile);
-    if (index > -1) {
-      this.projectiles.splice(index, 1);
-    }
+    const i = this.projectiles.indexOf(projectile);
+    if (i > -1) this.projectiles.splice(i, 1);
   }
-
-  clear() {
-    this.projectiles = [];
-    this.explosions = [];
-  }
+  clear() { this.projectiles = []; this.explosions = []; }
 }
 
-// ================================== CROSSHAIR - INPUT DRIVEN (NOT SHIP POS DERIVED) / CROSSHAIR REPRESENTS INTENTION NOT WHERE SHIP IS ==================================
+// ======================= CROSSHAIR =======================
 export class Crosshair {
   constructor() {
     const cx = window.innerWidth  / 2;
     const cy = window.innerHeight / 2;
 
-    // INNER RETICLE 
-    this.x = cx;
-    this.y = cy;
+    // INNER RETICLE
+    this.x       = cx;
+    this.y       = cy;
     this.targetX = cx;
     this.targetY = cy;
 
-    // OUTER BRACKETS 
+    // OUTER BRACKETS
     this.outerX = cx;
     this.outerY = cy;
 
-    this.sprite = null;
-    this.spriteLoaded = false;
-    this.frameWidth = 0;
     this.size = CONFIG.SHOOTING.CROSSHAIR_SIZE;
 
-    this.isLockedOn = false;
-    this.flashTimer = 0;
-    this.currentFrame = 0; // 0=NORMAL(purple), 1=RED, 2=YELLOW
+    this.isLockedOn   = false;
+    this.flashTimer   = 0;
+    this.lockFlashOn  = false; // ALTERNATES FOR LOCK FLASH
 
-    this.mouseInput = { x: 0, y: 0 };
-
+    this.mouseInput   = { x: 0, y: 0 };
     this.smoothedInput = { x: 0, y: 0 };
-
-    this.loadSprite();
-    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â Crosshair initialized');
-  }
-
-  loadSprite() {
-    this.sprite = new Image();
-    this.sprite.src = CONFIG.SHOOTING.CROSSHAIR_SPRITE;
-    this.sprite.onload = () => {
-      this.spriteLoaded = true;
-      this.frameWidth = this.sprite.width / CONFIG.SHOOTING.CROSSHAIR_FRAMES;
-      console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â Crosshair sprite loaded');
-    };
-    this.sprite.onerror = () => {
-      console.warn('ÃƒÂ¢Ã…Â¡Ã‚Â   Crosshair sprite not found, using fallback');
-    };
   }
 
   setMouseInput(nx, ny) {
@@ -279,20 +211,16 @@ export class Crosshair {
     this.mouseInput.y = ny;
   }
 
-  // ================== UPDATE / shipOffsetX/Y: CURRENT SHIP OFFSET FROMS CREEN CENTER  ==================
   update(shipOffsetX, shipOffsetY, dt, enemies, vanishingPoint) {
-    // VANISHING POINT - WHERE THE TUNNEL MOUTH CONVERGES ON SCREEN - CROSSHAIR'S GRAVITY TARGET
+    // VANISHING POINT — WHERE TUNNEL MOUTH CONVERGES
     const centerX = vanishingPoint ? vanishingPoint.x : window.innerWidth  / 2;
     const centerY = vanishingPoint ? vanishingPoint.y : window.innerHeight / 2;
-    // SHIP - ALWAYS RENDERED AT SCREEN CENTER + OFFSET (INDEPENDENT OF TUNNEL PERSPECTIVE)
+
     const shipX = window.innerWidth  / 2 + shipOffsetX;
     const shipY = window.innerHeight / 2 - shipOffsetY;
 
-    // ================== RESOLVE RAW INPUT VECTOR ==================
-    // Priority: mobile joystick > mouse > keyboard
-    let rawX = 0;
-    let rawY = 0;
-
+    // ── RESOLVE RAW INPUT (mobile joystick > mouse > keyboard) ──
+    let rawX = 0, rawY = 0;
     if (isMobile) {
       rawX = analogInput.x;
       rawY = analogInput.y;
@@ -309,55 +237,50 @@ export class Crosshair {
       rawY /= mag;
     }
 
-    // ================== SMOOTH THE INPUT VECTOR - LERP SMOOTHEDINPUT TOWARD RAW EACH FRAME - WHEN KEYS/JOYSTICK RELEASE - rawX/Y DROPS TO 0 BUT smoothedInput DECAYS GRADUALLY ==================
+    // ── SMOOTH INPUT VECTOR ──
     const sl = CONFIG.SHOOTING.CROSSHAIR_INPUT_SMOOTHING;
     this.smoothedInput.x += (rawX - this.smoothedInput.x) * sl;
     this.smoothedInput.y += (rawY - this.smoothedInput.y) * sl;
 
-    const inputX = this.smoothedInput.x;
-    const inputY = this.smoothedInput.y;
+    // ── COMPUTE AIM TARGET ──
+    const deflect   = CONFIG.SHOOTING.CROSSHAIR_AIM_DEFLECT_PX;
+    const normX     = shipOffsetX / CONFIG.SHIP.MAX_OFFSET_X;
+    const normY     = shipOffsetY / CONFIG.SHIP.MAX_OFFSET_Y;
+    const edgeMag   = Math.min(Math.sqrt(normX * normX + normY * normY), 1.0);
+    const pullFactor = 1.0 - edgeMag * CONFIG.SHOOTING.CROSSHAIR_CENTER_PULL;
 
-    // ==================  COMPUTE AIM TARGET (INPUT-DRIVEN) / DEFLECT FROM CENTER IN DIRECTION OF INPUT - CENTER PULL GENTLY CORRECTS FOR EXTREME SHIP OFFSET ==================
-    const deflect    = CONFIG.SHOOTING.CROSSHAIR_AIM_DEFLECT_PX;
-    const normX      = shipOffsetX / CONFIG.SHIP.MAX_OFFSET_X; // -1..1
-    const normY      = shipOffsetY / CONFIG.SHIP.MAX_OFFSET_Y;
-    const edgeMag    = Math.min(Math.sqrt(normX * normX + normY * normY), 1.0);
-    const pullFactor = 1.0 - edgeMag * CONFIG.SHOOTING.CROSSHAIR_CENTER_PULL; //GENTLE
+    const rawTargetX = centerX + this.smoothedInput.x * deflect * pullFactor;
+    const rawTargetY = centerY - this.smoothedInput.y * deflect * pullFactor;
 
-    const rawTargetX = centerX + inputX * deflect * pullFactor;
-    //  INPUT IS +1 UP BUT SCREEN y INCREASES DOWNWARD
-    const rawTargetY = centerY - inputY * deflect * pullFactor;
-
-    // CLAMP TO SCREEN WITH MARGIN
     const margin = this.size * 0.6;
     this.targetX = Math.max(margin, Math.min(window.innerWidth  - margin, rawTargetX));
     this.targetY = Math.max(margin, Math.min(window.innerHeight - margin, rawTargetY));
 
-    // =============== CHASE INNER ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ TARGET ===============
+    // ── CHASE INNER → TARGET ──
     this.x += (this.targetX - this.x) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
     this.y += (this.targetY - this.y) * CONFIG.SHOOTING.CROSSHAIR_INNER_LAG;
 
-    // =============== OUTER TRAILS INNER ===============
+    // ── OUTER TRAILS INNER ──
     this.outerX += (this.x - this.outerX) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;
     this.outerY += (this.y - this.outerY) * CONFIG.SHOOTING.CROSSHAIR_OUTER_LAG;
 
-    // CAP - MAX SEPARATION
-    const sep = CONFIG.SHOOTING.CROSSHAIR_MAX_SEPARATION;
-    const dx  = this.outerX - this.x;
-    const dy  = this.outerY - this.y;
+    // CAP MAX SEPARATION
+    const sep  = CONFIG.SHOOTING.CROSSHAIR_MAX_SEPARATION;
+    const dx   = this.outerX - this.x;
+    const dy   = this.outerY - this.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > sep) {
       this.outerX = this.x + (dx / dist) * sep;
       this.outerY = this.y + (dy / dist) * sep;
     }
 
-    // ========================== LOCK-ON: SHIP ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ CROSSHAIR LINE SEGMENT vs ENEMY CIRCLE / lLINE OF FIRE - ANYWHERE BETWEEN SHIP AND RECTILE ==========================
+    // ── LOCK-ON: LINE OF FIRE vs ENEMY CIRCLES ──
     this.isLockedOn = false;
-    if (enemies && enemies.length > 0) {
+    if (enemies?.length > 0) {
       const seg = { x1: shipX, y1: shipY, x2: this.targetX, y2: this.targetY };
       for (const enemy of enemies) {
         const pos = enemy.getPosition();
-        const r   = enemy.getSize() * 1.1; // SLIGHT FORGIVENESS
+        const r   = enemy.getSize() * 1.1;
         if (segmentCircleCollision(seg, { x: pos.x, y: pos.y, radius: r })) {
           this.isLockedOn = true;
           break;
@@ -365,38 +288,36 @@ export class Crosshair {
       }
     }
 
-    // ========================== LOCK-ON FLASH ==========================
     if (this.isLockedOn) {
       this.flashTimer += dt;
       if (this.flashTimer >= CONFIG.SHOOTING.CROSSHAIR_FLASH_SPEED) {
-        this.flashTimer = 0;
-        this.currentFrame = this.currentFrame === 1 ? 2 : 1;
+        this.flashTimer  = 0;
+        this.lockFlashOn = !this.lockFlashOn;
       }
     } else {
-      this.currentFrame = 0;
-      this.flashTimer   = 0;
+      this.lockFlashOn = false;
+      this.flashTimer  = 0;
     }
   }
 
-  // ======================= DRAW =======================
   draw(ctx) {
     const outerSize = this.size * CONFIG.SHOOTING.CROSSHAIR_OUTER_SCALE;
-    const alpha = this.isLockedOn ? 0.95 : 0.75;
+    const alpha     = this.isLockedOn ? 0.95 : 0.75;
 
-    // OUTER SEPARATION AS A 0..1 ALIGNMENT METER 1=PERFECTLY ALIGNED
+    // ALIGNMENT METER — 1 = PERFECTLY ALIGNED, 0 = OUTER FAR FROM INNER
     const dx        = this.outerX - this.x;
     const dy        = this.outerY - this.y;
     const sepDist   = Math.sqrt(dx * dx + dy * dy);
     const alignFrac = 1 - Math.min(sepDist / CONFIG.SHOOTING.CROSSHAIR_MAX_SEPARATION, 1);
 
-    // OUTER BRACKETS
     ctx.save();
     const color = this.isLockedOn
-      ? (this.currentFrame === 1 ? '#ff2222' : '#ffcc00')
+      ? (this.lockFlashOn ? '#ff2222' : '#ffcc00')
       : '#cc88ff';
-    ctx.strokeStyle  = color;
-    ctx.lineWidth    = 2;
-    ctx.globalAlpha  = alpha * 0.7 * (0.5 + alignFrac * 0.5); // DIM WHEN SEPARATED - BRIGHT WHEN ALIGNED 
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = 2;
+    ctx.globalAlpha = alpha * 0.7 * (0.5 + alignFrac * 0.5);
+
     const b      = outerSize / 2;
     const corner = outerSize * 0.28;
     const ox = this.outerX;
@@ -410,114 +331,87 @@ export class Crosshair {
     });
     ctx.restore();
 
-    // INNER RETICLE 
-    if (this.spriteLoaded && this.frameWidth > 0) {
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.drawImage(
-        this.sprite,
-        this.currentFrame * this.frameWidth, 0,
-        this.frameWidth, this.sprite.height,
-        this.x - this.size / 2,
-        this.y - this.size / 2,
-        this.size,
-        this.size
-      );
-      ctx.restore();
-    } else {
-      ctx.save();
-      ctx.strokeStyle = this.isLockedOn ? '#ff2222' : '#cc88ff';
-      ctx.lineWidth   = 2;
-      ctx.globalAlpha = alpha;
-      ctx.beginPath();
-      ctx.moveTo(this.x, this.y - 14); ctx.lineTo(this.x, this.y + 14); ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(this.x - 14, this.y); ctx.lineTo(this.x + 14, this.y); ctx.stroke();
-      ctx.fillStyle = this.isLockedOn ? '#ff2222' : '#cc88ff';
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
+    ctx.save();
+    const ic = this.isLockedOn ? (this.lockFlashOn ? '#ff2222' : '#ffcc00') : '#cc88ff';
+    ctx.strokeStyle = ic;
+    ctx.fillStyle   = ic;
+    ctx.lineWidth   = 2;
+    ctx.globalAlpha = alpha;
+
+    const arm = this.size * 0.32;
+    const gap = this.size * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y - arm); ctx.lineTo(this.x, this.y - gap);
+    ctx.moveTo(this.x, this.y + gap); ctx.lineTo(this.x, this.y + arm);
+    ctx.moveTo(this.x - arm, this.y); ctx.lineTo(this.x - gap, this.y);
+    ctx.moveTo(this.x + gap, this.y); ctx.lineTo(this.x + arm, this.y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
-  getPosition() {
-    return { x: this.x, y: this.y };
-  }
-
-  handleResize() {
+  getPosition()   { return { x: this.x, y: this.y }; }
+  handleResize()  {
     const cx = window.innerWidth  / 2;
     const cy = window.innerHeight / 2;
-    this.x      = cx;
-    this.y      = cy;
-    this.outerX = cx;
-    this.outerY = cy;
+    this.x = cx; this.y = cy; this.outerX = cx; this.outerY = cy;
   }
 }
 
+// ======================= MUZZLE FLASH =======================
 export class MuzzleFlash {
   constructor() {
-    this.active = false;
-    this.timer = 0;
-    this.x = 0;
-    this.y = 0;
-    this.currentFrame = 0;
-    this.sprite = null;
-    this.spriteLoaded = false;
-    this.frameWidth = 0;
-
-    this.loadSprite();
-  }
-
-  loadSprite() {
-    this.sprite = new Image();
-    this.sprite.src = CONFIG.SHOOTING.FLASH_SPRITE;
-    this.sprite.onload = () => {
-      this.spriteLoaded = true;
-      this.frameWidth = this.sprite.width / CONFIG.SHOOTING.FLASH_FRAMES;
-    };
+    this.active  = false;
+    this.timer   = 0;
+    this.x       = 0;
+    this.y       = 0;
+    this.duration = CONFIG.SHOOTING.FLASH_DURATION;
   }
 
   trigger(x, y) {
     this.active = true;
-    this.timer = 0;
+    this.timer  = 0;
     this.x = x;
     this.y = y;
-    this.currentFrame = 0;
   }
 
   update(dt) {
     if (!this.active) return;
-
     this.timer += dt;
-
-    if (this.timer >= CONFIG.SHOOTING.FLASH_DURATION) {
-      this.active = false;
-    } else {
-      const frameProgress = this.timer / CONFIG.SHOOTING.FLASH_DURATION;
-      this.currentFrame = Math.floor(frameProgress * CONFIG.SHOOTING.FLASH_FRAMES);
-      this.currentFrame = Math.min(this.currentFrame, CONFIG.SHOOTING.FLASH_FRAMES - 1);
-    }
+    if (this.timer >= this.duration) this.active = false;
   }
 
   draw(ctx) {
-    if (!this.active || !this.spriteLoaded) return;
+    if (!this.active) return;
+
+    const progress = this.timer / this.duration;   // 0 → 1
+    const alpha    = 1 - progress;                 // FADE OUT
+    const radius   = 18 + progress * 28;           // EXPAND OUTWARD
 
     ctx.save();
-    const sx = this.currentFrame * this.frameWidth;
-    const sy = 0;
-    const sw = this.frameWidth;
-    const sh = this.sprite.height;
 
-    ctx.globalAlpha = 1 - (this.timer / CONFIG.SHOOTING.FLASH_DURATION);
-    ctx.drawImage(
-      this.sprite,
-      sx, sy, sw, sh,
-      this.x - CONFIG.SHOOTING.FLASH_SIZE / 2,
-      this.y - CONFIG.SHOOTING.FLASH_SIZE / 2,
-      CONFIG.SHOOTING.FLASH_SIZE,
-      CONFIG.SHOOTING.FLASH_SIZE
-    );
+    const glow = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, radius * 1.8);
+    glow.addColorStop(0,   `rgba(0, 255, 255, ${alpha * 0.6})`);
+    glow.addColorStop(0.4, `rgba(0, 200, 255, ${alpha * 0.25})`);
+    glow.addColorStop(1,   'rgba(0, 100, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, radius * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    const core = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, radius);
+    core.addColorStop(0,   `rgba(255, 255, 255, ${alpha})`);
+    core.addColorStop(0.3, `rgba(180, 255, 255, ${alpha * 0.8})`);
+    core.addColorStop(1,   'rgba(0, 200, 255, 0)');
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
   }
 }
