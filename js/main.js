@@ -43,10 +43,15 @@ const menu              = new Menu();
 wormBoss.onAttack        = null; 
 wormBoss.onIntro = () => {
   audio.stopMusic();      
-  audio.startBossMusic();  // PLAYS wormIntro RISER, THEN SEAMLESSLY LOOPS bossBattle
+  audio.startBossMusic(); 
+  ImageLoader.load('slime'); 
 };
 wormBoss.onDeathPauseEnd = () => audio.playWormDeath2();
-wormBoss.onSpawnBabyWorms = (mx, my) => babyWormManager.spawnWave(mx, my);
+wormBoss.onSpawnBabyWorms = (mx, my) => {
+  babyWormManager.spawnWave(mx, my);
+  audio.playBabyWorms();
+  babyWormManager.triggerSlimeSplat(gameCanvas.width, gameCanvas.height);
+};
 
 wormBoss.onSegmentDeath = (x, y, segIndex) => {
   projectileManager.createExplosion(x, y);
@@ -447,6 +452,7 @@ function gameLoop() {
   enemyManager.draw(ctx);
   muzzleFlash.draw(ctx);
   ship.draw();
+  babyWormManager.drawSlime(ctx); 
 }
 
 // ==================== STARTUP ====================

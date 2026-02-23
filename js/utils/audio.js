@@ -35,6 +35,7 @@ export class AudioManager {
       wormDeath3: this._createPool('./audio/wormDeath3.m4a', 1), // HEAD POP + COOLDOWN (~10s) — PLAYS ON FINAL SEGMENT
       consumed:   this._createPool('./audio/consumed.m4a',   1), // SHIP SPIRALS INTO WORM MOUTH
       warning:    this._createPool('./audio/warning.m4a',    1),
+      babyWorms:  this._createPool('./audio/babyWorms.m4a',  1), // BABY WORM SPIT ATTACK
     };
 
     this._initContext();
@@ -183,9 +184,9 @@ export class AudioManager {
     this._stopMusicSource(); 
 
     const now = this.context.currentTime;
-    const bossStartTime = now + this._introBuffer.duration; // EXACT HANDOFF POINT
+    const bossStartTime = now + this._introBuffer.duration; 
 
-    const intro    = this.context.createBufferSource();  // INTRO — ONE-SHOT, NO LOOP
+    const intro    = this.context.createBufferSource();  
     intro.buffer   = this._introBuffer;
     intro.loop     = false;
     intro.connect(this._musicGain);
@@ -193,7 +194,7 @@ export class AudioManager {
     this._introSource = intro;
 
     
-    const boss    = this.context.createBufferSource(); // BOSS — SCHEDULED TO START THE INSTANT INTRO ENDS, THEN LOOPS FOREVER
+    const boss    = this.context.createBufferSource(); 
     boss.buffer   = this._bossBuffer;
     boss.loop     = true;
     boss.connect(this._musicGain);
@@ -231,5 +232,6 @@ export class AudioManager {
   playWormDeath2() { this._playSfx('wormDeath2', 0.9); } // SEGMENT POP WAVE
   playWormDeath3() { this._playSfx('wormDeath3', 0.9); } // HEAD POP + COOLDOWN
   playConsumed()   { this._playSfx('consumed',   0.9); } // SHIP SPIRAL-IN DEATH
+  playBabyWorms()  { this._playSfx('babyWorms',  1.0); } // BABY WORM SPIT ATTACK
   playWarning()    { this._playSfx('warning',    0.8); }
 }

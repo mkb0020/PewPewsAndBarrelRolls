@@ -1,4 +1,3 @@
-// LOADS ALL SPRITES
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -12,7 +11,7 @@ const MANIFEST = {
   zipZap:       { path: 'zipZap.png' },      // 6 FRAMES
   glitch:       { path: 'glitch.png' },      // 5 FRAMES
   phil:         { path: 'phil.png' },        // 5 FRAMES
-  boom:         { path: 'boom.png' },        // 6 FRAMES
+  boom:         { path: 'bam.png' },        // boom.png HAS 6 FRAMES bam.png HAS 8 FRAMES
   zap:          { path: 'zap.png',     lazy: true },   // 8 FRAMES
   bam:          { path: 'bam.png',     lazy: true },   // 7 FRAMES
   spiral:       { path: 'spiral.png',  lazy: true },   // 5 FRAMES

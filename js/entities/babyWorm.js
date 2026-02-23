@@ -61,8 +61,7 @@ class BabyWorm {
       const nx = dx / dist;
       const ny = dy / dist;
 
-      // PERPENDICULAR WOBBLE — ORGANIC SLITHERING
-      const perpX  = -ny;
+      const perpX  = -ny;  // PERPENDICULAR WOBBLE — ORGANIC SLITHERING
       const perpY  =  nx;
       const wobble = Math.sin(this.time * BW.WIGGLE_FREQ + this.wigglePhase) * BW.WIGGLE_AMP;
 
@@ -104,7 +103,7 @@ class BabyWorm {
 
     ctx.save();
 
-    // SLIME TRAIL
+
     for (let i = 0; i < this.trail.length; i++) {
       const t     = i / (this.trail.length - 1); // 0=FRESHEST, 1=OLDEST
       const size  = BW.TRAIL_MAX_SIZE * (1 - t * 0.85);
@@ -121,12 +120,11 @@ class BabyWorm {
     }
     ctx.shadowBlur = 0;
 
-    // BODY SEGMENTS — TAIL FIRST SO HEAD RENDERS ON TOP
-    ctx.globalAlpha = this.alpha;
+    ctx.globalAlpha = this.alpha; // BODY SEGMENTS — TAIL FIRST SO HEAD RENDERS ON TOP
     for (let i = this.segments.length - 1; i >= 0; i--) {
       const seg   = this.segments[i];
       const taper = i / (this.segments.length - 1); // 0=NEAR HEAD, 1=TAIL
-      const scale = 1 - taper * (1 - 0.38);         // TAPER TO 38%
+      const scale = 1 - taper * (1 - 0.5);         // TAPER TO 50%
       const size  = BW.HEAD_SIZE * BW.SEGMENT_SIZE_RATIO * scale;
 
       const ref   = i > 0 ? this.segments[i - 1] : { x: this.x, y: this.y };
@@ -191,12 +189,53 @@ class BabyWorm {
     return false;
   }
 
-  detach() { // BARREL ROLL — FLING OFF AND DIE
+  detach() {
     this.isLatched = false;
     this.isDead    = true;
   }
 
   getHeadPos() { return { x: this.x, y: this.y }; }
+}
+
+// ======================= SLIME SPLAT =======================
+const SLIME_FRAMES   = 11;
+const SLIME_FPS      = 15; 
+const SLIME_SPLAT_DELAY = 0.25;
+
+class SlimeSplat {
+  constructor(canvasW, canvasH) {
+    this.frame = 0;
+    this.timer = 0;
+    this.delay = SLIME_SPLAT_DELAY;
+    this.done  = false;
+
+    // SCALE SO HEIGHT === CANVAS HEIGHT; WIDTH DERIVED FROM 16:9 SHEET RATIO
+    this.h = canvasH;
+    this.w = canvasH * (16 / 9);
+    this.x = (canvasW - this.w) / 2;
+    this.y = 0;
+  }
+
+  update(dt) {
+    if (this.done) return;
+    if (this.delay > 0) { this.delay -= dt; return; } // WAIT BEFORE SPLAT
+    this.timer += dt;
+    this.frame  = Math.floor(this.timer * SLIME_FPS);
+    if (this.frame >= SLIME_FRAMES) this.done = true;
+  }
+
+  draw(ctx, sprite) {
+    if (this.done || this.delay > 0 || !sprite) return;
+    const frameW = sprite.width / SLIME_FRAMES;
+    ctx.save();
+    ctx.globalAlpha = 0.8; // SLIGHTLY TRANSLUCENT SO GAME IS STILL READABLE
+    ctx.drawImage(
+      sprite,
+      this.frame * frameW, 0, frameW, sprite.height, // SOURCE
+      this.x, this.y, this.w, this.h                 // DEST — FULL CANVAS HEIGHT
+    );
+    ctx.restore();
+  }
 }
 
 // ======================= BABY WORM MANAGER =======================
@@ -206,6 +245,7 @@ export class BabyWormManager {
     this.spawnQueue = [];
     this.spawnTimer = 0;
     this._spawning  = false;
+    this._splats    = []; // ACTIVE SlimeSplat INSTANCES
     console.log('✔ BabyWormManager initialized');
   }
 
@@ -221,6 +261,10 @@ export class BabyWormManager {
         index: i,
       });
     }
+  }
+
+  triggerSlimeSplat(canvasW, canvasH) {
+    this._splats.push(new SlimeSplat(canvasW, canvasH));
   }
 
   update(dt, ship) {
@@ -244,11 +288,22 @@ export class BabyWormManager {
     if (latchedCount > 0) {  // LATCH DAMAGE — CONTINUOUS, NO IFRAMES
       ship.takeLatchDamage(BW.LATCH_DAMAGE_RATE * latchedCount * dt);
     }
+
+    // UPDATE SPLATS — CULL FINISHED ONES
+    for (let i = this._splats.length - 1; i >= 0; i--) {
+      this._splats[i].update(dt);
+      if (this._splats[i].done) this._splats.splice(i, 1);
+    }
   }
 
   draw(ctx) { // GET SPRITE ONCE PER  FRAME - NULL IF NOT LOADED - CIRCLE FALL BACKS
     const sprite = ImageLoader.get('babyWorm');
     for (const w of this.worms) w.draw(ctx, sprite);
+  }
+
+  drawSlime(ctx) { // DRAW SLIME SPLATS ON TOP OF ALL GAME ELEMENTS
+    const sprite = ImageLoader.get('slime');
+    for (const s of this._splats) s.draw(ctx, sprite);
   }
 
   checkProjectileHit(seg) { // LATCHED WORMS ARE IMMUNE TO PROJECTILES — BARREL ROLL ONLY
