@@ -4,7 +4,7 @@ import { CONFIG } from '../utils/config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 const MONSTER = {
-  SPRITE_PATH:   './images/monster.png',
+  SPRITE_PATH:   './images/glork.png',
   SPRITE_FRAMES: 5,
   ANIM_FPS:      5,       // FRAMES PER SECOND
   SIZE:          150,     // RENDER SIZE IN PX

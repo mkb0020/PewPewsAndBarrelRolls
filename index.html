@@ -8,20 +8,28 @@
 </head>
 <body>
 
-  <div id="mobile-controls" class="landscape"> <!-- MOBILE CONTROLS -->
-    <div class="joystick">
-      <div class="joystick-knob"></div>
-    </div>
 
-    <div class="action-buttons">
-      <div class="btn-b" id="btn-b">B</div>
-      <div class="btn-a" id="btn-a">A</div>
-    </div>
-  </div>
 
   <script type="module" src="js/main.js"></script>
 
   <div id="menu-overlay">
+    
+    <div id="device-select-screen">
+      <div class="device-select-title">Select Your Device</div>
+      <div class="device-btn-row">
+        <button class="device-btn" id="device-btn-desktop" aria-label="Desktop / PC">
+          <span class="device-icon">🖥️</span>
+          <span>Desktop</span>
+        </button>
+        <button class="device-btn" id="device-btn-mobile" aria-label="Mobile / Tablet">
+          <span class="device-icon">📱</span>
+          <span>Mobile</span>
+        </button>
+      </div>
+    </div>
+
+
+
     <div class="dev-badge">Dev Mode</div>
     <div class="menu-title">Wormholes</div>
     <div class="menu-subtitle">ALL THE WAY DOWN</div>
@@ -43,6 +51,21 @@
     </div>
     <div class="menu-footer">© Wormholes All The Way Down</div>
   </div>
+
+
+
+  <div id="mobile-controls" class="landscape"> <!-- MOBILE CONTROLS -->
+    <div class="joystick">
+      <div class="joystick-knob"></div>
+    </div>
+
+    <div class="action-buttons">
+      <div class="btn-b" id="btn-b">B</div>
+      <div class="btn-a" id="btn-a">A</div>
+    </div>
+  </div>
+
+
 
   <div id="ui-buttons">
     <button class="ui-icon" id="btn-sound" aria-label="Toggle sound"></button>

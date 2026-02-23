@@ -3,8 +3,7 @@
 import { CONFIG } from '../utils/config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ======================= LAYERED SINE NOISE - OVERLAPPING SINE WAVES AT DIFFERENT FREQUENCIES/PHASES PRODUCE - SMOOTH ORGANIC MOTION WITHOUT ANY EXTERNAL NOISE LIBRARY.- =======================
-function organicNoise(t, layers) {
+function organicNoise(t, layers) { // I BELEIVE THIS CAN BE REMOVED SINCE RATTLE AND wormNoise ARE NOW WRAPPED INTO bossBattle.m4a
   let val = 0;
   for (const [amp, freq, phase] of layers) {
     val += amp * Math.sin(t * freq + phase);
@@ -25,16 +24,16 @@ const WORM = {
   SPRITE_FRAMES:    9,
   FRAME_HEAD:       0,
   FRAME_SEGMENT:    1,
-  FRAME_TAIL:       1,     // REUSE SEGMENT SPRITE, JUST SCALED SMALLER
+  FRAME_TAIL:       1,     
   FRAME_TRANSITION:   2,   // FRAME 3 (0-INDEXED) – SHOWN BEFORE  ATTACK LOOP
-  TRANSITION_DURATION: 0.25, // HOW LONG THE TRANSITION FRAME HOLDS
+  TRANSITION_DURATION: 0.25, 
   FRAME_ATTACK_START:   3, 
   FRAME_ATTACK_END:   8,   // 0-INDEXED: FRAME 9 = INDEX 8
   DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
-  ATTACK_INTERVAL:    15,   // SECONDS BETWEEN ATTACKS
+  ATTACK_INTERVAL:    15,  
   ATTACK_DURATION:    7,
-  BABY_ATTACK_DURATION: 9,  // BABY WORM ATTACK LASTS LONGER — MORE TIME FOR WORMS TO REACH YOU
-  ATTACK_FPS:         10,  // FRAMES PER SECOND FOR ATTACK ANIMATION
+  BABY_ATTACK_DURATION: 9,  
+  ATTACK_FPS:         10,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, //POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
   ALPHA_START:      0.0,
@@ -52,8 +51,8 @@ const WORM = {
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
   HEALTH:           150,
-  SEGMENT_HEALTH:   2,     // BODY SEGMENTS TAKE LESS DAMAGE
-  HEAD_HEALTH_MULT: 3,     // HEAD TAKES MORE
+  SEGMENT_HEALTH:   2,     
+  HEAD_HEALTH_MULT: 3,     
 };
 
 // ======================= SUCTION PARTICLES CONFIG =======================
@@ -419,13 +418,10 @@ export class WormBoss {
         } 
       } 
 
-      // POP SEGMENTS TAIL → HEAD
-      this.dyingTimer += dt;
+      this.dyingTimer += dt; // POP SEGMENTS TAIL → HEAD
 
-      // DRAMATIC PAUSE 
-      if (this.dyingTimer < WORM.DEATH_PAUSE_DURATION) {
-        // ZERO OUT RIPPLES DURING THE FREEZE
-        for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
+      if (this.dyingTimer < WORM.DEATH_PAUSE_DURATION) {  // DRAMATIC PAUSE - ZERO OUT RIPPLES DURING THE FREEZE 
+        for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { 
           this.segments[i].rippleX = 0;
           this.segments[i].rippleY = 0;
         }
@@ -433,7 +429,6 @@ export class WormBoss {
         return;
       }
 
-      // PAUSE JUST ENDED — FIRE CALLBACK EXACTLY ONCE SO AUDIO CUE 2 CAN START
       if (!this._pauseEndFired) {
         this._pauseEndFired = true;
         if (this.onDeathPauseEnd) this.onDeathPauseEnd();
@@ -486,7 +481,6 @@ export class WormBoss {
       } else if (this.attackPhase === 'loop') {
 
         if (this.attackType === 'suction') {
-          // CYCLE ATTACK FRAMES FOR SUCTION
           this.attackFrameTime += dt;
           const frameDur = 1 / WORM.ATTACK_FPS;
           if (this.attackFrameTime >= frameDur) {
@@ -503,7 +497,6 @@ export class WormBoss {
           }
 
         } else {
-          // BABY WORM ATTACK — HOLD MOUTH OPEN FRAME, FIRE SPAWN CALLBACK ONCE
           this.attackFrame = WORM.FRAME_ATTACK_START;
           if (!this._babySpawnFired) {
             this._babySpawnFired = true;
@@ -523,8 +516,6 @@ export class WormBoss {
       this.attackTimer -= dt;
       if (this.attackTimer <= 0 && this.alpha > 0.8) {
         this._attackIndex++;
-        // ALTERNATE: ODD = SUCTION, EVEN = BABYWORM  
-        // (FIRST ATTACK IS INDEX 1 = SUCTION SO PLAYER LEARNS MECHANIC FIRST)
         this.attackType     = (this._attackIndex % 2 === 1) ? 'suction' : 'babyworm';
         this.isAttacking    = true;
         this.attackPhase    = 'transIn';
@@ -668,7 +659,6 @@ export class WormBoss {
         this.health  -= damage;
         const killed  = this.health <= 0;
         if (killed) {
-          // KICK OFF DEATH SEQUENCE INSTEAD OF INSTANT REMOVAL
           this.isDying      = true;
           this.dyingTimer   = 0;
           this.dyingSegIndex = 0;

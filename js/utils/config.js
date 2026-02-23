@@ -68,11 +68,11 @@ export const CONFIG = {
   MAX_PIXEL_RATIO: 2,
 
   ENEMIES: {
-    MAX_COUNT: 10, 
-    SPAWN_INTERVAL_MIN: 3.0, 
+    MAX_COUNT: 5, 
+    SPAWN_INTERVAL_MIN: 4.0, 
     SPAWN_INTERVAL_MAX: 5.0,
     SPAWN_DISTANCE: 300, 
-    SPRITE_SIZE: 150,
+    SPRITE_SIZE: 180,
 
    
     TYPES: {

@@ -40,15 +40,17 @@ const babyWormManager   = new BabyWormManager();
 const menu              = new Menu();
 
 // ==================== WORM CALLBACKS ====================
-wormBoss.onAttack        = () => audio.playWormNoise();
-wormBoss.onIntro         = () => audio.playWormIntro();
+wormBoss.onAttack        = null; 
+wormBoss.onIntro = () => {
+  audio.stopMusic();      
+  audio.startBossMusic();  // PLAYS wormIntro RISER, THEN SEAMLESSLY LOOPS bossBattle
+};
 wormBoss.onDeathPauseEnd = () => audio.playWormDeath2();
 wormBoss.onSpawnBabyWorms = (mx, my) => babyWormManager.spawnWave(mx, my);
 
 wormBoss.onSegmentDeath = (x, y, segIndex) => {
   projectileManager.createExplosion(x, y);
   if (segIndex === 0) {
-    // HEAD POPPED — SPECTACULAR CHAIN FINISH
     audio.playWormDeath3();
     audio.stopMusic();
     setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
@@ -69,7 +71,7 @@ wormBoss.onDeath = () => {
       wormBoss.activate();
       ship.exitCinematic();
       audio.playWormIntro();
-      audio.startMusic();
+      audio.startBossMusic();  
     }
   }, 10000);
 };
@@ -107,7 +109,7 @@ function updateBossHealthBar(pct) {
 function flashBossBar() {
   if (!_bossBarFill) return;
   _bossBarFill.classList.remove('hit-flash');
-  void _bossBarFill.offsetWidth; // REFLOW TO RESTART ANIMATION
+  void _bossBarFill.offsetWidth; 
   _bossBarFill.classList.add('hit-flash');
 }
 
@@ -212,13 +214,13 @@ function restartGame() {
   projectileManager.clear();
   babyWormManager.clear();
 
-  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
-  CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;
+  CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
   if (currentMode === 'bossBattle') wormBoss.activate();
 
   updateBossHealthBar(1);
   audio.stop();
   audio.start();
+  if (currentMode !== 'bossBattle') audio.startMusic();
 }
 
 function handleContinue() {
@@ -235,7 +237,11 @@ function handleContinue() {
   }
 
   ship.respawn();
-  audio.startMusic();
+  if (inWormBattle) {
+    audio.startBossMusic(); // STILL IN BOSS BATTLE — DON'T SWITCH BACK TO REGULAR THEME
+  } else {
+    audio.startMusic();
+  }
 }
 
 // ==================== GAME STATE ====================
@@ -247,9 +253,8 @@ let _warningSounded    = false;
 let _prevBarrelRolling = false;
 let checkpointScore    = 0;
 let _wormBattleStarted = false;
-let rattleTimer        = 12 + Math.random() * 8; // FIRST RATTLE IN 12–20s
 
-let currentMode       = 'bossBattle'; // SAFE DEFAULT — OVERWRITTEN BY STARTUP
+let currentMode       = 'bossBattle'; 
 let currentEnemyCount = 5;
 
 // ==================== KEYBOARD SHORTCUTS ====================
@@ -320,8 +325,7 @@ function gameLoop() {
     const shipOffset = ship.getOffset();
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
 
-    // TUNNEL REACTS TO WORM SUCTION ATTACK
-    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop';
+    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop'; // TUNNEL REACTS TO WORM SUCTION ATTACK
     tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
 
     ship.update(dt);
@@ -370,15 +374,6 @@ function gameLoop() {
     if (!_wormBattleStarted && wormBoss.isActive && wormBoss.alpha >= 0.15) {
       _wormBattleStarted = true;
       saveCheckpoint();
-    }
-
-    // RATTLE — AMBIENT CREEP SOUND, RANDOM INTERVAL
-    if (wormBoss.isActive && !wormBoss.isDead) {
-      rattleTimer -= dt;
-      if (rattleTimer <= 0) {
-        audio.playWormRattle();
-        rattleTimer = 8 + Math.random() * 12; // 8–20s BETWEEN RATTLES
-      }
     }
 
     // ── COLLISION ──────────────────────────────────────────────
@@ -459,7 +454,9 @@ async function startup() {
   await ImageLoader.preloadCritical();
   console.log('✔ Images ready');
 
-  const { mode, enemyCount } = await menu.show(tunnel);
+  const { mode, enemyCount } = await menu.show(tunnel, () => audio.start());
+
+  if (mode !== 'bossBattle') audio.startMusic();
   currentMode       = mode;
   currentEnemyCount = enemyCount;
   console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
@@ -476,16 +473,6 @@ async function startup() {
     () => doShoot()
   );
 
-
-  const startAudio = () => {
-    audio.start();
-    window.removeEventListener('keydown',    startAudio);
-    window.removeEventListener('click',      startAudio);
-    window.removeEventListener('touchstart', startAudio);
-  };
-  window.addEventListener('keydown',    startAudio, { once: true });
-  window.addEventListener('click',      startAudio, { once: true });
-  window.addEventListener('touchstart', startAudio, { once: true });
 
   lastTime = performance.now();
   console.log('=== Starting game loop ===');
