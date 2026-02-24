@@ -10,7 +10,7 @@ const MANIFEST = {
   glipGlop:     { path: 'glipGlop.png' },    // 5 FRAMES
   zipZap:       { path: 'zipZap.png' },      // 6 FRAMES
   glitch:       { path: 'glitch.png' },      // 5 FRAMES
-  phil:         { path: 'phil.png' },        // 5 FRAMES
+  phil:         { path: 'phil.png' },        // 8 FRAMES
   boom:         { path: 'boom.png' },        // 6 FRAMES — worm boss explosions
   zap:          { path: 'zap.png',     lazy: true },   // 8 FRAMES
   bam:          { path: 'bam.png' },         // 8 FRAMES — regular enemy / baby worm explosions
@@ -22,10 +22,10 @@ const MANIFEST = {
 
 
 export const ENEMY_SPRITE = {
-  BASIC:  'glork',
+  BASIC:  'glipGlop',
   FAST:   'zipZap',
-  TANK:   'phil',
-  ZIGZAG: 'glipGlop',
+  TANK:   'glork',
+  ZIGZAG: 'phil',
   // GLITCH 
 };
 

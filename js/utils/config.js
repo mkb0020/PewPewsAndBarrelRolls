@@ -69,14 +69,14 @@ export const CONFIG = {
 
   ENEMIES: {
     MAX_COUNT: 5, 
-    SPAWN_INTERVAL_MIN: 4.0, 
-    SPAWN_INTERVAL_MAX: 5.0,
-    SPAWN_DISTANCE: 300, 
-    SPRITE_SIZE: 180,
+    SPAWN_INTERVAL_MIN: 2.0, 
+    SPAWN_INTERVAL_MAX: 4.0,
+    SPAWN_DISTANCE: 400, 
+    SPRITE_SIZE: 200,
 
    
     TYPES: {
-      BASIC: { // GLORK
+      BASIC: { // GLIP GLOP
         SIZE: 40,
         SPEED: 180, 
         COLOR: '#ff00ff',
@@ -84,7 +84,10 @@ export const CONFIG = {
         HEALTH: 1,
         SCORE: 10,
         SPRITE_FRAMES: 5, 
-        ANIM_SPEED: 9
+        ANIM_SPEED: 9,
+        COLLISION_DAMAGE: 20,
+        LASER_COLOR: '#ff0000',
+        LASER_INTERVAL: 3.5,
       },
       FAST: { // ZIP ZAP
         SIZE: 30,
@@ -94,19 +97,25 @@ export const CONFIG = {
         HEALTH: 1,
         SCORE: 20,
         SPRITE_FRAMES: 6, 
-        ANIM_SPEED: 12
+        ANIM_SPEED: 12,
+        COLLISION_DAMAGE: 20,
+        LASER_COLOR: '#ff3366',
+        LASER_INTERVAL: 2.5,  // fires more often — it's the fast one
       },
-      TANK: { // PHIL
+      TANK: { // GLORK
         SIZE: 60,
         SPEED: 120,
         COLOR: '#ff9900',
         GLOW_COLOR: '#ffaa00',
         HEALTH: 3,
         SCORE: 50,
-        SPRITE_FRAMES: 8, 
-        ANIM_SPEED: 7
+        SPRITE_FRAMES: 5, 
+        ANIM_SPEED: 7,
+        COLLISION_DAMAGE: 35,  
+        LASER_COLOR: '#ff0000',
+        LASER_INTERVAL: 4.0,
       },
-      ZIGZAG: { // GLIP GLOP AND GLITCH
+      ZIGZAG: { // PHIL
         SIZE: 35,
         SPEED: 200,
         COLOR: '#00ff88',
@@ -115,8 +124,11 @@ export const CONFIG = {
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 80,
         ZIGZAG_FREQUENCY: 3,
-        SPRITE_FRAMES: 5, 
-        ANIM_SPEED: 9
+        SPRITE_FRAMES: 8, 
+        ANIM_SPEED: 9,
+        COLLISION_DAMAGE: 20,
+        LASER_COLOR: '#FF0000',
+        LASER_INTERVAL: 3.0,
       },
     },
     
@@ -157,7 +169,7 @@ export const CONFIG = {
     MAX_HP:                  100,
     MAX_LIVES:               3,
     INVINCIBILITY_DURATION:  2.0,   
-    INVINCIBILITY_FLASH_HZ:  8,     
+    INVINCIBILITY_FLASH_HZ:  8,     // FLASHES PER SECOND WHILE INVINCIBLE
     SUCTION_DEATH_SCALE:     0.18,  // SUCTIONSCALE BELOW THIS = FULLY CONSUMED — LOSE A LIFE
     RESPAWN_INVINCIBILITY:   3.0,  
     DAMAGE_SUCKED_IN:        100,   
@@ -171,22 +183,35 @@ export const CONFIG = {
     MAX_DISTANCE:      900,    // BEYOND THIS DISTANCE: ZERO SUCTION FORCE
     SPIN_STRENGTH:     0.55,   // TANGENTIAL FORCE MULTIPLIER (sideways pull)
     PULL_STRENGTH:     1.0,    // RADIAL FORCE MULTIPLIER (straight-in pull)
+    // BARREL ROLL COUNTER
     ROLL_SPIN_RESIST:  0.06,   // SPIRAL REDUCED TO THIS FRACTION WHILE ROLLING
     ROLL_PULL_RESIST:  0.40,   // RADIAL REDUCED TO THIS FRACTION WHILE ROLLING
     ROLL_BURST_FORCE:  900,    // OUTWARD BURST AT ROLL PEAK (progress ~0.5) 
-    SCALE_NEAR:        0.05,   
-    SCALE_FAR:         1.0,    
+    // VISUAL SCALE — SHIP SHRINKS AS IT GETS SUCKED IN
+    SCALE_NEAR:        0.05,   // SMALLEST SCALE AT MOUTH — MUST BE BELOW SUCTION_DEATH_SCALE
+    SCALE_FAR:         1.0,    // NORMAL SCALE AT MAX_DISTANCE
     SCALE_LERP:        0.06,   // HOW FAST SCALE RECOVERS / RESPONDS
-    SHAKE_INTENSITY:   4,      
+    SHAKE_INTENSITY:   4,      // px
+    // CLAMP EXPANSION — SUCTION CAN PULL SHIP PAST NORMAL PLAY FIELD
     MAX_OFFSET_EXPAND: 1.6,    // MULTIPLIER ON NORMAL MAX_OFFSET DURING ATTACK
+  },
+
+  ENEMY_LASER: {
+    SPEED:          480,    
+    DAMAGE:         15,
+    HIT_RADIUS:     14,    
+    BOLT_LENGTH:    22,     
+    BOLT_WIDTH:     3,
+    GLOW_BLUR:      12,
+    FIRST_SHOT_MIN: 1.0,
+    FIRST_SHOT_MAX: 2.5,
   },
 
 EXPLOSIONS: {
     BAM_FRAMES:     8,
-    BAM_SIZE:       150,
+    BAM_SIZE:       160,
     BOOM_FRAMES:    6,
-    BOOM_SIZE:      250,
-
+    BOOM_SIZE:      200,
     FRAME_DURATION: 0.03,
   },
 

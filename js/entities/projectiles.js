@@ -311,7 +311,7 @@ export class Crosshair {
 
   draw(ctx) {
     const outerSize = this.size * CONFIG.SHOOTING.CROSSHAIR_OUTER_SCALE;
-    const alpha     = this.isLockedOn ? 0.95 : 0.75;
+    const alpha     = this.isLockedOn ? 0.95 : 0.9;
 
     // ALIGNMENT METER — 1 = PERFECTLY ALIGNED, 0 = OUTER FAR FROM INNER
     const dx        = this.outerX - this.x;
@@ -322,7 +322,7 @@ export class Crosshair {
     ctx.save();
     const color = this.isLockedOn
       ? (this.lockFlashOn ? '#ff2222' : '#ffcc00')
-      : '#cc88ff';
+      : '#67FEBD';
     ctx.strokeStyle = color;
     ctx.lineWidth   = 2;
     ctx.globalAlpha = alpha * 0.7 * (0.5 + alignFrac * 0.5);
@@ -341,7 +341,7 @@ export class Crosshair {
     ctx.restore();
 
     ctx.save();
-    const ic = this.isLockedOn ? (this.lockFlashOn ? '#ff2222' : '#ffcc00') : '#cc88ff';
+    const ic = this.isLockedOn ? (this.lockFlashOn ? '#ff2222' : '#ffcc00') : '#67FEBD';
     ctx.strokeStyle = ic;
     ctx.fillStyle   = ic;
     ctx.lineWidth   = 2;

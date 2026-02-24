@@ -54,12 +54,12 @@ wormBoss.onSpawnBabyWorms = (mx, my) => {
 };
 
 wormBoss.onSegmentDeath = (x, y, segIndex) => {
-  projectileManager.createExplosion(x, y, 'boom');
+  projectileManager.createExplosion(x, y);
   if (segIndex === 0) {
     audio.playWormDeath3();
     audio.stopMusic();
-    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15, 'boom'), 60);
-    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20, 'boom'), 120);
+    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
+    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
   }
 };
 
@@ -335,7 +335,7 @@ function gameLoop() {
 
     ship.update(dt);
     crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
-    enemyManager.update(dt);
+    enemyManager.update(dt, ship.x, ship.y);
     projectileManager.update(dt);
     muzzleFlash.update(dt);
     scoreManager.update(dt);
@@ -416,7 +416,7 @@ function gameLoop() {
           audio.playImpact();
           flashBossBar();
           updateBossHealthBar(wormBoss.getHealthPercent());
-          projectileManager.createExplosion(wormHit.x, wormHit.y, 'boom');
+          projectileManager.createExplosion(wormHit.x, wormHit.y);
           if (wormHit.killed) {
             scoreManager.addScore(500, wormHit.x, wormHit.y);
             audio.stopMusic();
@@ -438,6 +438,18 @@ function gameLoop() {
           scoreManager.addScore(15, babyHit.x, babyHit.y);
         }
       }
+    }
+
+    // ENEMY BODY COLLISION vs SHIP
+    if (ship.isAlive && !ship.isInvincible) {
+      const collisionDamage = enemyManager.checkCollisions(ship.x, ship.y);
+      if (collisionDamage > 0) ship.takeDamage(collisionDamage);
+    }
+
+    // ENEMY LASER vs SHIP
+    if (ship.isAlive && !ship.isInvincible) {
+      const laserDamage = enemyManager.checkLaserHits(ship.x, ship.y);
+      if (laserDamage > 0) ship.takeDamage(laserDamage);
     }
   }
 
