@@ -100,13 +100,22 @@ export class Projectile {
 
 // ======================= EXPLOSION =======================
 export class Explosion {
-  constructor(x, y) {
+  constructor(x, y, type = 'bam') {
     this.x = x;
     this.y = y;
+    this.type         = type;
     this.currentFrame = 0;
     this.frameTime    = 0;
     this.isDead       = false;
-    this.size         = CONFIG.EXPLOSIONS.SIZE;
+    if (type === 'boom') {
+      this.spriteKey = 'boom';
+      this.frames    = CONFIG.EXPLOSIONS.BOOM_FRAMES;
+      this.size      = CONFIG.EXPLOSIONS.BOOM_SIZE;
+    } else {
+      this.spriteKey = 'bam';
+      this.frames    = CONFIG.EXPLOSIONS.BAM_FRAMES;
+      this.size      = CONFIG.EXPLOSIONS.BAM_SIZE;
+    }
   }
 
   update(dt) {
@@ -114,15 +123,15 @@ export class Explosion {
     if (this.frameTime >= CONFIG.EXPLOSIONS.FRAME_DURATION) {
       this.frameTime = 0;
       this.currentFrame++;
-      if (this.currentFrame >= CONFIG.EXPLOSIONS.FRAMES) this.isDead = true;
+      if (this.currentFrame >= this.frames) this.isDead = true;
     }
   }
 
   draw(ctx) {
-    const sprite = ImageLoader.get('boom');
+    const sprite = ImageLoader.get(this.spriteKey);
     if (!sprite) return;
 
-    const frameWidth = sprite.width / CONFIG.EXPLOSIONS.FRAMES;
+    const frameWidth = sprite.width / this.frames;
     ctx.save();
     ctx.drawImage(
       sprite,
@@ -152,8 +161,8 @@ export class ProjectileManager {
     this.projectiles.push(new Projectile(x, y, dirX, dirY, targetX, targetY));
   }
 
-  createExplosion(x, y) {
-    this.explosions.push(new Explosion(x, y));
+  createExplosion(x, y, type = 'bam') {
+    this.explosions.push(new Explosion(x, y, type));
   }
 
   update(dt) {

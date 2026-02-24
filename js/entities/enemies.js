@@ -189,7 +189,7 @@ export class EnemyManager {
   }
 
   draw(ctx) {
-    for (const enemy of this.enemies) enemy.draw(ctx);
+    for (let i = this.enemies.length - 1; i >= 0; i--) this.enemies[i].draw(ctx);
   }
 
   getEnemies() { return this.enemies; }

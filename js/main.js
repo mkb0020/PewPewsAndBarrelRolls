@@ -54,12 +54,12 @@ wormBoss.onSpawnBabyWorms = (mx, my) => {
 };
 
 wormBoss.onSegmentDeath = (x, y, segIndex) => {
-  projectileManager.createExplosion(x, y);
+  projectileManager.createExplosion(x, y, 'boom');
   if (segIndex === 0) {
     audio.playWormDeath3();
     audio.stopMusic();
-    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
-    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
+    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15, 'boom'), 60);
+    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20, 'boom'), 120);
   }
 };
 
@@ -416,7 +416,7 @@ function gameLoop() {
           audio.playImpact();
           flashBossBar();
           updateBossHealthBar(wormBoss.getHealthPercent());
-          projectileManager.createExplosion(wormHit.x, wormHit.y);
+          projectileManager.createExplosion(wormHit.x, wormHit.y, 'boom');
           if (wormHit.killed) {
             scoreManager.addScore(500, wormHit.x, wormHit.y);
             audio.stopMusic();

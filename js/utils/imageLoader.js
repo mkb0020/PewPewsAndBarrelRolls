@@ -11,9 +11,9 @@ const MANIFEST = {
   zipZap:       { path: 'zipZap.png' },      // 6 FRAMES
   glitch:       { path: 'glitch.png' },      // 5 FRAMES
   phil:         { path: 'phil.png' },        // 5 FRAMES
-  boom:         { path: 'bam.png' },        // boom.png HAS 6 FRAMES bam.png HAS 8 FRAMES
+  boom:         { path: 'boom.png' },        // 6 FRAMES — worm boss explosions
   zap:          { path: 'zap.png',     lazy: true },   // 8 FRAMES
-  bam:          { path: 'bam.png',     lazy: true },   // 7 FRAMES
+  bam:          { path: 'bam.png' },         // 8 FRAMES — regular enemy / baby worm explosions
   spiral:       { path: 'spiral.png',  lazy: true },   // 5 FRAMES
   slime:        { path: 'slime.png',   lazy: true },
 
