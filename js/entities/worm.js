@@ -636,6 +636,21 @@ export class WormBoss {
       }
 
       ctx.restore();
+
+      const tintStrength = (1 - Math.min(1, this.alpha * 3)) * 0.85; 
+      if (tintStrength > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = tintStrength;
+        ctx.fillStyle   = '#000000';
+        ctx.beginPath();
+        ctx.arc(
+          seg.screenX + (seg.rippleX || 0),
+          seg.screenY + (seg.rippleY || 0),
+          size * 0.5, 0, Math.PI * 2
+        );
+        ctx.fill();
+        ctx.restore();
+      }
     }
     ctx.restore();
   }

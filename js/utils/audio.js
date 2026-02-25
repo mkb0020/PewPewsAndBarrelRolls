@@ -74,6 +74,7 @@ export class AudioManager {
         warning:     './audio/warning.m4a',
         babyWorms:   './audio/babyWorms.m4a',
         ouch:        './audio/ouch.m4a',
+        splat:       './audio/splat.m4a',
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -99,7 +100,6 @@ export class AudioManager {
   }
 
   // PLAY AN SFX BUFFER VIA A DISPOSABLE BUFFERSOURCE NODE.
-  // BUFFERSOURCE NODES ARE DESIGNED TO BE CREATED AND DISCARDED — THIS IS THE CORRECT PATTERN.
   _playSfx(name, volume = 1.0) {
     if (this.isMuted || !this.context) return;
     const buffer = this._sfxBuffers[name];
@@ -224,6 +224,7 @@ export class AudioManager {
   }
 
   playOuch()        { this._playSfx('ouch',        0.4); } // SHIP TAKES DAMAGE
+  playSplat()       { this._playSfx('splat',       0.7); } // SLIME HITS SHIP
   playLaser()       { this._playSfx('laser',       this.LASER_VOLUME);       }
   playEnemyLaser()  { this._playSfx('enemyLasers', this.ENEMY_LASER_VOLUME); } // ENEMY LASER FIRE
   playImpact()      { this._playSfx('impact',      this.IMPACT_VOLUME);      }

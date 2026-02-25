@@ -14,6 +14,7 @@ import { ProjectileManager, Crosshair, MuzzleFlash } from './entities/projectile
 import { WormBoss }                                  from './entities/worm.js';
 import { BabyWormManager }                           from './entities/babyWorm.js';
 import { Menu }                                      from './scenes/menu.js';
+import { SlimeAttack }                               from './entities/slimeAttack.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 
@@ -38,9 +39,18 @@ const scoreManager      = new ScoreManager();
 const wormBoss          = new WormBoss();
 const babyWormManager   = new BabyWormManager();
 const menu              = new Menu();
+const slimeAttack       = new SlimeAttack();
 
 // ==================== ENEMY CALLBACKS ====================
-enemyManager.onLaserFired = () => audio.playEnemyLaser();
+enemyManager.onLaserFired  = () => audio.playEnemyLaser();
+enemyManager.onSlimeAttack = (glorkX, glorkY) => {
+  ImageLoader.load('slimeProjectiles');
+  ImageLoader.load('slimeDrip');
+  slimeAttack.trigger(glorkX, glorkY);
+};
+
+// ==================== SLIME ATTACK CALLBACKS ====================
+slimeAttack.onSplat = () => audio.playSplat();
 
 // ==================== WORM CALLBACKS ====================
 wormBoss.onAttack        = null; 
@@ -221,6 +231,7 @@ function restartGame() {
   enemyManager.clear();
   projectileManager.clear();
   babyWormManager.clear();
+  slimeAttack.reset();
 
   CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
   if (currentMode === 'bossBattle') wormBoss.activate();
@@ -335,6 +346,16 @@ function gameLoop() {
 
     const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop'; // TUNNEL REACTS TO WORM SUCTION ATTACK
     tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
+
+    // ── SLIME ATTACK UPDATE ──────────────────────────────────────────────────
+    const glorks     = enemyManager.getEnemies().filter(e => e.type === 'TANK');
+    const activeGlork = glorks.find(g => g.scale > CONFIG.SLIME_ATTACK.MIN_SCALE);
+    const gx = activeGlork ? activeGlork.x : window.innerWidth  / 2;
+    const gy = activeGlork ? activeGlork.y : window.innerHeight / 2;
+    slimeAttack.update(dt, gx, gy, ship.x, ship.y);
+
+    tunnel.setSlimeIntensity(slimeAttack.getSlimeIntensity());
+    ship.setSlimeHeaviness(slimeAttack.getSlimeIntensity());
 
     ship.update(dt);
     crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
@@ -465,9 +486,49 @@ function gameLoop() {
   wormBoss.draw(ctx);
   babyWormManager.draw(ctx);
   enemyManager.draw(ctx);
+
+  slimeAttack.draw(ctx);
+
+  if (slimeAttack.getSlimeIntensity() > 0.02) {
+    const sprite     = ImageLoader.isLoaded('ship') ? ImageLoader.get('ship') : null;
+    const frameW     = sprite ? sprite.width / CONFIG.SHIP.SPRITE_FRAMES : 0;
+    const trailSnaps = ship.getTrailPositions();
+    if (sprite && trailSnaps.length > 0) {
+      const si = slimeAttack.getSlimeIntensity();
+      for (let i = 0; i < trailSnaps.length; i++) {
+        const snap       = trailSnaps[i];
+        const ageFrac    = (trailSnaps.length - i) / trailSnaps.length; 
+        const alpha      = si * 0.5 * (1 - ageFrac * 0.9);
+        if (alpha < 0.01) continue;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(snap.x, snap.y);
+        ctx.rotate(snap.rotation);
+        ctx.drawImage(
+          sprite,
+          snap.frame * frameW, 0, frameW, sprite.height,
+          -CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2,
+          CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT
+        );
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.globalAlpha = alpha * 0.7;
+        ctx.fillStyle   = '#22ff66';
+        ctx.fillRect(-CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2, CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
+        ctx.restore();
+      }
+    }
+  }
+
   muzzleFlash.draw(ctx);
   ship.draw();
-  babyWormManager.drawSlime(ctx); 
+
+  slimeAttack.drawWingDrip(
+    ctx,
+    ship.x, ship.y, ship.rotation,
+    CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT
+  );
+
+  babyWormManager.drawSlime(ctx);
 }
 
 // ==================== STARTUP ====================

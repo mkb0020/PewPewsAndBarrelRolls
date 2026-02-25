@@ -15,8 +15,8 @@ export const CONFIG = {
   },
 
   SHIP: {
-    WIDTH: 220,
-    HEIGHT: 200,
+    WIDTH: 180,
+    HEIGHT: 160,
     SPEED: 5,             
     ACCELERATION: 2400,   // px/sÃ‚Â² 
     DAMPING: 0.85,        // HIGHER = SPACE ICE
@@ -70,9 +70,9 @@ export const CONFIG = {
   ENEMIES: {
     MAX_COUNT: 5, 
     SPAWN_INTERVAL_MIN: 2.0, 
-    SPAWN_INTERVAL_MAX: 4.0,
+    SPAWN_INTERVAL_MAX: 6.0,
     SPAWN_DISTANCE: 400, 
-    SPRITE_SIZE: 200,
+    SPRITE_SIZE: 180,
 
    
     TYPES: {
@@ -104,7 +104,7 @@ export const CONFIG = {
       },
       TANK: { // GLORK
         SIZE: 60,
-        SPEED: 120,
+        SPEED: 70,
         COLOR: '#ff9900',
         GLOW_COLOR: '#ffaa00',
         HEALTH: 3,
@@ -246,5 +246,20 @@ EXPLOSIONS: {
     TRAIL_MAX_ALPHA:     0.65,
 
     ATTACK_DURATION:     9.0,
+  },
+
+  SLIME_ATTACK: {
+    FIRST_ATTACK_MIN:   1.0,   
+    FIRST_ATTACK_MAX:   1.5, 
+    REPEAT_INTERVAL:    22.0,  
+    MIN_SCALE:           0.50,  // GLORK MUST BE THIS SIZE TO ATTACK
+    TUNNEL_SPEED_MULT:   0.28,  // TUNNEL SLOWS TO THIS PERCENT OF NORMAL SPEED 
+    TUNNEL_GREEN:       0x22ff44, 
+
+    TRAIL_MAX:           10,    // TRACERS
+    TRAIL_CAPTURE_RATE:  0.055, // SECONDS BETWEEN SNAPSHOTS
+    
+    CONTROL_ACCEL_MULT:  0.45, // MOLLASSES PHYSICS 
+    CONTROL_DAMP_MULT:   0.60, 
   },
 };

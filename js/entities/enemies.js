@@ -114,7 +114,14 @@ export class Enemy {
     this.laserInterval = this.config.LASER_INTERVAL;
     this.laserColor    = this.config.LASER_COLOR;
     this.pendingLaser  = null; 
-  }
+
+    // GLORK (TANK) SLIME ATTACK
+    if (this.type === 'TANK') {
+      const scfg = CONFIG.SLIME_ATTACK;
+      this.slimeTimer   = scfg.FIRST_ATTACK_MIN
+                        + Math.random() * (scfg.FIRST_ATTACK_MAX - scfg.FIRST_ATTACK_MIN);
+      this.pendingSlime = false;
+    }}
 
   update(dt, time, curve, playerProgress) {
     const moveSpeed = 0.05;
@@ -156,6 +163,15 @@ export class Enemy {
       }
     }
 
+    // GLORK SLIME ATTACK TIMER
+    if (this.type === 'TANK' && this.scale > CONFIG.SLIME_ATTACK.MIN_SCALE) {
+      this.slimeTimer -= dt;
+      if (this.slimeTimer <= 0) {
+        this.slimeTimer   = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
+        this.pendingSlime = true;
+      }
+    }
+
     if (this.scale >= 0.95 || distanceToPlayer >= 1.0) {
       this.isDead = true;
     }
@@ -175,16 +191,19 @@ export class Enemy {
   }
 
   draw(ctx) {
+    const fadeProgress = Math.min(1, Math.max(0, (this.scale - 0.2) / 0.6));
+    const spriteAlpha  = 0.1 + fadeProgress * 0.9; 
+    const tintAlpha    = (1 - Math.min(1, fadeProgress / 0.2)) * 0.3; // 0.85 → 0 BY 1/3 OF THE WAY
+    const renderSize   = CONFIG.ENEMIES.SPRITE_SIZE * this.scale;
+    const sprite       = ImageLoader.get(this.spriteKey);
+
     ctx.save();
-    ctx.globalAlpha = 1.0;
 
-    const sprite      = ImageLoader.get(this.spriteKey);
-    const renderSize  = CONFIG.ENEMIES.SPRITE_SIZE * this.scale;
-
+    // DRAW SPRITE
+    ctx.globalAlpha = spriteAlpha;
     if (sprite) {
       const frameWidth = sprite.width / this.animCount;
       const sx = this.frameIndex * frameWidth;
-
       ctx.drawImage(
         sprite,
         sx, 0, frameWidth, sprite.height,
@@ -196,6 +215,15 @@ export class Enemy {
       ctx.fillStyle = this.color;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.size * this.scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // BLACK TINT OVERLAY 
+    if (tintAlpha > 0.01) {
+      ctx.globalAlpha = tintAlpha;
+      ctx.fillStyle   = '#000000';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, renderSize * 0.5, 0, Math.PI * 6);
       ctx.fill();
     }
 
@@ -241,7 +269,8 @@ export class EnemyManager {
     this.nextSpawnDelay = this.randomSpawnDelay();
     this.time       = 0;
 
-    this.onLaserFired = null; 
+    this.onLaserFired  = null; 
+    this.onSlimeAttack = null; // (glorkX, glorkY) => slimeAttack.trigger()
   }
 
   randomSpawnDelay() {
@@ -251,9 +280,9 @@ export class EnemyManager {
 
   getRandomEnemyType() {
     const rand = Math.random();
-    if (rand < 0.40) return 'BASIC';
-    if (rand < 0.65) return 'FAST';
-    if (rand < 0.80) return 'ZIGZAG';
+    if (rand < 0.35) return 'BASIC'; // 0.4
+    if (rand < 0.55) return 'FAST'; // 0.65
+    if (rand < 0.75) return 'ZIGZAG'; // 0.8
     return 'TANK';
   }
 
@@ -291,6 +320,12 @@ export class EnemyManager {
         this.lasers.push(new EnemyLaser(pl.x, pl.y, shipX, shipY, pl.color));
         this.onLaserFired?.();
         enemy.pendingLaser = null;
+      }
+
+      // COLLECT SLIME ATTACK (TANK / GLORK ONLY)
+      if (enemy.pendingSlime) {
+        this.onSlimeAttack?.(enemy.x, enemy.y);
+        enemy.pendingSlime = false;
       }
 
       if (enemy.isDead) this.enemies.splice(i, 1);

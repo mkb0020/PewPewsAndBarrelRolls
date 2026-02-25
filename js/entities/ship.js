@@ -65,6 +65,11 @@ export class Ship {
 
     this.particles = new ParticleSystem();
 
+    // ========== GLORK SLIME EFFECT ==========
+    this._slimeHeaviness = 0;          
+    this._trailPositions = [];          
+    this._trailCaptureTimer = 0;
+
     console.log('✔ Ship initialized');
   }
 
@@ -94,13 +99,21 @@ export class Ship {
     if (mag > 1) { inputX /= mag; inputY /= mag; }
 
     // ACCELERATION + DAMPING
-    const accel = CONFIG.SHIP.ACCELERATION * dt;
+    const accel = CONFIG.SHIP.ACCELERATION * dt
+                * (1 - this._slimeHeaviness * (1 - CONFIG.SLIME_ATTACK.CONTROL_ACCEL_MULT));
     this.velocity.x += inputX * accel;
     this.velocity.y += inputY * accel;
 
     const damp = Math.pow(CONFIG.SHIP.DAMPING, dt * 60);
     this.velocity.x *= damp;
     this.velocity.y *= damp;
+
+    // SLIME EXTRA DRAG 
+    if (this._slimeHeaviness > 0.01) {
+      const slimeDamp = Math.pow(CONFIG.SLIME_ATTACK.CONTROL_DAMP_MULT, dt * 60 * this._slimeHeaviness);
+      this.velocity.x *= slimeDamp;
+      this.velocity.y *= slimeDamp;
+    }
 
     // INTEGRATE
     this.offset.x += this.velocity.x * dt;
@@ -204,6 +217,25 @@ export class Ship {
       this.particles.spawn(this.x, this.y, CONFIG.PARTICLES.SPAWN_RATE);
     }
     this.particles.update(dt);
+
+    // ========= SLIME TRAIL CAPTURE =========
+    if (this._slimeHeaviness > 0.05) {
+      this._trailCaptureTimer -= dt;
+      if (this._trailCaptureTimer <= 0) {
+        this._trailCaptureTimer = CONFIG.SLIME_ATTACK.TRAIL_CAPTURE_RATE;
+        this._trailPositions.push({
+          x:        this.x,
+          y:        this.y,
+          rotation: this.rotation,
+          frame:    this.currentFrame,
+        });
+        if (this._trailPositions.length > CONFIG.SLIME_ATTACK.TRAIL_MAX) {
+          this._trailPositions.shift();
+        }
+      }
+    } else {
+      if (this._trailPositions.length > 0) this._trailPositions.shift();
+    }
   }
 
   //  WORM SUCTION 
@@ -354,6 +386,8 @@ export class Ship {
     this.consumedTimer       = 0;
     this.consumedFlashAlpha  = 0;
     this._consumedDeathFired = false;
+    this._trailPositions     = [];
+    this._slimeHeaviness     = 0;
     if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
     this._startInvincibility(CONFIG.SHIP_HP.RESPAWN_INVINCIBILITY);
   }
@@ -426,6 +460,20 @@ export class Ship {
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
+    if (this._slimeHeaviness > 0.02) {
+      const t    = this._slimeHeaviness;
+      const pulse = 0.08 + 0.05 * Math.sin(Date.now() * 0.003);
+      const grad = this.ctx.createRadialGradient(
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.15,
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.9
+      );
+      grad.addColorStop(0, `rgba(0, 80, 0, 0)`);
+      grad.addColorStop(0.6, `rgba(0, 120, 10, 0)`);
+      grad.addColorStop(1, `rgba(0, 200, 30, ${t * pulse})`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
     this.ctx.globalAlpha = 1;
 
     const sprite = ImageLoader.get('ship');
@@ -480,6 +528,11 @@ export class Ship {
   }
 
   getOffset()     { return { x: this.offset.x, y: this.offset.y }; }
+
+  // ========== SLIME EFFECT ==========
+  setSlimeHeaviness(v) { this._slimeHeaviness = Math.max(0, Math.min(1, v)); }
+  getTrailPositions()  { return this._trailPositions; }
+
   handleResize()  {
     this.x = window.innerWidth  / 2 + this.offset.x;
     this.y = window.innerHeight / 2 - this.offset.y;

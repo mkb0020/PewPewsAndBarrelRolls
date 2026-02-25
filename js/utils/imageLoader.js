@@ -11,11 +11,13 @@ const MANIFEST = {
   zipZap:       { path: 'zipZap.png' },      // 6 FRAMES
   glitch:       { path: 'glitch.png' },      // 5 FRAMES
   phil:         { path: 'phil.png' },        // 8 FRAMES
-  boom:         { path: 'boom.png' },        // 6 FRAMES — worm boss explosions
+  boom:         { path: 'boom.png' },        // 6 FRAMES 
   zap:          { path: 'zap.png',     lazy: true },   // 8 FRAMES
-  bam:          { path: 'bam.png' },         // 8 FRAMES — regular enemy / baby worm explosions
+  bam:          { path: 'bam.png' },         // 8 FRAMES
   spiral:       { path: 'spiral.png',  lazy: true },   // 5 FRAMES
-  slime:        { path: 'slime.png',   lazy: true },
+  slime:            { path: 'slime.png',            lazy: true },
+  slimeProjectiles: { path: 'slimeProjectiles.png', lazy: true }, // 4 FRAMES
+  slimeDrip:        { path: 'slimeDrip.png',        lazy: true }, // 10 FRAMES (5R + 5L)
 
   monster:      { path: 'monster.png', lazy: true },   // NO LONGER IN USE
 };

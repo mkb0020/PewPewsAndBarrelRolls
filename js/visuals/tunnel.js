@@ -16,6 +16,10 @@ export class Tunnel {
     this._consumedIntensity = 0;  // 0 = NORMAL, 1 = FULL HELLSCAPE
     this._consumedTarget    = 0;
     this._consumedSpeedMult = 1;  // CACHED SPEED MULTIPLIER FOR update()
+
+    // SLIME ATTACK — SLOWS TUNNEL + SHIFTS HUE TO GREEN
+    this._slimeIntensity    = 0;
+    this._slimeTarget       = 0;
     
     this.initScene();
     this.initTunnel();
@@ -127,6 +131,11 @@ export class Tunnel {
     this._suctionTarget = Math.max(0, Math.min(1, t));
   }
 
+  // CALL FROM MAIN.JS — t: 0=NORMAL, 1=FULL GREEN SLIME CRAWL
+  setSlimeIntensity(t) {
+    this._slimeTarget = Math.max(0, Math.min(1, t));
+  }
+
   // CALL FROM MAIN.JS — t: 0=NORMAL TUNNEL, 1=FULL BLACK-RED VORTEX
   setConsumedIntensity(t) {
     this._consumedTarget = Math.max(0, Math.min(1, t));
@@ -146,8 +155,14 @@ export class Tunnel {
     this._consumedIntensity += (this._consumedTarget - this._consumedIntensity) * cLerp;
     const ci = this._consumedIntensity;
 
-    // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP ─────────────────
-    const speedMult = 1 + si * 0.4 + ci * 3.5; // CONSUMED: UP TO 4.5× SPEED
+    // ── SLIME LERP — SLUGGISH IN, SLOW FADE OUT ───────────────────────────────
+    const slLerp = this._slimeTarget > this._slimeIntensity ? 0.04 : 0.018;
+    this._slimeIntensity += (this._slimeTarget - this._slimeIntensity) * slLerp;
+    const sli = this._slimeIntensity;
+
+    // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP, SLIME CRAWLS ──
+    const speedMult = (1 - sli * (1 - CONFIG.SLIME_ATTACK.TUNNEL_SPEED_MULT))
+                    * (1 + si * 0.4 + ci * 3.5);
     this._consumedSpeedMult = speedMult;
 
     // PROGRESS ALONG CURVE
@@ -164,13 +179,17 @@ export class Tunnel {
     const rollAmt = CONFIG.TUNNEL.ROLL_AMOUNT + ci * 2.2;
     this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * rollAmt);
 
-    // ── BACKGROUND COLOR — DEEP PURPLE → PURE BLACK ───────────────────────────
+    // ── BACKGROUND COLOR — DEEP PURPLE → PURE BLACK → SLIME GREEN ────────────
     const bgColor = new THREE.Color();
     bgColor.lerpColors(
-      new THREE.Color(CONFIG.SCENE.BACKGROUND_COLOR),  // 0x0a0015
+      new THREE.Color(CONFIG.SCENE.BACKGROUND_COLOR),  
       new THREE.Color(0x000000),
       ci
     );
+    if (sli > 0.01) {
+      const slimeBg = new THREE.Color(0x010e03); 
+      bgColor.lerp(slimeBg, sli * 0.75);
+    }
     this.scene.background.copy(bgColor);
     this.scene.fog.color.copy(bgColor);
 
@@ -180,11 +199,20 @@ export class Tunnel {
     // ── WIREFRAME COLOR ───────────────────────────────────────────────────────
     // SUCTION LERPS PURPLE → RED (existing behaviour)
     // CONSUMED THEN LERPS RED → DEEP BLOOD CRIMSON AND DIMS
+    // SLIME LERPS WHOLE THING → SICKLY GREEN
     const pulse   = Math.sin(this.time * 1.8) * 0.5 + 0.5;
     const baseHue = CONFIG.TUNNEL.COLOR_BASE_HUE * (1 - si) * (1 - ci * 0.85);
-    const lightness = (0.55 + si * 0.15) * (1 - ci * 0.45); // DIMS TOWARD BLACK
+    const lightness = (0.55 + si * 0.15) * (1 - ci * 0.45);
     const col = this.material.color;
     col.setHSL(baseHue + pulse * CONFIG.TUNNEL.COLOR_PULSE_RANGE * (1 - ci * 0.8), 1, lightness);
+
+    if (sli > 0.01) {
+      const slimePulse = Math.sin(this.time * 2.2) * 0.5 + 0.5;
+      const greenHue   = 0.33 + slimePulse * 0.04;   
+      const slimeLight = 0.42 + slimePulse * 0.12;
+      const slimeColor = new THREE.Color().setHSL(greenHue, 1, slimeLight);
+      col.lerp(slimeColor, sli);
+    }
 
     // PUSH COLOR TO ALL FOUR MATERIALS
     this.glowMat.color.copy(col);
