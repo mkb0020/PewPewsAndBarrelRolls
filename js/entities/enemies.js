@@ -201,7 +201,6 @@ export class Enemy {
 
     ctx.restore();
 
-    // HEALTH BAR -- TANKS ONLY, WHEN DAMAGED
     if (this.type === 'TANK' && this.health < this.maxHealth) {
       const barWidth  = this.size * 2 * this.scale;
       const barHeight = 4;
@@ -241,6 +240,8 @@ export class EnemyManager {
     this.spawnTimer = 0;
     this.nextSpawnDelay = this.randomSpawnDelay();
     this.time       = 0;
+
+    this.onLaserFired = null; 
   }
 
   randomSpawnDelay() {
@@ -288,6 +289,7 @@ export class EnemyManager {
       if (enemy.pendingLaser) { // COLLECT ANY LASER THIS ENEMY WANTS TO FIRE THIS FRAME
         const pl = enemy.pendingLaser;
         this.lasers.push(new EnemyLaser(pl.x, pl.y, shipX, shipY, pl.color));
+        this.onLaserFired?.();
         enemy.pendingLaser = null;
       }
 

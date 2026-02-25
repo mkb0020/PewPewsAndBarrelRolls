@@ -8,35 +8,30 @@ export class AudioManager {
     this.isMuted    = false;
     this._preMuteVolume = 1.0;
 
-    this.MUSIC_VOLUME       = 0.75;
-    this.LASER_VOLUME       = 0.3;
-    this.IMPACT_VOLUME      = 0.2;
-    this.SPAWN_VOLUME       = 0.15;
-    this.BARREL_ROLL_VOLUME = 0.15;
+    this.MUSIC_VOLUME        = 0.75;
+    this.LASER_VOLUME        = 0.5;
+    this.ENEMY_LASER_VOLUME  = 0.5;
+    this.IMPACT_VOLUME       = 0.2;
+    this.SPAWN_VOLUME        = 0.15;
+    this.BARREL_ROLL_VOLUME  = 0.15;
 
     // ====== MUSIC — WEB AUDIO API ======
-    this._musicBuffer        = null;  
-    this._introBuffer        = null;  
-    this._bossBuffer         = null;  
-    this._musicSource        = null;  
-    this._introSource        = null; 
-    this._musicGain          = null;  
+    this._musicBuffer        = null;
+    this._introBuffer        = null;
+    this._bossBuffer         = null;
+    this._musicSource        = null;
+    this._introSource        = null;
+    this._musicGain          = null;
     this._musicDecodePromise = null;
     this._introDecodePromise = null;
     this._bossDecodePromise  = null;
 
-    this.sfxPools = {
-      laser:      this._createPool('./audio/laser.m4a',      6),
-      impact:     this._createPool('./audio/impact.m4a',     6),
-      spawn:      this._createPool('./audio/spawn.m4a',      4), // ENEMY SPAWN
-      barrelRoll: this._createPool('./audio/barrelRoll.m4a', 2), // WOOSH SOUND
-      wormDeath1: this._createPool('./audio/wormDeath1.m4a', 1), // KILL SHOT — PLAYS DURING FREEZE PAUSE
-      wormDeath2: this._createPool('./audio/wormDeath2.m4a', 1), // SEGMENT POP WAVE — PLAYS WHEN POPPING STARTS
-      wormDeath3: this._createPool('./audio/wormDeath3.m4a', 1), // HEAD POP + COOLDOWN (~10s) — PLAYS ON FINAL SEGMENT
-      consumed:   this._createPool('./audio/consumed.m4a',   1), // SHIP SPIRALS INTO WORM MOUTH
-      warning:    this._createPool('./audio/warning.m4a',    1),
-      babyWorms:  this._createPool('./audio/babyWorms.m4a',  1), // BABY WORM SPIT ATTACK
-    };
+    // ====== SFX — WEB AUDIO API BUFFERS ======
+    // ALL SFX USE WEB AUDIO BUFFERSOURCE NODES — NO HTML AUDIO ELEMENTS.
+    // THIS MEANS ONLY THE AUDIOCONTEXT NEEDS TO BE UNLOCKED (ONE context.resume()
+    // IN A USER GESTURE), AND ALL SUBSEQUENT PLAYS WORK WITHOUT ANY PER-ELEMENT
+    // UNLOCKING DANCE — SOLVING THE IOS "ALL SFX FIRE AT ONCE" BUG FOR GOOD.
+    this._sfxBuffers = {};
 
     this._initContext();
     console.log('✔ AudioManager initialized');
@@ -57,14 +52,38 @@ export class AudioManager {
       this._musicGain.connect(this.masterGain);
       this.masterGain.connect(this.context.destination);
 
+      // PRELOAD MUSIC
       this._musicDecodePromise = this._prefetchAndDecode('./audio/wormholeTheme.m4a')
         .then(buf => { this._musicBuffer = buf; console.log('✔ Theme buffer ready');      return buf; });
-
       this._introDecodePromise = this._prefetchAndDecode('./audio/wormIntro.m4a')
         .then(buf => { this._introBuffer = buf; console.log('✔ Intro buffer ready');      return buf; });
-
       this._bossDecodePromise  = this._prefetchAndDecode('./audio/bossBattle.m4a')
         .then(buf => { this._bossBuffer  = buf; console.log('✔ Boss music buffer ready'); return buf; });
+
+      // PRELOAD ALL SFX AS WEB AUDIO BUFFERS
+      const sfxFiles = {
+        laser:       './audio/laser.m4a',
+        enemyLasers: './audio/enemyLasers.m4a',
+        impact:      './audio/impact.m4a',
+        spawn:       './audio/spawn.m4a',
+        barrelRoll:  './audio/barrelRoll.m4a',
+        wormDeath1:  './audio/wormDeath1.m4a',
+        wormDeath2:  './audio/wormDeath2.m4a',
+        wormDeath3:  './audio/wormDeath3.m4a',
+        consumed:    './audio/consumed.m4a',
+        warning:     './audio/warning.m4a',
+        babyWorms:   './audio/babyWorms.m4a',
+        ouch:        './audio/ouch.m4a',
+      };
+
+      for (const [name, src] of Object.entries(sfxFiles)) {
+        this._sfxBuffers[name] = null;
+        this._prefetchAndDecode(src)
+          .then(buf => {
+            this._sfxBuffers[name] = buf;
+            console.log(`✔ SFX buffer ready: ${name}`);
+          });
+      }
 
     } catch (e) {
       console.warn('⚠ Web Audio API not supported:', e);
@@ -76,29 +95,25 @@ export class AudioManager {
     return fetch(url)
       .then(r  => r.arrayBuffer())
       .then(ab => this.context.decodeAudioData(ab))
-      .catch(e  => { console.warn(`⚠ Music pre-decode failed (${url}):`, e); return null; });
+      .catch(e  => { console.warn(`⚠ Audio pre-decode failed (${url}):`, e); return null; });
   }
 
-  _createPool(src, size) {
-    return {
-      instances: Array.from({ length: size }, () => {
-        const a = new Audio(src);
-        a.preload = 'auto';
-        return a;
-      }),
-      index: 0,
-    };
-  }
+  // PLAY AN SFX BUFFER VIA A DISPOSABLE BUFFERSOURCE NODE.
+  // BUFFERSOURCE NODES ARE DESIGNED TO BE CREATED AND DISCARDED — THIS IS THE CORRECT PATTERN.
+  _playSfx(name, volume = 1.0) {
+    if (this.isMuted || !this.context) return;
+    const buffer = this._sfxBuffers[name];
+    if (!buffer) return;
 
-  _playSfx(poolName, volume = 1.0) {
-    if (this.isMuted) return;
-    const pool = this.sfxPools[poolName];
-    if (!pool) return;
-    const instance = pool.instances[pool.index];
-    pool.index = (pool.index + 1) % pool.instances.length;
-    instance.volume = Math.min(1, volume);
-    instance.currentTime = 0;
-    instance.play().catch(() => {});
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+
+    const gain = this.context.createGain();
+    gain.gain.value = Math.min(1, volume);
+
+    source.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
   }
 
   // ====== INTERNAL MUSIC PLAYBACK ======
@@ -108,7 +123,7 @@ export class AudioManager {
 
     const source  = this.context.createBufferSource();
     source.buffer = buffer;
-    source.loop   = true; 
+    source.loop   = true;
 
     source.connect(this._musicGain);
     source.start(0);
@@ -123,29 +138,14 @@ export class AudioManager {
   }
 
   // ==================== PUBLIC API ====================
-  // IOS REQUIRES EVERY <audio> ELEMENT TO BE INDIVIDUALLY UNLOCKED VIA A USER GESTURE.
-  // SILENTLY PLAYS+PAUSES EVERY POOL INSTANCE AT VOLUME 0 ON FIRST INTERACTION,
-  // SO LATER CALLS FROM setTimeout / GAME LOOP WONT BE BLOCKED BY THE AUTOPLAY POLICY.
-  _primeAllAudio() {
-    for (const pool of Object.values(this.sfxPools)) {
-      for (const instance of pool.instances) {
-        instance.volume = 0;
-        instance.play().then(() => {
-          instance.pause();
-          instance.currentTime = 0;
-        }).catch(() => {});
-      }
-    }
-  }
-
-  async start() {
+  // IOS FIX: EVERYTHING IS NOW WEB AUDIO API. ONE context.resume() IN A USER
+  // GESTURE UNLOCKS ALL FUTURE AUDIO — NO PER-ELEMENT HTML AUDIO PRIMING NEEDED.
+  start() {
     if (this.isStarted) return;
     this.isStarted = true;
     if (this.context?.state === 'suspended') {
-      await this.context.resume();
+      this.context.resume().catch(() => {});
     }
-
-    this._primeAllAudio(); // UNLOCK ALL SFX POOL ELEMENTS INSIDE USER GESTURE
     console.log('✔ Audio unlocked');
   }
 
@@ -181,22 +181,21 @@ export class AudioManager {
   }
 
   _playIntroBoss() {
-    this._stopMusicSource(); 
+    this._stopMusicSource();
 
-    const now = this.context.currentTime;
-    const bossStartTime = now + this._introBuffer.duration; 
+    const now           = this.context.currentTime;
+    const bossStartTime = now + this._introBuffer.duration;
 
-    const intro    = this.context.createBufferSource();  
-    intro.buffer   = this._introBuffer;
-    intro.loop     = false;
+    const intro  = this.context.createBufferSource();
+    intro.buffer = this._introBuffer;
+    intro.loop   = false;
     intro.connect(this._musicGain);
     intro.start(now);
     this._introSource = intro;
 
-    
-    const boss    = this.context.createBufferSource(); 
-    boss.buffer   = this._bossBuffer;
-    boss.loop     = true;
+    const boss  = this.context.createBufferSource();
+    boss.buffer = this._bossBuffer;
+    boss.loop   = true;
     boss.connect(this._musicGain);
     boss.start(bossStartTime);
     this._musicSource = boss; // MAIN REFERENCE — USED BY stopMusic() AND toggleMute()
@@ -218,20 +217,22 @@ export class AudioManager {
         this._musicGain.gain.setTargetAtTime(this.MUSIC_VOLUME, this.context.currentTime, 0.05);
         this.masterGain.gain.setTargetAtTime(1.0, this.context.currentTime, 0.05);
       }
-      if (!this._musicSource) this.startMusic(); // RESTART MUSIC IF IT WASN'T PLAYING 
+      if (!this._musicSource) this.startMusic(); // RESTART MUSIC IF IT WASN'T PLAYING
     }
 
     return this.isMuted;
   }
 
-  playLaser()      { this._playSfx('laser',      this.LASER_VOLUME);       }
-  playImpact()     { this._playSfx('impact',     this.IMPACT_VOLUME);      }
-  playSpawn()      { this._playSfx('spawn',      this.SPAWN_VOLUME);       }
-  playBarrelRoll() { this._playSfx('barrelRoll', this.BARREL_ROLL_VOLUME); }
-  playWormDeath1() { this._playSfx('wormDeath1', 0.9); } // KILL SHOT / FREEZE
-  playWormDeath2() { this._playSfx('wormDeath2', 0.9); } // SEGMENT POP WAVE
-  playWormDeath3() { this._playSfx('wormDeath3', 0.9); } // HEAD POP + COOLDOWN
-  playConsumed()   { this._playSfx('consumed',   0.9); } // SHIP SPIRAL-IN DEATH
-  playBabyWorms()  { this._playSfx('babyWorms',  1.0); } // BABY WORM SPIT ATTACK
-  playWarning()    { this._playSfx('warning',    0.8); }
+  playOuch()        { this._playSfx('ouch',        0.4); } // SHIP TAKES DAMAGE
+  playLaser()       { this._playSfx('laser',       this.LASER_VOLUME);       }
+  playEnemyLaser()  { this._playSfx('enemyLasers', this.ENEMY_LASER_VOLUME); } // ENEMY LASER FIRE
+  playImpact()      { this._playSfx('impact',      this.IMPACT_VOLUME);      }
+  playSpawn()       { this._playSfx('spawn',        this.SPAWN_VOLUME);      }
+  playBarrelRoll()  { this._playSfx('barrelRoll',   this.BARREL_ROLL_VOLUME);}
+  playWormDeath1()  { this._playSfx('wormDeath1',   0.9); } // KILL SHOT / FREEZE
+  playWormDeath2()  { this._playSfx('wormDeath2',   0.9); } // SEGMENT POP WAVE
+  playWormDeath3()  { this._playSfx('wormDeath3',   0.9); } // HEAD POP + COOLDOWN
+  playConsumed()    { this._playSfx('consumed',     0.9); } // SHIP SPIRAL-IN DEATH
+  playBabyWorms()   { this._playSfx('babyWorms',    1.0); } // BABY WORM SPIT ATTACK
+  playWarning()     { this._playSfx('warning',      0.8); }
 }

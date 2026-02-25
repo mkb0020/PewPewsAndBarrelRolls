@@ -39,6 +39,9 @@ const wormBoss          = new WormBoss();
 const babyWormManager   = new BabyWormManager();
 const menu              = new Menu();
 
+// ==================== ENEMY CALLBACKS ====================
+enemyManager.onLaserFired = () => audio.playEnemyLaser();
+
 // ==================== WORM CALLBACKS ====================
 wormBoss.onAttack        = null; 
 wormBoss.onIntro = () => {
@@ -443,13 +446,13 @@ function gameLoop() {
     // ENEMY BODY COLLISION vs SHIP
     if (ship.isAlive && !ship.isInvincible) {
       const collisionDamage = enemyManager.checkCollisions(ship.x, ship.y);
-      if (collisionDamage > 0) ship.takeDamage(collisionDamage);
+      if (collisionDamage > 0) { ship.takeDamage(collisionDamage); audio.playOuch(); }
     }
 
     // ENEMY LASER vs SHIP
     if (ship.isAlive && !ship.isInvincible) {
       const laserDamage = enemyManager.checkLaserHits(ship.x, ship.y);
-      if (laserDamage > 0) ship.takeDamage(laserDamage);
+      if (laserDamage > 0) { ship.takeDamage(laserDamage); audio.playOuch(); }
     }
   }
 
