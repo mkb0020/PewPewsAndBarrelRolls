@@ -9,8 +9,9 @@ const MANIFEST = {
   glork:        { path: 'glork.png' },       // 5 FRAMES
   glipGlop:     { path: 'glipGlop.png' },    // 5 FRAMES
   zipZap:       { path: 'zipZap.png' },      // 6 FRAMES
-  glitch:       { path: 'glitch.png' },      // 5 FRAMES
+  glitch:       { path: 'glitch.png' },      // 5 FRAMES  (unused)
   phil:         { path: 'phil.png' },        // 8 FRAMES
+  flimFlam:     { path: 'flimFlam.png' },   // 7 FRAMES: 0-2 wings, 3-6 body
   boom:         { path: 'boom.png' },        // 6 FRAMES 
   zap:          { path: 'zap.png',     lazy: true },   // 8 FRAMES
   bam:          { path: 'bam.png' },         // 8 FRAMES
@@ -24,11 +25,11 @@ const MANIFEST = {
 
 
 export const ENEMY_SPRITE = {
-  BASIC:  'glipGlop',
-  FAST:   'zipZap',
-  TANK:   'glork',
-  ZIGZAG: 'phil',
-  // GLITCH 
+  BASIC:   'glipGlop',
+  FAST:    'zipZap',
+  TANK:    'glork',
+  ZIGZAG:  'phil',
+  FLIMFLAM:'flimFlam',
 };
 
 // ======================= INTERNAL REGISTRY =======================

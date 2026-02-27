@@ -40,7 +40,7 @@ export class SlimeAttack {
     this.dripActive    = false;
     this.dripFrame     = 0;         
     this.dripAnimTimer = 0;
-    this.DRIP_FRAME_DUR = 0.09;     
+    this.DRIP_FRAME_DUR = 0.1;     
 
     // ========= CALLBACKS =========
     this.onSplat = null;            // () => audio.playSplat()

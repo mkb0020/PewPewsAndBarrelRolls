@@ -75,6 +75,7 @@ export class AudioManager {
         babyWorms:   './audio/babyWorms.m4a',
         ouch:        './audio/ouch.m4a',
         splat:       './audio/splat.m4a',
+        buzz:        './audio/buzz.m4a',
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -223,6 +224,31 @@ export class AudioManager {
     return this.isMuted;
   }
 
+  // CREATE A LOOPING BUZZ FOR ONE FLIM FLAM — RETURNS A stopFn TO CALL WHEN ENEMY DIES.
+  startLoopBuzz(volume = 0.3) {
+    if (this.isMuted || !this.context) return () => {};
+    const buffer = this._sfxBuffers['buzz'];
+    if (!buffer) return () => {};
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    source.loop   = true;
+
+    const gain = this.context.createGain();
+    gain.gain.value = Math.min(1, volume);
+    source.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
+
+    return () => {
+      try {
+        gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
+        setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
+      } catch (_) {}
+    };
+  }
+
+  // ==================== PUBLIC PLAY METHODS ====================
   playOuch()        { this._playSfx('ouch',        0.4); } // SHIP TAKES DAMAGE
   playSplat()       { this._playSfx('splat',       0.7); } // SLIME HITS SHIP
   playLaser()       { this._playSfx('laser',       this.LASER_VOLUME);       }

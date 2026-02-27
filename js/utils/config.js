@@ -70,74 +70,123 @@ export const CONFIG = {
   ENEMIES: {
     MAX_COUNT: 5, 
     SPAWN_INTERVAL_MIN: 2.0, 
-    SPAWN_INTERVAL_MAX: 6.0,
+    SPAWN_INTERVAL_MAX: 5.5,
     SPAWN_DISTANCE: 400, 
     SPRITE_SIZE: 180,
 
-   
+    COMBAT_SCALE:      0.82,  // SCALE THRESHOLD — APPROACH → COMBAT TRANSITION
+    COMBAT_RING_ALPHA: 0.28,  // TIMEOUT RING OPACITY
+
     TYPES: {
       BASIC: { // GLIP GLOP
         SIZE: 40,
-        SPEED: 180, 
-        COLOR: '#ff00ff',
-        GLOW_COLOR: '#ff00ff',
-        HEALTH: 1,
+        SPEED: 180,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#FF0000',
+        HEALTH: 5,
         SCORE: 10,
-        SPRITE_FRAMES: 5, 
+        SPRITE_FRAMES: 5,
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
-        LASER_COLOR: '#ff0000',
-        LASER_INTERVAL: 3.5,
+        LASER_COLOR: '#FF0000',
+        LASER_INTERVAL: 3.2,
+        COMBAT_DURATION: 9.0,  
+        WANDER_SPEED: 70,
+        WANDER_X: 180,
+        WANDER_Y: 120,
       },
       FAST: { // ZIP ZAP
         SIZE: 30,
         SPEED: 300,
         COLOR: '#ff3366',
         GLOW_COLOR: '#ff3366',
-        HEALTH: 1,
+        HEALTH: 5,
         SCORE: 20,
-        SPRITE_FRAMES: 6, 
+        SPRITE_FRAMES: 6,
         ANIM_SPEED: 12,
         COLLISION_DAMAGE: 20,
-        LASER_COLOR: '#ff3366',
-        LASER_INTERVAL: 2.5,  // fires more often — it's the fast one
+        LASER_COLOR: '#FF0000',
+        LASER_INTERVAL: 2.0,    
+        COMBAT_DURATION: 7.0,   
+        WANDER_SPEED: 200,
+        WANDER_X: 290,
+        WANDER_Y: 170,
       },
       TANK: { // GLORK
         SIZE: 60,
         SPEED: 70,
-        COLOR: '#ff9900',
-        GLOW_COLOR: '#ffaa00',
-        HEALTH: 3,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#FF0000',
+        HEALTH: 10,
         SCORE: 50,
-        SPRITE_FRAMES: 5, 
+        SPRITE_FRAMES: 5,
         ANIM_SPEED: 7,
-        COLLISION_DAMAGE: 35,  
+        COLLISION_DAMAGE: 35,
         LASER_COLOR: '#ff0000',
-        LASER_INTERVAL: 4.0,
+        LASER_INTERVAL: 3.5,
+        COMBAT_DURATION: 16.0,  
+        WANDER_SPEED: 30,
+        WANDER_X: 90,
+        WANDER_Y: 60,
       },
       ZIGZAG: { // PHIL
         SIZE: 35,
         SPEED: 200,
-        COLOR: '#00ff88',
-        GLOW_COLOR: '#00ff88',
-        HEALTH: 1,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#FF0000',
+        HEALTH: 7,
         SCORE: 30,
-        ZIGZAG_AMPLITUDE: 80,
-        ZIGZAG_FREQUENCY: 3,
-        SPRITE_FRAMES: 8, 
+        ZIGZAG_AMPLITUDE: 90,
+        ZIGZAG_FREQUENCY: 3.2,
+        SPRITE_FRAMES: 8,
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 3.0,
+        LASER_INTERVAL: 2.8,
+        COMBAT_DURATION: 11.0,
+        WANDER_SPEED: 55,       
+        WANDER_X: 80,
+        WANDER_Y: 130,
+      },
+      FLIMFLAM: { // FLIM FLAM — THE BUZZER
+        SIZE: 38,
+        SPEED: 260,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#FF0000',
+        HEALTH: 7,
+        SCORE: 40,
+        SPRITE_FRAMES: 8,       // TOTAL: 3 WING + 1 RED EYE + 4 BODY
+        WING_FRAMES: 3,         // FRAMES 0-2
+        RED_EYE_FRAME: 3,       // FRAME 3
+        BODY_FRAMES: 4,         // FRAMES 4-7
+        BODY_FRAME_OFFSET: 4,   // DRAW OFFSET: 4
+        WING_ANIM_SPEED: 16,
+        ANIM_SPEED: 6,
+        COLLISION_DAMAGE: 20,
+        LASER_COLOR: '#FF0000',
+        LASER_INTERVAL: 2.8,
+        HOVER_DURATION_MIN: 0.7,
+        HOVER_DURATION_MAX: 1.6,
+        DASH_SPEED: 420,
+        BOB_AMPLITUDE: 6,
+        BOB_SPEED: 4.5,
+        ROAM_X: 240,
+        ROAM_Y: 155,
+        COMBAT_DURATION: 11.0,
+        // OCULAR PRISM ATTACK
+        PRISM_FIRST_DELAY_MIN: 3.0, 
+        PRISM_FIRST_DELAY_MAX: 5.5,
+        PRISM_COOLDOWN_MIN:    8.0,  
+        PRISM_COOLDOWN_MAX:   12.0,
+        PRISM_TELEGRAPH:       1.8,  
       },
     },
-    
-   
+
     GLOW_OPACITY: 0.3,
     GLOW_SCALE: 1.4,
     PULSE_SPEED: 2.5,
     TRAIL_ENABLED: true,
-    TRAIL_PARTICLE_RATE: 0.1, 
+    TRAIL_PARTICLE_RATE: 0.1,
   },
 
   SHOOTING: {
@@ -261,5 +310,21 @@ EXPLOSIONS: {
     
     CONTROL_ACCEL_MULT:  0.45, // MOLLASSES PHYSICS 
     CONTROL_DAMP_MULT:   0.60, 
+  },
+
+  OCULAR_PRISM: {
+    DURATION:       14.0,   
+    FADE_DURATION:   0.6,   
+
+    SHARD_MIN:       3,     
+    SHARD_MAX:       5,     
+
+    PUPIL_RADIUS:   44,     
+    PUPIL_HEALTH:    3,    
+
+    ICHOR_COUNT:    55,     
+
+    PUPIL_HIT_SCORE: 25,    
+    PUPIL_KILL_SCORE: 200,  
   },
 };

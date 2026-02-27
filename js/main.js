@@ -15,6 +15,7 @@ import { WormBoss }                                  from './entities/worm.js';
 import { BabyWormManager }                           from './entities/babyWorm.js';
 import { Menu }                                      from './scenes/menu.js';
 import { SlimeAttack }                               from './entities/slimeAttack.js';
+import { OcularPrism }                               from './entities/ocularPrism.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 
@@ -40,14 +41,24 @@ const wormBoss          = new WormBoss();
 const babyWormManager   = new BabyWormManager();
 const menu              = new Menu();
 const slimeAttack       = new SlimeAttack();
+const ocularPrism       = new OcularPrism();
 
 // ==================== ENEMY CALLBACKS ====================
 enemyManager.onLaserFired  = () => audio.playEnemyLaser();
+enemyManager.onBuzzStart   = () => audio.startLoopBuzz(0.35);
+enemyManager.onOcularPrism = (w, h) => ocularPrism.activate(w, h);
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   ImageLoader.load('slimeProjectiles');
   ImageLoader.load('slimeDrip');
   slimeAttack.trigger(glorkX, glorkY);
 };
+
+// ==================== OCULAR PRISM CALLBACKS ====================
+ocularPrism.onDefeated = () => {
+  scoreManager.addScore(CONFIG.OCULAR_PRISM.PUPIL_KILL_SCORE, gameCanvas.width / 2, gameCanvas.height / 2);
+  audio.playImpact();
+};
+ocularPrism.onExpired = () => { /* Prism fades out naturally — no penalty */ };
 
 // ==================== SLIME ATTACK CALLBACKS ====================
 slimeAttack.onSplat = () => audio.playSplat();
@@ -232,6 +243,7 @@ function restartGame() {
   projectileManager.clear();
   babyWormManager.clear();
   slimeAttack.reset();
+  ocularPrism.active = false;
 
   CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
   if (currentMode === 'bossBattle') wormBoss.activate();
@@ -363,6 +375,7 @@ function gameLoop() {
     projectileManager.update(dt);
     muzzleFlash.update(dt);
     scoreManager.update(dt);
+    ocularPrism.update(dt);
     wormBoss.update(dt);
     babyWormManager.update(dt, ship);
 
@@ -462,6 +475,16 @@ function gameLoop() {
           scoreManager.addScore(15, babyHit.x, babyHit.y);
         }
       }
+
+      // PROJECTILE vs OCULAR PRISM PUPIL
+      if (!projectile.isDead && ocularPrism.active) {
+        const seg = projectile.getSegment();
+        if (ocularPrism.checkProjectileHit(seg.x1, seg.y1)) {
+          projectileManager.removeProjectile(projectile);
+          audio.playImpact();
+          scoreManager.addScore(CONFIG.OCULAR_PRISM.PUPIL_HIT_SCORE, gameCanvas.width / 2, gameCanvas.height / 2);
+        }
+      }
     }
 
     // ENEMY BODY COLLISION vs SHIP
@@ -529,6 +552,11 @@ function gameLoop() {
   );
 
   babyWormManager.drawSlime(ctx);
+
+  if (ocularPrism.active) {
+    ocularPrism.captureFrame(tunnel.renderer.domElement, gameCanvas);
+    ocularPrism.render(ctx);
+  }
 }
 
 // ==================== STARTUP ====================
