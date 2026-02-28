@@ -130,10 +130,11 @@ export class Enemy {
       this.pendingBuzzStart = true;
       this.stopBuzz         = null;
       // OCULAR PRISM ATTACK STATE
-      this.ffAttackState    = 'IDLE';       // 'IDLE' | 'TELEGRAPHING'
-      this.ffAttackTimer    = this.config.PRISM_FIRST_DELAY_MIN
-                            + Math.random() * (this.config.PRISM_FIRST_DELAY_MAX - this.config.PRISM_FIRST_DELAY_MIN);
-      this.pendingOcularPrism = false;
+      this.ffAttackState      = 'IDLE';       // 'IDLE' | 'TELEGRAPHING'
+      this.ffAttackTimer      = this.config.PRISM_FIRST_DELAY_MIN
+                              + Math.random() * (this.config.PRISM_FIRST_DELAY_MAX - this.config.PRISM_FIRST_DELAY_MIN);
+      this.pendingOcularPrism  = false;
+      this.pendingTelegraph    = false;   
     }
 
     this.isDead = false;
@@ -170,9 +171,7 @@ export class Enemy {
       this.frameIndex = Math.floor(this.animFrame);
     }
 
-    // ═══════════════════════════════════════════════
     //  PHASE: APPROACH
-    // ═══════════════════════════════════════════════
     if (this.phase === 'APPROACH') {
       const moveSpeed = 0.05;
       this.curveProgress -= moveSpeed * dt;
@@ -208,16 +207,14 @@ export class Enemy {
       return;
     }
 
-    // ═══════════════════════════════════════════════
     //  PHASE: COMBAT
-    // ═══════════════════════════════════════════════
     this.combatTimer -= dt;
     if (this.combatTimer <= 0) {
       this.isDead = true;
       return;
     }
 
-    // ─── COMBAT MOVEMENT ───
+    // ─── COMBAT MOVEMENT  ───
     if (this.type === 'FLIMFLAM') {
       this._updateFlimFlamMove(dt);
       this.x = this.screenX;
@@ -251,8 +248,9 @@ export class Enemy {
       this.ffAttackTimer -= dt;
 
       if (this.ffAttackState === 'IDLE' && this.ffAttackTimer <= 0) {
-        this.ffAttackState = 'TELEGRAPHING';
-        this.ffAttackTimer = cfg.PRISM_TELEGRAPH;
+        this.ffAttackState   = 'TELEGRAPHING';
+        this.ffAttackTimer   = cfg.PRISM_TELEGRAPH;
+        this.pendingTelegraph = true;
       } else if (this.ffAttackState === 'TELEGRAPHING' && this.ffAttackTimer <= 0) {
         this.pendingOcularPrism = true;
         this.ffAttackState      = 'IDLE';
@@ -359,7 +357,6 @@ export class Enemy {
     ctx.save();
 
     if (this.type === 'FLIMFLAM' && sprite) {
-      // ─── FLIM FLAM ───
       ctx.globalAlpha = spriteAlpha;
       const fw  = sprite.width / this.config.SPRITE_FRAMES; 
       const fh  = sprite.height;
@@ -370,7 +367,7 @@ export class Enemy {
 
       if (this.ffAttackState === 'TELEGRAPHING') {
         // RED EYE frame 
-        const telegraphPulse = (Math.sin(this.pulsePhase * 4) + 1) * 0.5; 
+        const telegraphPulse = (Math.sin(this.pulsePhase * 4) + 1) * 0.5;
         ctx.save();
         ctx.shadowColor = '#ff0000';
         ctx.shadowBlur  = 25 + telegraphPulse * 40;
@@ -406,7 +403,7 @@ export class Enemy {
 
     ctx.restore();
 
-    // ─── HEALTH BAR  ───
+    // ─── HEALTH BAR (approach + combat) ───
     if (fadeProgress > 0.15) {
       const halfSprite = renderSize * 0.5;
       const barW    = Math.max(55, renderSize * 0.72);
@@ -426,6 +423,7 @@ export class Enemy {
       ctx.restore();
     }
 
+    // ─── TIMEOUT RING - REMOVE THIS ───
     if (this.phase === 'COMBAT') {
       const halfSprite = renderSize * 0.5;
       const ringPct = this.combatTimer / this.config.COMBAT_DURATION;
@@ -472,6 +470,7 @@ export class EnemyManager {
     this.onSlimeAttack  = null; 
     this.onBuzzStart    = null; 
     this.onOcularPrism  = null; 
+    this.onTelegraph    = null; 
   }
 
   randomSpawnDelay() {
@@ -534,6 +533,12 @@ export class EnemyManager {
       if (enemy.pendingOcularPrism) {
         this.onOcularPrism?.(window.innerWidth, window.innerHeight);
         enemy.pendingOcularPrism = false;
+      }
+
+      // FLIM FLAM TELEGRAPH — FIRES WHEN RED-EYE BEGINS
+      if (enemy.pendingTelegraph) {
+        this.onTelegraph?.();
+        enemy.pendingTelegraph = false;
       }
 
       // COLLECT SLIME ATTACK (TANK / GLORK ONLY)

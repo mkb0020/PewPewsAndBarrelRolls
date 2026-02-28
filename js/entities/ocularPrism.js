@@ -1,15 +1,15 @@
 // ocularPrism.js
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import { CONFIG } from '../utils/config.js';
 
-// ─── WARP PRESETS ─────
+import { CONFIG } from '../utils/config.js';
+import { ImageLoader } from '../utils/imageLoader.js';
+
 const WARP_PRESETS = [
-  { hue:  120, scale: 0.88, flipX: false, flipY: false }, 
-  { hue:  240, scale: 1.18, flipX: false, flipY: false }, 
-  { hue:    0, scale: 1.00, flipX: true,  flipY: false }, 
-  { hue:  300, scale: 1.00, flipX: false, flipY: true  }, 
-  { hue:   60, scale: 0.92, flipX: true,  flipY: true  }, 
+  { hue:  120, scale: 0.88, flipX: false, flipY: false }, // GREEN = SLOW
+  { hue:  240, scale: 1.18, flipX: false, flipY: false }, //  BLUE = FAST
+  { hue:    0, scale: 1.00, flipX: true,  flipY: false }, // RED = MIRROR X
+  { hue:  300, scale: 1.00, flipX: false, flipY: true  }, // PURPLE = MIRROR Y
+  { hue:   60, scale: 0.92, flipX: true,  flipY: true  }, // YELLOW = DOUBLE MIRROR
 ];
 
 export class OcularPrism {
@@ -22,7 +22,7 @@ export class OcularPrism {
     this.fadeTimer  = 0;
     this.duration   = 0;
     this.totalDur   = 0;
-    this.defeated   = false;   
+    this.defeated   = false;    
 
     this.pupil = {
       x: 0, y: 0,
@@ -61,15 +61,15 @@ export class OcularPrism {
     const num = cfg.SHARD_MIN + Math.floor(Math.random() * (cfg.SHARD_MAX - cfg.SHARD_MIN + 1));
     this.shards = this._buildShards(num, cx, cy, w, h);
     this._seedIchor(w, h);
+
+    ImageLoader.load('prismEye'); 
   }
 
   // ─── SHARD GEOMETRY ──────────────────────────────────────────────────────
- 
   _buildShards(num, cx, cy, w, h) {
     const R = Math.hypot(w, h); 
     const sliceAngle = (Math.PI * 2) / num;
 
-  
     const cuts = [];
     for (let i = 0; i < num; i++) {
       const base   = i * sliceAngle;
@@ -81,13 +81,13 @@ export class OcularPrism {
     return cuts.map((a1, i) => {
       const a2 = cuts[(i + 1) % num];
 
-      const poly = [[cx, cy]]; 
-      const steps = 5;         
+      const poly = [[cx, cy]]; // START AT CENTER
+      const steps = 5;         //POINTS ALONG ARC EDGE
       for (let s = 0; s <= steps; s++) {
         const t    = s / steps;
-        const span = ((a2 - a1) + Math.PI * 2) % (Math.PI * 2);
+        const span = ((a2 - a1) + Math.PI * 2) % (Math.PI * 2); // LINEAR ANGLE LERPING - HANDLING WRAPAROUND FOR LAST SHARD
         const a    = a1 + span * t;
-        const r    = R + (Math.random() - 0.5) * 60; 
+        const r    = R + (Math.random() - 0.5) * 60; // EDGE JITTER
         poly.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
       }
 
@@ -119,7 +119,7 @@ export class OcularPrism {
       const perEdge = Math.ceil(cfg.ICHOR_COUNT / this.shards.length);
       for (let i = 0; i < perEdge; i++) {
         const [ex, ey] = shard.edgePoints[Math.floor(Math.random() * shard.edgePoints.length)];
-        const hue = (shard.warp.hue + 160 + Math.random() * 40) % 360; 
+        const hue = (shard.warp.hue + 160 + Math.random() * 40) % 360; // COMPLEMENTARY BLEED
         this.ichor.push({
           x:    ex + (Math.random() - 0.5) * 30,
           y:    ey + (Math.random() - 0.5) * 30,
@@ -134,7 +134,6 @@ export class OcularPrism {
   }
 
   // ─── CAPTURE ─────────────────────────────────────────────────────────────
-
   captureFrame(tunnelCanvas, gameCanvas) {
     if (!this.active) return;
     const w = gameCanvas.width, h = gameCanvas.height;
@@ -150,11 +149,11 @@ export class OcularPrism {
     if (!this.active) return;
     this.pupil.pulsePhase += dt * 4.5;
 
-    for (let i = this.ichor.length - 1; i >= 0; i--) {
+    for (let i = this.ichor.length - 1; i >= 0; i--) { //  ICHOR DRIP PYSICS
       const p  = this.ichor[i];
       p.x     += p.vx;
       p.y     += p.vy;
-      p.vy    += 0.09; 
+      p.vy    += 0.09; // GRAVITY
       p.life  -= dt * 0.12;
       if (p.life <= 0) this.ichor.splice(i, 1);
     }
@@ -204,6 +203,7 @@ export class OcularPrism {
     ctx.save();
     ctx.globalAlpha = this.fadeAlpha;
 
+    // ── 1. DRAW EACH SHARD ──────────────────────────────────────────────────
     for (const shard of this.shards) {
       ctx.save();
 
@@ -221,10 +221,10 @@ export class OcularPrism {
       ctx.drawImage(this.offscreen, 0, 0);
       ctx.filter = 'none';
 
-      ctx.restore(); 
+      ctx.restore(); // REMOVED CLIP + TRANSFORM
 
       shard.glowPhase += 0.025;
-      const brightness = 55 + Math.sin(shard.glowPhase) * 30; 
+      const brightness = 55 + Math.sin(shard.glowPhase) * 30; // PULSING
       ctx.save();
       ctx.beginPath();
       shard.poly.forEach(([px, py], j) =>
@@ -239,6 +239,7 @@ export class OcularPrism {
       ctx.restore();
     }
 
+    // ── 2. ICHOR DRIPS - BLEEDING FROM SHARD EDGES  ──────────────────────────
     ctx.save();
     for (const p of this.ichor) {
       ctx.globalAlpha = p.life * this.fadeAlpha * 0.85;
@@ -254,51 +255,86 @@ export class OcularPrism {
 
   // ─── PUPIL ───────────────────────────────────────────────────────────────
   _drawPupil(ctx, cx, cy) {
-    const p     = this.pupil;
-    const pulse = Math.sin(p.pulsePhase) * 8;
-    const r     = p.r + pulse;
-    const anger = 1 - p.health / p.maxHealth; 
+    const p      = this.pupil;
+    const pulse  = Math.sin(p.pulsePhase) * 8;
+    const r      = p.r + pulse;
+    const anger  = 1 - p.health / p.maxHealth; // 0 = FULL HEALTH, 1 = LAST HIT
+    const sprite = ImageLoader.isLoaded('prismEye') ? ImageLoader.get('prismEye') : null;
+
+    // PUPIL ROAM - SINE BASED LOOK AROUND 
+    const roamX  = Math.sin(p.pulsePhase * 0.7) * (r * 0.22);
+    const roamY  = Math.cos(p.pulsePhase * 0.5) * (r * 0.12);
+
+    // USES PUPIL_RADIUS ==TO SCALE NATURALLY
+    const eyeSize = (p.r + 8) * 3.2;
+    const half    = eyeSize / 2;
 
     ctx.save();
 
-    ctx.shadowColor = `hsl(${320 - anger * 30}, 100%, 50%)`;
-    ctx.shadowBlur  = 28 + anger * 25 + pulse * 1.5;
+    if (sprite) {
+      const fw = sprite.width / 3;   
+      const fh = sprite.height;
 
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0,    'rgba(255,255,255,0.98)');
-    grad.addColorStop(0.20, `hsl(${340 - anger * 20}, 90%, 65%)`);
-    grad.addColorStop(0.55, `hsl(${10  - anger * 10},100%, 30%)`);
-    grad.addColorStop(1,    'rgba(0,0,0,0.7)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
+      // ── FRAME 0: BASE ──
+      ctx.save();
+      ctx.shadowColor = `hsl(${320 - anger * 30}, 100%, 50%)`;
+      ctx.shadowBlur  = 22 + anger * 28 + pulse;
+      ctx.globalAlpha = this.fadeAlpha;
+      ctx.drawImage(sprite, 0, 0, fw, fh, cx - half, cy - half, eyeSize, eyeSize);
+      ctx.restore();
 
-    const irisX = cx + Math.sin(p.pulsePhase * 0.7) * (r * 0.22);
-    const irisY = cy + Math.cos(p.pulsePhase * 0.5) * (r * 0.12);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle  = '#120020';
-    ctx.beginPath();
-    ctx.arc(irisX, irisY, r * 0.44, 0, Math.PI * 2);
-    ctx.fill();
+      // ── FRAME 1 - PUPIL ──
+      ctx.save();
+      ctx.globalAlpha = this.fadeAlpha;
+      ctx.drawImage(sprite, fw, 0, fw, fh,
+        cx - half + roamX, cy - half + roamY,
+        eyeSize, eyeSize);
+      ctx.restore();
 
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.ellipse(irisX, irisY, r * 0.11, r * 0.36, 0, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.save();
+      ctx.globalAlpha = this.fadeAlpha;
+      ctx.drawImage(sprite, fw * 2, 0, fw, fh, cx - half, cy - half, eyeSize, eyeSize);
+      ctx.restore();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.beginPath();
-    ctx.ellipse(irisX - r * 0.15, irisY - r * 0.18, r * 0.08, r * 0.05, -0.4, 0, Math.PI * 2);
-    ctx.fill();
+    } else {
+      // ── FALLBACK──
+      ctx.shadowColor = `hsl(${320 - anger * 30}, 100%, 50%)`;
+      ctx.shadowBlur  = 28 + anger * 25 + pulse * 1.5;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0,    'rgba(255,255,255,0.98)');
+      grad.addColorStop(0.20, `hsl(${340 - anger * 20}, 90%, 65%)`);
+      grad.addColorStop(0.55, `hsl(${10  - anger * 10},100%, 30%)`);
+      grad.addColorStop(1,    'rgba(0,0,0,0.7)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      const irisX = cx + roamX;
+      const irisY = cy + roamY;
+      ctx.shadowBlur = 0;
+      ctx.fillStyle  = '#120020';
+      ctx.beginPath();
+      ctx.arc(irisX, irisY, r * 0.44, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.ellipse(irisX, irisY, r * 0.11, r * 0.36, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath();
+      ctx.ellipse(irisX - r * 0.15, irisY - r * 0.18, r * 0.08, r * 0.05, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.restore();
 
+    // ── HP PIPS —  ──
     if (p.maxHealth > 1) {
-      const pipW  = 14, pipH = 6, pipGap = 6;
-      const total = p.maxHealth * pipW + (p.maxHealth - 1) * pipGap;
+      const pipW = 14, pipH = 6, pipGap = 6;
+      const total  = p.maxHealth * pipW + (p.maxHealth - 1) * pipGap;
       const startX = cx - total / 2;
-      const pipY   = cy + r + pulse + 16;
+      const pipY   = cy + half + pulse + 10;
       ctx.save();
       ctx.globalAlpha = this.fadeAlpha * 0.92;
       for (let i = 0; i < p.maxHealth; i++) {
