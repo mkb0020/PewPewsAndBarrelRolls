@@ -75,7 +75,7 @@ export const CONFIG = {
     SPRITE_SIZE: 180,
 
     COMBAT_SCALE:      0.82,  // SCALE THRESHOLD — APPROACH → COMBAT TRANSITION
-    COMBAT_RING_ALPHA: 0.28,  // TIMEOUT RING OPACITY
+    COMBAT_RING_ALPHA: 0,  // TIMEOUT RING OPACITY
 
     TYPES: {
       BASIC: { // GLIP GLOP
@@ -88,9 +88,9 @@ export const CONFIG = {
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
-        LASER_COLOR: '#FF0000',
+        LASER_COLOR: '#ff0000',
         LASER_INTERVAL: 3.2,
-        COMBAT_DURATION: 9.0,  
+        COMBAT_DURATION: 9.0,   
         WANDER_SPEED: 70,
         WANDER_X: 180,
         WANDER_Y: 120,
@@ -106,7 +106,7 @@ export const CONFIG = {
         ANIM_SPEED: 12,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 2.0,    
+        LASER_INTERVAL: 2.0,   
         COMBAT_DURATION: 7.0,   
         WANDER_SPEED: 200,
         WANDER_X: 290,
@@ -124,7 +124,7 @@ export const CONFIG = {
         COLLISION_DAMAGE: 35,
         LASER_COLOR: '#ff0000',
         LASER_INTERVAL: 3.5,
-        COMBAT_DURATION: 16.0,  
+        COMBAT_DURATION: 16.0, 
         WANDER_SPEED: 30,
         WANDER_X: 90,
         WANDER_Y: 60,
@@ -144,7 +144,7 @@ export const CONFIG = {
         LASER_COLOR: '#FF0000',
         LASER_INTERVAL: 2.8,
         COMBAT_DURATION: 11.0,
-        WANDER_SPEED: 55,       
+        WANDER_SPEED: 55,      
         WANDER_X: 80,
         WANDER_Y: 130,
       },
@@ -155,11 +155,11 @@ export const CONFIG = {
         GLOW_COLOR: '#FF0000',
         HEALTH: 7,
         SCORE: 40,
-        SPRITE_FRAMES: 8,       // TOTAL: 3 WING + 1 RED EYE + 4 BODY
+        SPRITE_FRAMES: 8,       // TOTAL: 3 WINGS + 1RED EYE TELEGRAPH + 4 NORMAL BODY
         WING_FRAMES: 3,         // FRAMES 0-2
-        RED_EYE_FRAME: 3,       // FRAME 3
+        RED_EYE_FRAME: 3,       // FRAME 3 — RED EYES
         BODY_FRAMES: 4,         // FRAMES 4-7
-        BODY_FRAME_OFFSET: 4,   // DRAW OFFSET: 4
+        BODY_FRAME_OFFSET: 4,   
         WING_ANIM_SPEED: 16,
         ANIM_SPEED: 6,
         COLLISION_DAMAGE: 20,
@@ -173,8 +173,7 @@ export const CONFIG = {
         ROAM_X: 240,
         ROAM_Y: 155,
         COMBAT_DURATION: 11.0,
-        // OCULAR PRISM ATTACK
-        PRISM_FIRST_DELAY_MIN: 3.0, 
+        PRISM_FIRST_DELAY_MIN: 1.0, 
         PRISM_FIRST_DELAY_MAX: 5.5,
         PRISM_COOLDOWN_MIN:    8.0,  
         PRISM_COOLDOWN_MAX:   12.0,
@@ -224,7 +223,6 @@ export const CONFIG = {
     DAMAGE_SUCKED_IN:        100,   
   },
 
-  // ======================= WORM SUCTION PHYSICS =======================
   WORM_SUCTION: { // FORCE PROFILE
     BASE_FORCE:        600,    // px/s² at max distance  
     RAMP_EXPONENT:     1.8,    // HOW AGGRESSIVELY FORCE GROWS AS SHIP GETS CLOSER (>1 = exponential ramp)
@@ -264,7 +262,6 @@ EXPLOSIONS: {
     FRAME_DURATION: 0.03,
   },
 
-  // ======================= BABY WORM ATTACK =======================
   BABY_WORM: {
     SPRITE_PATH:         './images/babyWorm.png',
     SPRITE_FRAMES:       2,
@@ -319,8 +316,8 @@ EXPLOSIONS: {
     SHARD_MIN:       3,     
     SHARD_MAX:       5,     
 
-    PUPIL_RADIUS:   44,     
-    PUPIL_HEALTH:    3,    
+    PUPIL_RADIUS:   68,     
+    PUPIL_HEALTH:    3,     
 
     ICHOR_COUNT:    55,     
 

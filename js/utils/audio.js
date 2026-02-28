@@ -76,6 +76,9 @@ export class AudioManager {
         ouch:        './audio/ouch.m4a',
         splat:       './audio/splat.m4a',
         buzz:        './audio/buzz.m4a',
+        telegraph:   './audio/telegraph.m4a',
+        prism:       './audio/prism.m4a',
+        pop:         './audio/pop.m4a',
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -225,7 +228,7 @@ export class AudioManager {
   }
 
   // CREATE A LOOPING BUZZ FOR ONE FLIM FLAM — RETURNS A stopFn TO CALL WHEN ENEMY DIES.
-  startLoopBuzz(volume = 0.3) {
+  startLoopBuzz(volume = 0.35) {
     if (this.isMuted || !this.context) return () => {};
     const buffer = this._sfxBuffers['buzz'];
     if (!buffer) return () => {};
@@ -248,8 +251,43 @@ export class AudioManager {
     };
   }
 
+  // LOOPING TELEGRAPH WHISPER
+  startLoopTelegraph(volume = 0.9) {
+    return this._startLoop('telegraph', volume);
+  }
+
+  // LOOPING PRISM FREQUENCY — PLAYS FOR FULL PRISM ATTACK DURATION
+  startLoopPrism(volume = 0.65) {
+    return this._startLoop('prism', volume);
+  }
+
+  // SHARED LOOP HELPER — CREATES A LOOPING BUFFERSOURCE, RETURNS A STOP CLOSURE
+  _startLoop(name, volume) {
+    if (this.isMuted || !this.context) return () => {};
+    const buffer = this._sfxBuffers[name];
+    if (!buffer) return () => {};
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    source.loop   = true;
+
+    const gain = this.context.createGain();
+    gain.gain.value = Math.min(1, volume);
+    source.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
+
+    return () => {
+      try {
+        gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
+        setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
+      } catch (_) {}
+    };
+  }
+
   // ==================== PUBLIC PLAY METHODS ====================
   playOuch()        { this._playSfx('ouch',        0.4); } // SHIP TAKES DAMAGE
+  playPop()         { this._playSfx('pop',          0.9); } // OCULAR PRISM PUPIL DESTROYED
   playSplat()       { this._playSfx('splat',       0.7); } // SLIME HITS SHIP
   playLaser()       { this._playSfx('laser',       this.LASER_VOLUME);       }
   playEnemyLaser()  { this._playSfx('enemyLasers', this.ENEMY_LASER_VOLUME); } // ENEMY LASER FIRE

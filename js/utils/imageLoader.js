@@ -21,6 +21,7 @@ const MANIFEST = {
   slimeDrip:        { path: 'slimeDrip.png',        lazy: true }, // 10 FRAMES (5R + 5L)
 
   monster:      { path: 'monster.png', lazy: true },   // NO LONGER IN USE
+  prismEye:     { path: 'prismEye.png', lazy: true },  // 3 FRAMES: BASE / PUPIL / EYELID
 };
 
 
