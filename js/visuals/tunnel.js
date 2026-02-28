@@ -42,6 +42,7 @@ export class Tunnel {
 
     this.renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
+      preserveDrawingBuffer: true, // NEEDED FOR OCULAR PRISM captureFrame
       powerPreference: "high-performance" 
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
