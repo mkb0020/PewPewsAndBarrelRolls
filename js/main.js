@@ -46,7 +46,13 @@ const ocularPrism       = new OcularPrism();
 // ==================== ENEMY CALLBACKS ====================
 enemyManager.onLaserFired  = () => audio.playEnemyLaser();
 enemyManager.onBuzzStart   = () => audio.startLoopBuzz(0.35);
-enemyManager.onOcularPrism = (w, h) => ocularPrism.activate(w, h);
+enemyManager.onTelegraph   = () => { ocularPrism._stopTelegraph = audio.startLoopTelegraph(); };
+enemyManager.onOcularPrism = (w, h) => {
+  ocularPrism._stopTelegraph?.(); 
+  ocularPrism._stopTelegraph = null;
+  ocularPrism._stopPrism = audio.startLoopPrism();
+  ocularPrism.activate(w, h);
+};
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   ImageLoader.load('slimeProjectiles');
   ImageLoader.load('slimeDrip');
@@ -55,10 +61,18 @@ enemyManager.onSlimeAttack = (glorkX, glorkY) => {
 
 // ==================== OCULAR PRISM CALLBACKS ====================
 ocularPrism.onDefeated = () => {
+  ocularPrism._stopPrism?.();     
+  ocularPrism._stopPrism = null;
+  ocularPrism._stopTelegraph?.(); 
+  ocularPrism._stopTelegraph = null;
+  audio.playPop();
   scoreManager.addScore(CONFIG.OCULAR_PRISM.PUPIL_KILL_SCORE, gameCanvas.width / 2, gameCanvas.height / 2);
   audio.playImpact();
 };
-ocularPrism.onExpired = () => { /* Prism fades out naturally — no penalty */ };
+ocularPrism.onExpired = () => {
+  ocularPrism._stopPrism?.();     
+  ocularPrism._stopPrism = null;
+};
 
 // ==================== SLIME ATTACK CALLBACKS ====================
 slimeAttack.onSplat = () => audio.playSplat();
@@ -244,6 +258,8 @@ function restartGame() {
   babyWormManager.clear();
   slimeAttack.reset();
   ocularPrism.active = false;
+  ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
+  ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
 
   CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
   if (currentMode === 'bossBattle') wormBoss.activate();
@@ -552,6 +568,7 @@ function gameLoop() {
   );
 
   babyWormManager.drawSlime(ctx);
+
 
   if (ocularPrism.active) {
     ocularPrism.captureFrame(tunnel.renderer.domElement, gameCanvas);
