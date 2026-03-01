@@ -18,6 +18,8 @@ import { SlimeAttack }                               from './entities/slimeAttac
 import { OcularPrism }                               from './entities/ocularPrism.js';
 import { WaveWormManager }                           from './entities/waveWorm.js';
 import { GameplayScene }                             from './scenes/gameplay.js';
+import { TransitionScene }                           from './scenes/transitions.js';
+import { BossBattleScene }                           from './scenes/bossBattle.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 
@@ -50,6 +52,15 @@ const gameplayScene     = new GameplayScene({
   waveWormManager,
   scoreManager,
   audio,
+});
+const transitionScene   = new TransitionScene();
+const bossBattleScene   = new BossBattleScene({
+  wormBoss,
+  babyWormManager,
+  audio,
+  scoreManager,
+  projectileManager,
+  transitionScene,
 });
 
 // ==================== ENEMY CALLBACKS ====================
@@ -87,7 +98,10 @@ ocularPrism.onExpired = () => {
 slimeAttack.onSplat = () => audio.playSplat();
 
 // ==================== GAMEPLAY SCENE CALLBACKS ====================
-gameplayScene.onCheckpoint = () => saveCheckpoint();
+gameplayScene.onCheckpoint = () => {
+  const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
+  transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
+};
 
 gameplayScene.onWormKill = (kills, required) => {
   updateWaveCounter(kills, required);
@@ -102,19 +116,39 @@ gameplayScene.onWaveStart = (waveIndex) => {
 gameplayScene.onWaveCleared = (waveIndex) => {
   unlockWaveBadge(waveIndex);
   audio.playImpact();
-  audio.playWaveTransition(); // 🎵 CUT WAVE MUSIC, PLAY TRANSITION STING
-};
 
-gameplayScene.onAllWavesComplete = () => {
+  if (waveIndex < 4) {
+    audio.playWaveTransition(); // WAVES 1-4 ONLY
+    return;
+  }
+
+  // ══════ AFTER KILLING FINAL WAVE WORM - DRAMATIC TRANSITION TO BOSS BATTLE ══════
   showWaveHUD(false);
+  // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON 
+  tunnel.setBossTransitionSurge(1);
+  _bossTracerTarget = 1;
+  audio.playWarning();
+
+  setTimeout(() => tunnel.setBossFlash(1), 5000); //  PHASE 2 (t=5s): RED  -> FLASHES
 
   setTimeout(() => {
-    saveCheckpoint();               
+    tunnel.setBossFlash(0);
+    tunnel.setBossTransitionSurge(0);
+    tunnel.setBossEmergenceFog(1);
+  }, 8000); // PHASE 3 (t=8s): FLASHES STOP AND CUT TO DARKNESS
+
+
+  setTimeout(() => {
+    const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
+    transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
     wormBoss.activate();
     audio.stopMusic();
     audio.playWormIntro();
     audio.startBossMusic();
-  }, CONFIG.GAMEPLAY.BOSS_ENTRY_DELAY * 1000);
+  }, 9500); // PHASE 4 (t=9.5s): WORM ACTIVATES — EMERGES FROM FOG
+};
+
+gameplayScene.onAllWavesComplete = () => {
 };
 
 gameplayScene.onGooHit = () => {
@@ -131,46 +165,12 @@ waveWormManager.onWormKilled = (x, y) => {
   projectileManager.createExplosion(x, y, 'zap'); // ⚡ ZAP SPRITE — 6 FRAMES
 };
 
-// ==================== WORM CALLBACKS ====================
-wormBoss.onAttack        = null; 
-wormBoss.onIntro = () => {
-  audio.stopMusic();      
-  audio.startBossMusic(); 
-  ImageLoader.load('slime'); 
-};
-wormBoss.onDeathPauseEnd = () => audio.playWormDeath2();
-wormBoss.onSpawnBabyWorms = (mx, my) => {
-  babyWormManager.spawnWave(mx, my);
-  audio.playBabyWorms();
-  babyWormManager.triggerSlimeSplat(gameCanvas.width, gameCanvas.height);
-};
-
-wormBoss.onSegmentDeath = (x, y, segIndex) => {
-  projectileManager.createExplosion(x, y);
-  if (segIndex === 0) {
-    audio.playWormDeath3();
-    audio.stopMusic();
-    setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
-    setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
-  }
-};
-
-wormBoss.onDeath = () => {
-  updateBossHealthBar(0);
-  showBossDefeated();
-  const cx = window.innerWidth  / 2;
-  const cy = window.innerHeight / 2;
-  scoreManager.addScore(2000, cx, cy - 60);
-
-  // RESPAWN AFTER 10s — TIMED TO LET wormDeath3 FINISH BEFORE MUSIC RETURNS
-  setTimeout(() => {
-    if (!isGameOver) {
-      wormBoss.activate();
-      ship.exitCinematic();
-      audio.playWormIntro();
-      audio.startBossMusic();  
-    }
-  }, 10000);
+// ==================== BOSS BATTLE SCENE CALLBACKS ====================
+bossBattleScene.onCinematicStart = () => ship.enterCinematic();
+bossBattleScene.onCinematicEnd   = () => ship.exitCinematic();
+bossBattleScene.onCheckpoint     = () => {
+  const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
+  transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
 };
 
 // ==================== SHIP CALLBACKS ====================
@@ -178,50 +178,9 @@ ship.onHPChange    = (hp, max)   => updateHPBar(hp, max);
 ship.onLivesChange = (lives)     => updateLivesDisplay(lives);
 ship.onDeath       = (livesLeft) => {
   audio.stopMusic();
-  if (livesLeft <= 0) {
-    isGameOver = true;
-    showGameOver();
-  } else {
-    const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
-    showDiedScreen(inWormBattle);
-  }
+  const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
+  transitionScene.handleDeath(livesLeft, inWormBattle);
 };
-
-// ==================== BOSS HEALTH BAR ====================
-const _bossBarFill      = document.getElementById('boss-bar-fill');
-const _bossBarContainer = document.getElementById('boss-health-container');
-const _bossHPText       = document.getElementById('boss-hp-text');
-const _bossDefeated     = document.getElementById('boss-defeated');
-const WORM_MAX_HP       = 150; 
-
-function updateBossHealthBar(pct) {
-  if (_bossBarFill) _bossBarFill.style.width = (pct * 100) + '%';
-  if (_bossHPText)  _bossHPText.textContent  = Math.ceil(pct * WORM_MAX_HP) + ' / ' + WORM_MAX_HP;
-  if (_bossBarContainer) {
-    const vis = wormBoss.isActive && !wormBoss.isDead && wormBoss.alpha > 0.15;
-    _bossBarContainer.style.opacity = vis ? Math.min(1, (wormBoss.alpha - 0.15) / 0.25) : 0;
-  }
-}
-
-function flashBossBar() {
-  if (!_bossBarFill) return;
-  _bossBarFill.classList.remove('hit-flash');
-  void _bossBarFill.offsetWidth; 
-  _bossBarFill.classList.add('hit-flash');
-}
-
-let _bossDefeatedTimeout = null;
-function showBossDefeated() {
-  if (!_bossDefeated) { console.warn('boss-defeated element not found'); return; }
-  _bossDefeated.classList.add('active');
-  clearTimeout(_bossDefeatedTimeout);
-  _bossDefeatedTimeout = setTimeout(() => _bossDefeated.classList.remove('active'), 6000);
-}
-
-function hideBossDefeated() {
-  if (_bossDefeated) _bossDefeated.classList.remove('active');
-  clearTimeout(_bossDefeatedTimeout);
-}
 
 // ==================== HUD HELPERS ====================
 function updateHPBar(hp, maxHP) {
@@ -262,52 +221,6 @@ function showWaveHUD(visible) {
   if (el) el.classList.toggle('hidden', !visible);
 }
 
-// ==================== OVERLAY HELPERS ====================
-function showGameOver() {
-  const overlay = document.getElementById('gameover-overlay');
-  if (overlay) overlay.classList.add('active');
-}
-
-function hideGameOver() {
-  const overlay = document.getElementById('gameover-overlay');
-  if (overlay) overlay.classList.remove('active');
-}
-
-function showDiedScreen(inWormBattle) {
-  isDeadScreen = true;
-  const overlay   = document.getElementById('died-overlay');
-  const subEl     = document.getElementById('died-sub');
-  const livesEl   = document.getElementById('died-lives');
-  const livesLeft = ship.getLives();
-
-  if (subEl) {
-    subEl.textContent = inWormBattle
-      ? 'pull yourself up by your bootstraps and get back out there, kiddo!'
-      : 'returning to last checkpoint';
-  }
-  if (livesEl) livesEl.textContent = `${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} remaining`;
-  if (overlay) overlay.classList.add('active');
-}
-
-function hideDiedScreen() {
-  isDeadScreen = false;
-  const overlay = document.getElementById('died-overlay');
-  if (overlay) overlay.classList.remove('active');
-}
-
-// ==================== CHECKPOINT ====================
-function saveCheckpoint() {
-  const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
-  checkpointScore = parseInt(raw, 10) || 0;
-}
-
-function restoreCheckpoint() {
-  scoreManager.reset();
-  if (checkpointScore > 0) {
-    scoreManager.addScore(checkpointScore, -9999, -9999); // OFF SCREEN = NO POPUP
-  }
-}
-
 // ==================== SHOOT ====================
 function doShoot() {
   if (isPaused || ship.isBarrelRolling) return;
@@ -320,16 +233,8 @@ function doShoot() {
   }
 }
 
-// ==================== RESTART / CONTINUE ====================
-function restartGame() {
-  isGameOver         = false;
-  isDeadScreen       = false;
-  _warningSounded    = false;
-  _wormBattleStarted = false;
-  checkpointScore    = 0;
-  hideGameOver();
-  hideDiedScreen();
-  hideBossDefeated();
+// ==================== TRANSITION CALLBACKS ====================
+transitionScene.onRestart = () => {
   ship.resetForNewGame();
   scoreManager.reset();
   enemyManager.clear();
@@ -341,28 +246,33 @@ function restartGame() {
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
   gameplayScene.reset();
 
-  CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
+  bossBattleScene.reset();
+  tunnel.resetBossTransition();
+  _bossTracerTarget    = 0;
+  _bossTracerIntensity = 0;
+  CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;
   if (currentMode === 'bossBattle') wormBoss.activate();
   if (currentMode === 'gameplay')   gameplayScene.start();
 
-  updateBossHealthBar(1);
+  bossBattleScene.updateHUD();
   audio.stop();
   audio.start();
-  if (currentMode !== 'bossBattle') audio.startWaveMusic(0); // WAVE 1 ON FULL RESTART
-}
+  if (currentMode !== 'bossBattle') audio.startWaveMusic(0);
+};
 
-function handleContinue() {
-  if (!isDeadScreen) return;
+transitionScene.onContinue = () => {
   const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
   const inGameplay   = gameplayScene.isActive();
-  hideDiedScreen();
-  restoreCheckpoint();
+
+  scoreManager.reset();
+  const cpScore = transitionScene.getCheckpointScore();
+  if (cpScore > 0) scoreManager.addScore(cpScore, -9999, -9999);
 
   if (inWormBattle) {
     wormBoss.activate();
     babyWormManager.clear();
-    updateBossHealthBar(1);
-    _wormBattleStarted = false;
+    bossBattleScene.reset();
+    bossBattleScene.updateHUD();
   }
 
   if (inGameplay) {
@@ -375,17 +285,14 @@ function handleContinue() {
   } else {
     audio.startWaveMusic(gameplayScene.getWaveIndex());
   }
-}
+};
 
 // ==================== GAME STATE ====================
 let isPaused           = false;
 let isMuted            = false;
-let isGameOver         = false;
-let isDeadScreen       = false;
-let _warningSounded    = false;
 let _prevBarrelRolling = false;
-let checkpointScore    = 0;
-let _wormBattleStarted = false;
+let _bossTracerIntensity = 0;   // CRIMSON SHIP TRACER — DRIVES BOSS TRANSITION VISUAL
+let _bossTracerTarget    = 0;
 
 let currentMode       = 'bossBattle'; 
 let currentEnemyCount = 5;
@@ -419,13 +326,9 @@ window.addEventListener('keydown', (e) => {
     audio.playBarrelRoll();
     return;
   }
-  if (e.code === 'KeyC' && isDeadScreen)  handleContinue();
-  if (e.code === 'KeyR' && isGameOver)    restartGame();
 });
 
 // ==================== BUTTON EVENTS ====================
-document.getElementById('btn-continue')?.addEventListener('click', handleContinue);
-document.getElementById('btn-restart')?.addEventListener('click', restartGame);
 document.getElementById('btn-sound')?.addEventListener('click', () => {
   isMuted = audio.toggleMute();
   ui.update(isMuted, isPaused);
@@ -453,12 +356,12 @@ function gameLoop() {
   const dt  = Math.min((now - lastTime) / 1000, 0.05);
   lastTime  = now;
 
-  if (!isPaused && !isGameOver && !isDeadScreen) {
+  if (!isPaused && !transitionScene.isBlocking) {
     tunnel.update(dt);
     const shipOffset = ship.getOffset();
     tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
 
-    const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop'; // TUNNEL REACTS TO WORM SUCTION ATTACK
+    const suctionOn = bossBattleScene.isSuctionActive; // TUNNEL REACTS TO WORM SUCTION ATTACK
     tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
 
     //  SLIME ATTACK UPDATE 
@@ -474,13 +377,18 @@ function gameLoop() {
     ship.update(dt);
     crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
     enemyManager.update(dt, ship.x, ship.y);
-    gameplayScene.update(dt, ship.x, ship.y);  
+    gameplayScene.update(dt, ship.x, ship.y);
+    bossBattleScene.update(dt, ship);   // WORM + BABY + SUCTION + CHECKPOINT
     projectileManager.update(dt);
+
+    if (wormBoss.isActive) {
+      if (wormBoss.alpha > 0.5)  tunnel.setBossEmergenceFog(0); // FOG FADE OUT
+      if (wormBoss.alpha > 0.85) _bossTracerTarget = 0;         // TRACER FADE OUT
+    }
+    _bossTracerIntensity += (_bossTracerTarget - _bossTracerIntensity) * 0.04;
     muzzleFlash.update(dt);
     scoreManager.update(dt);
     ocularPrism.update(dt);
-    wormBoss.update(dt);
-    babyWormManager.update(dt, ship);
 
     // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
     if (ship.isBarrelRolling && !_prevBarrelRolling) {
@@ -488,38 +396,6 @@ function gameLoop() {
       if (detached > 0) audio.playImpact();
     }
     _prevBarrelRolling = ship.isBarrelRolling;
-
-    // WORM SUCTION PHYSICS — ONLY DURING SUCTION ATTACK LOOP
-    if (wormBoss.isActive && !wormBoss.isDead
-        && wormBoss.attackPhase === 'loop'
-        && wormBoss.attackType  === 'suction') {
-
-      if (ship.isAlive && !ship.consumedMode) {
-        const headPos = wormBoss.getHeadPosition();
-        ship.applySuction(headPos.x, headPos.y, dt);
-      }
-
-      // WARNING — FIRES ONCE WHEN SHIP IS ~HALFWAY TO THE MOUTH
-      if (!_warningSounded && ship.getSuctionScale() < 0.65) {
-        _warningSounded = true;
-        audio.playWarning();
-      }
-
-      // FULLY CONSUMED — INSTANT KILL
-      if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE
-          && ship.isAlive && !ship.isInvincible) {
-        ship.takeDamage(ship.maxHP);
-      }
-    } else {
-      if (!ship.consumedMode) ship.clearSuction();
-      _warningSounded = false;
-    }
-
-    // CHECKPOINT — SAVE WHEN WORM FIRST BECOMES VISIBLE
-    if (!_wormBattleStarted && wormBoss.isActive && wormBoss.alpha >= 0.15) {
-      _wormBattleStarted = true;
-      saveCheckpoint();
-    }
 
     // ========================= COLLISION  =========================
     const projectiles = projectileManager.getProjectiles();
@@ -548,35 +424,9 @@ function gameLoop() {
         }
       }
 
-      // PROJECTILE vs WORM BOSS
+      // PROJECTILE vs WORM BOSS + BABY WORMS
       if (!projectile.isDead) {
-        const wormHit = wormBoss.checkProjectileHit(projectile.getSegment());
-        if (wormHit.hit) {
-          projectileManager.removeProjectile(projectile);
-          audio.playImpact();
-          flashBossBar();
-          updateBossHealthBar(wormBoss.getHealthPercent());
-          projectileManager.createExplosion(wormHit.x, wormHit.y);
-          if (wormHit.killed) {
-            scoreManager.addScore(500, wormHit.x, wormHit.y);
-            audio.stopMusic();
-            audio.playWormDeath1();
-            ship.enterCinematic();
-          } else {
-            const segScore = wormHit.segIndex === 0 ? 25 : 10;
-            scoreManager.addScore(segScore, wormHit.x, wormHit.y);
-          }
-        }
-      }
-
-      if (!projectile.isDead) {
-        const babyHit = babyWormManager.checkProjectileHit(projectile.getSegment());
-        if (babyHit.hit) {
-          projectileManager.removeProjectile(projectile);
-          audio.playImpact();
-          projectileManager.createExplosion(babyHit.x, babyHit.y);
-          scoreManager.addScore(15, babyHit.x, babyHit.y);
-        }
+        if (bossBattleScene.processProjectileHit(projectile)) continue;
       }
 
       // PROJECTILE vs OCULAR PRISM PUPIL
@@ -617,7 +467,7 @@ function gameLoop() {
 
 
   tunnel.render();
-  updateBossHealthBar(wormBoss.getHealthPercent()); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
+  bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
   projectileManager.draw(ctx);
   crosshair.draw(ctx);
@@ -654,6 +504,53 @@ function gameLoop() {
         ctx.globalAlpha = alpha * 0.7;
         ctx.fillStyle   = '#22ff66';
         ctx.fillRect(-CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2, CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
+        ctx.restore();
+      }
+    }
+  }
+
+  //  BOSS TRANSITION CRIMSON TRACERS
+  if (_bossTracerIntensity > 0.01) {
+    const sprite     = ImageLoader.isLoaded('ship') ? ImageLoader.get('ship') : null;
+    const frameW     = sprite ? sprite.width / CONFIG.SHIP.SPRITE_FRAMES : 0;
+    const trailSnaps = ship.getTrailPositions();
+    if (sprite && trailSnaps.length > 0) {
+      const ti = _bossTracerIntensity;
+
+      // PASS 1 — CRIMSON GHOST SHIPS
+      for (let i = 0; i < trailSnaps.length; i++) {
+        const snap    = trailSnaps[i];
+        const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
+        const alpha   = ti * 0.55 * (1 - ageFrac * 0.88);
+        if (alpha < 0.01) continue;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(snap.x, snap.y);
+        ctx.rotate(snap.rotation);
+        ctx.drawImage(sprite, snap.frame * frameW, 0, frameW, sprite.height,
+          -CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2,
+          CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.globalAlpha = alpha * 0.85;
+        ctx.fillStyle   = '#ff1133';
+        ctx.fillRect(-CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2, CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
+        ctx.restore();
+      }
+
+      // PASS 2 — HOT ADDITIVE GLOW ON FRESHEST 3 GHOSTS
+      for (let i = Math.max(0, trailSnaps.length - 3); i < trailSnaps.length; i++) {
+        const snap    = trailSnaps[i];
+        const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
+        const alpha   = ti * 0.28 * (1 - ageFrac * 0.5);
+        if (alpha < 0.01) continue;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.translate(snap.x, snap.y);
+        ctx.rotate(snap.rotation);
+        ctx.drawImage(sprite, snap.frame * frameW, 0, frameW, sprite.height,
+          -CONFIG.SHIP.WIDTH * 0.6, -CONFIG.SHIP.HEIGHT * 0.6,
+          CONFIG.SHIP.WIDTH * 1.2, CONFIG.SHIP.HEIGHT * 1.2);
         ctx.restore();
       }
     }
