@@ -1,10 +1,8 @@
 // tunnel.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
-
 import * as THREE from 'three';
 import { CONFIG } from '../utils/config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 export class Tunnel {
   constructor() {
     this.time = 0;
@@ -20,6 +18,14 @@ export class Tunnel {
     // SLIME ATTACK — SLOWS TUNNEL + SHIFTS HUE TO GREEN
     this._slimeIntensity    = 0;
     this._slimeTarget       = 0;
+
+    // BOSS TRANSITION — THREE PHASES: SURGE → FLASH → EMERGENCE
+    this._bossTransitionSurge       = 0;  // PHASE 1: SPEED x7, CRIMSON BLEED, ROLL RAMP
+    this._bossTransitionSurgeTarget = 0;
+    this._bossFlash                 = 0;  // PHASE 2: BLAZING RED FLASH
+    this._bossFlashTarget           = 0;
+    this._bossEmergenceFog          = 0;  // PHASE 3: THICK FOG + NEAR-BLACKOUT, WORM EMERGES
+    this._bossEmergenceFogTarget    = 0;
     
     this.initScene();
     this.initTunnel();
@@ -142,6 +148,17 @@ export class Tunnel {
     this._consumedTarget = Math.max(0, Math.min(1, t));
   }
 
+  // ── BOSS TRANSITION SETTERS ────────────────────────────────────────────────
+  setBossTransitionSurge(t) { this._bossTransitionSurgeTarget = Math.max(0, Math.min(1, t)); }
+  setBossFlash(t)           { this._bossFlashTarget           = Math.max(0, Math.min(1, t)); }
+  setBossEmergenceFog(t)    { this._bossEmergenceFogTarget    = Math.max(0, Math.min(1, t)); }
+
+  resetBossTransition() {
+    this._bossTransitionSurge = 0; this._bossTransitionSurgeTarget = 0;
+    this._bossFlash           = 0; this._bossFlashTarget           = 0;
+    this._bossEmergenceFog    = 0; this._bossEmergenceFogTarget    = 0;
+  }
+
   update(dt) {
     // FIXED TIMESTAMP FOR SMOOTH TUNNEL
     this.time += 0.016;
@@ -161,9 +178,22 @@ export class Tunnel {
     this._slimeIntensity += (this._slimeTarget - this._slimeIntensity) * slLerp;
     const sli = this._slimeIntensity;
 
-    // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP, SLIME CRAWLS ──
+    // ── BOSS TRANSITION LERPS ─────────────────────────────────────────────────
+    this._bossTransitionSurge += (this._bossTransitionSurgeTarget - this._bossTransitionSurge) * 0.04;
+    const bts = this._bossTransitionSurge;                         // SURGE: 0→1
+
+    const bfLerp = this._bossFlashTarget > this._bossFlash ? 0.20 : 0.13;
+    this._bossFlash += (this._bossFlashTarget - this._bossFlash) * bfLerp;
+    const bf = this._bossFlash;                                    // FLASH: 0→1
+
+    const befLerp = this._bossEmergenceFogTarget > this._bossEmergenceFog ? 0.06 : 0.008;
+    this._bossEmergenceFog += (this._bossEmergenceFogTarget - this._bossEmergenceFog) * befLerp;
+    const bef = this._bossEmergenceFog;                            // EMERGENCE FOG: 0→1
+
+    // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP, SLIME CRAWLS, BOSS SURGE ROCKETS ──
     const speedMult = (1 - sli * (1 - CONFIG.SLIME_ATTACK.TUNNEL_SPEED_MULT))
-                    * (1 + si * 0.4 + ci * 3.5);
+                    * (1 + si * 0.4 + ci * 3.5)
+                    * (1 + bts * 6.5);   // ← SURGE: 1x → 7.5x
     this._consumedSpeedMult = speedMult;
 
     // PROGRESS ALONG CURVE
@@ -176,8 +206,8 @@ export class Tunnel {
     const lookTarget = pos.clone().add(tangent);
     this.camera.lookAt(lookTarget);
 
-    // ROLL — CONSUMED SPINS HARD, MATCHING THE SHIP'S CCW SPIRAL
-    const rollAmt = CONFIG.TUNNEL.ROLL_AMOUNT + ci * 2.2;
+    // ROLL — CONSUMED SPINS HARD, SURGE RAMPS UP THE CHAOS
+    const rollAmt = CONFIG.TUNNEL.ROLL_AMOUNT + ci * 2.2 + bts * 1.8;
     this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * rollAmt);
 
     // ── BACKGROUND COLOR — DEEP PURPLE → PURE BLACK → SLIME GREEN ────────────
@@ -191,11 +221,14 @@ export class Tunnel {
       const slimeBg = new THREE.Color(0x010e03); 
       bgColor.lerp(slimeBg, sli * 0.75);
     }
+    // FLASH BLEEDS DEEP RED, EMERGENCE CUTS TO NEAR-BLACK
+    if (bf  > 0.01) bgColor.lerp(new THREE.Color(0x1a0000), bf  * 0.75);
+    if (bef > 0.01) bgColor.lerp(new THREE.Color(0x000000), bef * 0.94);
     this.scene.background.copy(bgColor);
     this.scene.fog.color.copy(bgColor);
 
     // ── FOG DENSITY — THICKENS SO TUNNEL WALLS DISSOLVE INTO DARKNESS ─────────
-    this.scene.fog.density = CONFIG.SCENE.FOG_DENSITY + ci * 0.018;
+    this.scene.fog.density = CONFIG.SCENE.FOG_DENSITY + ci * 0.018 + bts * 0.003 + bef * 0.048;
 
     // ── WIREFRAME COLOR ───────────────────────────────────────────────────────
     // SUCTION LERPS PURPLE → RED (existing behaviour)
@@ -215,20 +248,32 @@ export class Tunnel {
       col.lerp(slimeColor, sli);
     }
 
+    // SURGE — BLEED HUE FROM PURPLE TO DEEP CRIMSON
+    if (bts > 0.01) {
+      const surgeColor = new THREE.Color().setHSL(0.0, 1.0, 0.48 + bts * 0.08);
+      col.lerp(surgeColor, bts * 0.92);
+    }
+    // FLASH — SPIKE TO HOT BRIGHT RED
+    if (bf > 0.01) {
+      const flashColor = new THREE.Color().setHSL(0.0, 1.0, 0.44 + bf * 0.52);
+      col.lerp(flashColor, bf);
+    }
+
     // PUSH COLOR TO ALL FOUR MATERIALS
     this.glowMat.color.copy(col);
     this.constrictedMat.color.copy(col);
     this.constrictedGlowMat.color.copy(col);
 
-    // ── OPACITY — CONSUMED DIMS NORMAL TUBE, PULSES CONSTRICTED FOR VORTEX FEEL
+    // ── OPACITY — SURGE PUMPS GLOW, FLASH SPIKES BOTH LAYERS, EMERGENCE BLACKS OUT ──
     const consumedPulse = 0.5 + 0.5 * Math.sin(this.time * 12 * (1 + ci * 3)); // FAST STROBE AS CI RISES
-    this.material.opacity           = (0.4  * (1 - si)) * (1 - ci * 0.6);
-    this.glowMat.opacity            = (0.15 * (1 - si)) * (1 - ci * 0.7) + ci * 0.08 * consumedPulse;
-    this.constrictedMat.opacity     = (0.4  * si)       + ci * 0.55 * consumedPulse;
-    this.constrictedGlowMat.opacity =                      ci * 0.22 * consumedPulse;
+    const dimEmergence  = 1 - bef * 0.88;   // EMERGENCE FADES TUNNEL TO ~12% OPACITY
+    this.material.opacity           = ((0.4  * (1 - si)) * (1 - ci * 0.6) + bf * 0.55) * dimEmergence;
+    this.glowMat.opacity            = ((0.15 * (1 - si)) * (1 - ci * 0.7) + ci * 0.08 * consumedPulse + bts * 0.22 + bf * 0.85) * dimEmergence;
+    this.constrictedMat.opacity     = ((0.4  * si)       + ci * 0.55 * consumedPulse) * dimEmergence;
+    this.constrictedGlowMat.opacity =  (ci * 0.22 * consumedPulse) * dimEmergence;
 
     // ── VERTICAL WAVE ─────────────────────────────────────────────────────────
-    const waveAmp = CONFIG.TUNNEL.VERTICAL_WAVE_AMPLITUDE + si * 55;
+    const waveAmp = CONFIG.TUNNEL.VERTICAL_WAVE_AMPLITUDE + si * 55 + bts * 28;  // SURGE ADDS EXTRA JUDDER
     this.camera.position.y += Math.sin(this.time * CONFIG.TUNNEL.VERTICAL_WAVE_SPEED) * waveAmp;
   }
 
