@@ -8,7 +8,7 @@ export class AudioManager {
     this.isMuted    = false;
     this._preMuteVolume = 1.0;
 
-    this.MUSIC_VOLUME        = 0.75;
+    this.MUSIC_VOLUME        = 0.4;
     this.LASER_VOLUME        = 0.5;
     this.ENEMY_LASER_VOLUME  = 0.5;
     this.IMPACT_VOLUME       = 0.2;
@@ -48,7 +48,7 @@ export class AudioManager {
       this.sfxGain    = this.context.createGain();
       this._musicGain = this.context.createGain();
 
-      this.masterGain.gain.value = 1.0;
+      this.masterGain.gain.value = 0.7;
       this.sfxGain.gain.value    = 1.0;
       this._musicGain.gain.value = this.MUSIC_VOLUME;
 
@@ -290,7 +290,7 @@ export class AudioManager {
   }
 
   // ==================== PUBLIC PLAY METHODS ====================
-  playOuch()        { this._playSfx('ouch',        0.4); } // SHIP TAKES DAMAGE
+  playOuch()        { this._playSfx('ouch',        0.5); } // SHIP TAKES DAMAGE
   playPop()         { this._playSfx('pop',          0.9); } // OCULAR PRISM PUPIL DESTROYED
   playSplat()       { this._playSfx('splat',       0.7); } // SLIME HITS SHIP
   playLaser()       { this._playSfx('laser',       this.LASER_VOLUME);       }
@@ -304,7 +304,7 @@ export class AudioManager {
   playConsumed()    { this._playSfx('consumed',     0.9); } // SHIP SPIRAL-IN DEATH
   playBabyWorms()   { this._playSfx('babyWorms',    1.0); } // BABY WORM SPIT ATTACK
   playWarning()     { this._playSfx('warning',      0.8); }
-  playWaveWormSfx() { this._playSfx('waveWorms',    0.85); } // WAVE WORM SPAWN CUE
+  playWaveWormSfx() { this._playSfx('waveWorms',    0.4); } // WAVE WORM SPAWN CUE
 
   // START LOOPING MUSIC FOR THE GIVEN WAVE (0-INDEXED)
   startWaveMusic(waveIndex) {
@@ -332,7 +332,7 @@ export class AudioManager {
       source.loop   = false;
       source.connect(this._musicGain);
       source.start(0);
-      this._musicSource = source; // SO stopMusic() / toggleMute() can reach it
+      this._musicSource = source; // SO stopMusic() / toggleMute() CAN REACH IT
     };
 
     if (this._transitionBuffer) {
