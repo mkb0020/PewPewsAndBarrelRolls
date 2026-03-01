@@ -96,11 +96,13 @@ gameplayScene.onWormKill = (kills, required) => {
 gameplayScene.onWaveStart = (waveIndex) => {
   updateWaveCounter(0, waveWormManager.getRequired());
   showWaveHUD(true);
+  audio.startWaveMusic(waveIndex); // 🎵 KICK OFF THIS WAVE'S LOOP
 };
 
 gameplayScene.onWaveCleared = (waveIndex) => {
   unlockWaveBadge(waveIndex);
-  audio.playImpact(); 
+  audio.playImpact();
+  audio.playWaveTransition(); // 🎵 CUT WAVE MUSIC, PLAY TRANSITION STING
 };
 
 gameplayScene.onAllWavesComplete = () => {
@@ -120,6 +122,13 @@ gameplayScene.onGooHit = () => {
     ship.takeDamage(CONFIG.GAMEPLAY.GOO_DAMAGE);
     audio.playOuch();
   }
+};
+
+// ==================== WAVE WORM CALLBACKS ====================
+waveWormManager.onWormSpawn  = () => audio.playWaveWormSfx(); // 🎵 8-SEC SPAWN CUE
+
+waveWormManager.onWormKilled = (x, y) => {
+  projectileManager.createExplosion(x, y, 'zap'); // ⚡ ZAP SPRITE — 6 FRAMES
 };
 
 // ==================== WORM CALLBACKS ====================
@@ -339,7 +348,7 @@ function restartGame() {
   updateBossHealthBar(1);
   audio.stop();
   audio.start();
-  if (currentMode !== 'bossBattle') audio.startMusic();
+  if (currentMode !== 'bossBattle') audio.startWaveMusic(0); // WAVE 1 ON FULL RESTART
 }
 
 function handleContinue() {
@@ -364,7 +373,7 @@ function handleContinue() {
   if (inWormBattle) {
     audio.startBossMusic();
   } else {
-    audio.startMusic();
+    audio.startWaveMusic(gameplayScene.getWaveIndex());
   }
 }
 
@@ -587,7 +596,6 @@ function gameLoop() {
           projectileManager.removeProjectile(projectile);
           audio.playImpact();
           if (wormHit.killed) {
-            projectileManager.createExplosion(wormHit.x, wormHit.y);
             scoreManager.addScore(CONFIG.GAMEPLAY.WAVE_WORM_KILL_SCORE, wormHit.x, wormHit.y);
           }
         }
@@ -615,7 +623,9 @@ function gameLoop() {
   crosshair.draw(ctx);
   wormBoss.draw(ctx);
   babyWormManager.draw(ctx);
+  gameplayScene.drawBehindEnemies(ctx);  // WORM IS DISTANT — DRAW UNDER ENEMIES
   enemyManager.draw(ctx);
+  gameplayScene.drawAboveEnemies(ctx);   // WORM IS LARGE — DRAW OVER ENEMIES, UNDER SHIP
 
   slimeAttack.draw(ctx);
 
@@ -660,8 +670,6 @@ function gameLoop() {
 
   babyWormManager.drawSlime(ctx);
 
-  gameplayScene.draw(ctx);  
-
 
   if (ocularPrism.active) {
     ocularPrism.captureFrame(tunnel.renderer.domElement, gameCanvas);
@@ -676,7 +684,7 @@ async function startup() {
 
   const { mode, enemyCount } = await menu.show(tunnel, () => audio.start());
 
-  if (mode !== 'bossBattle') audio.startMusic();
+  if (mode === 'bossBattle') audio.startBossMusic(); // GAMEPLAY WAVE MUSIC FIRES VIA onWaveStart
   currentMode       = mode;
   currentEnemyCount = enemyCount;
   console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);

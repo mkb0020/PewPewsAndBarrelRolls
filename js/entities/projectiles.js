@@ -111,6 +111,11 @@ export class Explosion {
       this.spriteKey = 'boom';
       this.frames    = CONFIG.EXPLOSIONS.BOOM_FRAMES;
       this.size      = CONFIG.EXPLOSIONS.BOOM_SIZE;
+    } else if (type === 'zap') {
+      this.spriteKey = 'zap';
+      this.frames    = 6;
+      this.size      = 300; // BIGGER THAN BOOM — WAVE WORM DEATHS ARE DRAMATIC
+      ImageLoader.load('zap'); // LAZY-LOAD IF NOT ALREADY
     } else {
       this.spriteKey = 'bam';
       this.frames    = CONFIG.EXPLOSIONS.BAM_FRAMES;

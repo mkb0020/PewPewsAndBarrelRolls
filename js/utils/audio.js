@@ -16,15 +16,19 @@ export class AudioManager {
     this.BARREL_ROLL_VOLUME  = 0.15;
 
     // ====== MUSIC — WEB AUDIO API ======
-    this._musicBuffer        = null;
     this._introBuffer        = null;
     this._bossBuffer         = null;
     this._musicSource        = null;
     this._introSource        = null;
     this._musicGain          = null;
-    this._musicDecodePromise = null;
     this._introDecodePromise = null;
     this._bossDecodePromise  = null;
+
+    // ====== WAVE MUSIC — ONE BUFFER PER WAVE + TRANSITION ======
+    this._waveMusicBuffers      = new Array(5).fill(null); // wave1–5.m4a
+    this._transitionBuffer      = null;                    // transition.m4a
+    this._waveMusicDecodePromises = [];
+    this._transitionDecodePromise = null;
 
     // ====== SFX — WEB AUDIO API BUFFERS ======
     // ALL SFX USE WEB AUDIO BUFFERSOURCE NODES — NO HTML AUDIO ELEMENTS.
@@ -53,12 +57,20 @@ export class AudioManager {
       this.masterGain.connect(this.context.destination);
 
       // PRELOAD MUSIC
-      this._musicDecodePromise = this._prefetchAndDecode('./audio/wormholeTheme.m4a')
-        .then(buf => { this._musicBuffer = buf; console.log('✔ Theme buffer ready');      return buf; });
       this._introDecodePromise = this._prefetchAndDecode('./audio/wormIntro.m4a')
         .then(buf => { this._introBuffer = buf; console.log('✔ Intro buffer ready');      return buf; });
       this._bossDecodePromise  = this._prefetchAndDecode('./audio/bossBattle.m4a')
         .then(buf => { this._bossBuffer  = buf; console.log('✔ Boss music buffer ready'); return buf; });
+
+      // PRELOAD WAVE MUSIC (wave1–5) + TRANSITION
+      for (let i = 0; i < 5; i++) {
+        const idx = i;
+        const p = this._prefetchAndDecode(`./audio/wave${idx + 1}.m4a`)
+          .then(buf => { this._waveMusicBuffers[idx] = buf; console.log(`✔ Wave ${idx + 1} music buffer ready`); return buf; });
+        this._waveMusicDecodePromises.push(p);
+      }
+      this._transitionDecodePromise = this._prefetchAndDecode('./audio/transition.m4a')
+        .then(buf => { this._transitionBuffer = buf; console.log('✔ Transition buffer ready'); return buf; });
 
       // PRELOAD ALL SFX AS WEB AUDIO BUFFERS
       const sfxFiles = {
@@ -79,6 +91,7 @@ export class AudioManager {
         telegraph:   './audio/telegraph.m4a',
         prism:       './audio/prism.m4a',
         pop:         './audio/pop.m4a',
+        waveWorms:   './audio/waveWorms.m4a',
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -162,17 +175,6 @@ export class AudioManager {
     this._stopMusicSource();
   }
 
-  startMusic() { // RESTART REGULAR GAMEPLAY THEME
-    if (this.isMuted) return;
-    if (!this._musicBuffer) {
-      this._musicDecodePromise?.then(() => {
-        if (!this.isMuted) this._playBuffer(this._musicBuffer);
-      });
-      return;
-    }
-    this._playBuffer(this._musicBuffer);
-  }
-
   startBossMusic() {
     if (this.isMuted) return;
     if (!this._introBuffer || !this._bossBuffer) {
@@ -221,7 +223,9 @@ export class AudioManager {
         this._musicGain.gain.setTargetAtTime(this.MUSIC_VOLUME, this.context.currentTime, 0.05);
         this.masterGain.gain.setTargetAtTime(1.0, this.context.currentTime, 0.05);
       }
-      if (!this._musicSource) this.startMusic(); // RESTART MUSIC IF IT WASN'T PLAYING
+      if (!this._musicSource) {
+        // MUSIC RESTART ON UNMUTE IS HANDLED BY THE CALLER (startWaveMusic / startBossMusic)
+      }
     }
 
     return this.isMuted;
@@ -300,4 +304,41 @@ export class AudioManager {
   playConsumed()    { this._playSfx('consumed',     0.9); } // SHIP SPIRAL-IN DEATH
   playBabyWorms()   { this._playSfx('babyWorms',    1.0); } // BABY WORM SPIT ATTACK
   playWarning()     { this._playSfx('warning',      0.8); }
+  playWaveWormSfx() { this._playSfx('waveWorms',    0.85); } // WAVE WORM SPAWN CUE
+
+  // START LOOPING MUSIC FOR THE GIVEN WAVE (0-INDEXED)
+  startWaveMusic(waveIndex) {
+    if (this.isMuted) return;
+    const buf = this._waveMusicBuffers[waveIndex];
+    if (!buf) {
+      // BUFFER NOT READY YET — WAIT FOR IT
+      this._waveMusicDecodePromises[waveIndex]?.then(() => {
+        if (!this.isMuted) this._playBuffer(this._waveMusicBuffers[waveIndex]);
+      });
+      return;
+    }
+    this._playBuffer(buf);
+  }
+
+  
+  playWaveTransition() { // PLAY TRANSITION STING ONCE — NO LOOP
+    if (this.isMuted || !this.context) return;
+    this._stopMusicSource(); // CUT WAVE MUSIC IMMEDIATELY
+
+    const play = (buf) => {
+      if (!buf) return;
+      const source  = this.context.createBufferSource();
+      source.buffer = buf;
+      source.loop   = false;
+      source.connect(this._musicGain);
+      source.start(0);
+      this._musicSource = source; // SO stopMusic() / toggleMute() can reach it
+    };
+
+    if (this._transitionBuffer) {
+      play(this._transitionBuffer);
+    } else {
+      this._transitionDecodePromise?.then(buf => { if (!this.isMuted) play(buf); });
+    }
+  }
 }

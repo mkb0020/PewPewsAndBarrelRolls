@@ -99,6 +99,14 @@ export class GameplayScene {
     this.waveWormManager.draw(ctx);
   }
 
+  drawBehindEnemies(ctx) {
+    this.waveWormManager.drawBehindEnemies(ctx);
+  }
+
+  drawAboveEnemies(ctx) {
+    this.waveWormManager.drawAboveEnemies(ctx);
+  }
+
   checkWormHit(seg) {
     return this.waveWormManager.checkProjectileHit(seg);
   }

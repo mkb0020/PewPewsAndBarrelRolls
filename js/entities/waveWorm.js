@@ -379,6 +379,8 @@ export class WaveWormManager {
     this.onWaveCleared = null;  // WAVE IS COMPLETE
     this.onGooHit     = null;   //  GOO HIT SHIP
     this.onWormExit   = null;   // PASSED WITHOUT BEING KILLED
+    this.onWormSpawn  = null;   // NEW WORM JUST SPAWNED
+    this.onWormKilled = null;   // WORM WAS SHOT DOWN — ARGS: (x, y)
 
     console.log('✔ WaveWormManager initialized');
   }
@@ -428,8 +430,11 @@ export class WaveWormManager {
     }
 
     if (this.worm?.isDead && !this.worm.hasExited) { //  WORM KILLED 
+      const wx = this.worm.x;
+      const wy = this.worm.y;
       this.kills++;
       this.onKill?.(this.kills, this.required);
+      this.onWormKilled?.(wx, wy);  // ZAP EXPLOSION + SFX IN MAIN
 
       this.worm       = null;
       this.spawnTimer = WW.SPAWN_GAP_MIN
@@ -446,6 +451,21 @@ export class WaveWormManager {
     this.worm?.draw(ctx);
   }
 
+  // SCALE THRESHOLD — BELOW THIS THE WORM IS "FAR AWAY" AND DRAWS UNDER ENEMIES
+  static get FOREGROUND_SCALE() { return 0.55; }
+
+  // CALLED BEFORE enemyManager.draw() — DRAWS THE WORM ONLY WHEN IT'S SMALL / DISTANT
+  drawBehindEnemies(ctx) {
+    if (!this.worm || this.worm.scale >= WaveWormManager.FOREGROUND_SCALE) return;
+    this.worm.draw(ctx);
+  }
+
+  // CALLED AFTER enemyManager.draw() BUT BEFORE ship.draw() — DRAWS WHEN WORM IS LARGE
+  drawAboveEnemies(ctx) {
+    if (!this.worm || this.worm.scale < WaveWormManager.FOREGROUND_SCALE) return;
+    this.worm.draw(ctx);
+  }
+
   checkProjectileHit(seg) {  //  PROJECTILE HIT CHECK  
     if (!this.worm || this.worm.isDead) return { hit: false };
     const hit = this.worm.checkProjectileHit(seg);
@@ -460,6 +480,7 @@ export class WaveWormManager {
     const lateralOffset = (Math.random() < 0.5 ? -1 : 1)
                         * (WW.LATERAL_MIN + Math.random() * (WW.LATERAL_MAX - WW.LATERAL_MIN));
     this.worm = new WaveWorm(this.currentWave, lateralOffset);
+    this.onWormSpawn?.();  // PLAY WAVE WORM SFX
   }
 
   //  GETTERS 

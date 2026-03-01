@@ -325,10 +325,10 @@ EXPLOSIONS: {
   },
 
   GAMEPLAY: {
-    WAVE_TRANSITION_DURATION: 9.0,   
+    WAVE_TRANSITION_DURATION: 10.5,   
     BOSS_ENTRY_DELAY:         2.0,  
     GOO_DAMAGE:               12,    
-    WAVE_WORM_KILL_SCORE:     75,    
+    WAVE_WORM_KILL_SCORE:     100,    
   },
 
   WAVE_WORM: {
@@ -338,29 +338,29 @@ EXPLOSIONS: {
     NUM_SEGMENTS:         15,  
     SEGMENT_SPACING:      8,  
     TAPER_RATIO:         0.8, // TAIL
-    TUNNEL_BEND_X_OFFSET: -80,  // SPAWN ANCHOR - px LEFT OF SCREEN CENTER
+    TUNNEL_BEND_X_OFFSET: -150,  // SPAWN ANCHOR - px LEFT OF SCREEN CENTER
 
     PASS_SPEED:      0.12,     // PROGRESS UNITS / SECOND - FULL PASS = 8s
     WIGGLE_AMP:        22,     // px  OF VERTICAL SINE DRIFT AT PEAK SCALE 
     WIGGLE_FREQ:       1.4,    // Hz OF WIGGLE
 
     LATERAL_MIN:       20,     // px FROM CENTER
-    LATERAL_MAX:      200,     
+    LATERAL_MAX:      40,     
 
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
     HEALTH:            5,
 
-    FIRST_SPAWN_DELAY_MIN: 2.0,
-    FIRST_SPAWN_DELAY_MAX: 4.0,
-    SPAWN_GAP_MIN:         3.5,   
-    SPAWN_GAP_MAX:         6.5,
+    FIRST_SPAWN_DELAY_MIN: 15.0,
+    FIRST_SPAWN_DELAY_MAX: 20.0,
+    SPAWN_GAP_MIN:         7,   
+    SPAWN_GAP_MAX:         15,
 
     KILLS_PER_WAVE: [3, 4, 5, 6, 7],  
     
     GOO_FIRST_SHOT_MIN: 1.2,
-    GOO_FIRST_SHOT_MAX: 2.8,
+    GOO_FIRST_SHOT_MAX: 1.7,
     GOO_INTERVAL_MIN:   2.5,
     GOO_INTERVAL_MAX:   4.5,
   },
