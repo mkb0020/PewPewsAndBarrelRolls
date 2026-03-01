@@ -212,7 +212,6 @@ export const CONFIG = {
     FLASH_DURATION: 0.1, 
   },
 
-  // ======================= SHIP HP & LIVES =======================
   SHIP_HP: {
     MAX_HP:                  100,
     MAX_LIVES:               3,
@@ -323,5 +322,57 @@ EXPLOSIONS: {
 
     PUPIL_HIT_SCORE: 25,    
     PUPIL_KILL_SCORE: 200,  
+  },
+
+  GAMEPLAY: {
+    WAVE_TRANSITION_DURATION: 9.0,   
+    BOSS_ENTRY_DELAY:         2.0,  
+    GOO_DAMAGE:               12,    
+    WAVE_WORM_KILL_SCORE:     75,    
+  },
+
+  WAVE_WORM: {
+    SPRITE_FRAMES:  10,        // 10 TOTAL: 5 WAVES × (BODY + HEAD)
+    HEAD_SIZE:            65, 
+    SEGMENT_SIZE_RATIO:  1, 
+    NUM_SEGMENTS:         15,  
+    SEGMENT_SPACING:      8,  
+    TAPER_RATIO:         0.8, // TAIL
+    TUNNEL_BEND_X_OFFSET: -80,  // SPAWN ANCHOR - px LEFT OF SCREEN CENTER
+
+    PASS_SPEED:      0.12,     // PROGRESS UNITS / SECOND - FULL PASS = 8s
+    WIGGLE_AMP:        22,     // px  OF VERTICAL SINE DRIFT AT PEAK SCALE 
+    WIGGLE_FREQ:       1.4,    // Hz OF WIGGLE
+
+    LATERAL_MIN:       20,     // px FROM CENTER
+    LATERAL_MAX:      200,     
+
+    HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
+    GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
+
+    HEALTH:            5,
+
+    FIRST_SPAWN_DELAY_MIN: 2.0,
+    FIRST_SPAWN_DELAY_MAX: 4.0,
+    SPAWN_GAP_MIN:         3.5,   
+    SPAWN_GAP_MAX:         6.5,
+
+    KILLS_PER_WAVE: [3, 4, 5, 6, 7],  
+    
+    GOO_FIRST_SHOT_MIN: 1.2,
+    GOO_FIRST_SHOT_MAX: 2.8,
+    GOO_INTERVAL_MIN:   2.5,
+    GOO_INTERVAL_MAX:   4.5,
+  },
+
+  GOO_PROJECTILE: {
+    SPEED:         320,    
+    GRAVITY:       480,    
+    BLOB_RADIUS:    10,    
+    HIT_RADIUS:     22,    
+
+    SIZZLE_FRAMES:  9,     
+    SIZZLE_FPS:    15,
+    SIZZLE_SIZE:   120,     
   },
 };

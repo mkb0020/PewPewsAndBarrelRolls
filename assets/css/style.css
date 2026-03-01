@@ -628,10 +628,10 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 /* ========================= UI ICON BUTTONS ========================= */
 #ui-buttons {
   position: fixed;
-  top: 15px;
-  left: 20px;
+  top: 10px;
+  left: 10px;
   display: flex;
-  gap: 20px;
+  gap: 15px;
   z-index: 300;
 }
 
@@ -1136,6 +1136,123 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   text-transform: uppercase;
 }
 
+/* ════════════════════════════════ WAVE HUD ════════════════════════════════ */
+
+#wave-hud {
+  position: fixed;
+  top: 70px;
+  left: 20px;
+  /*left: 50%;
+  transform: translateX(-50%);*/
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  gap: 15px;
+  pointer-events: none;
+  font-family: 'SpaceLetters';
+  transition: opacity 0.4s ease;
+}
+
+#wave-hud.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*  COUNTER  (X / Y)  */
+#wave-counter-block {
+  display: flex;
+  flex-direction: row;
+  align-items: left;
+  gap: 15px;
+}
+
+#wave-counter-block .hud-label {
+  margin-bottom: 0;   
+}
+
+.wormCount-icon{
+  width: 50px;
+  height:auto;
+}
+
+#wave-counter {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #00ffff;
+  text-shadow:
+    0 0 8px #00ffff,
+    0 0 20px rgba(0, 255, 255, 0.45);
+  letter-spacing: 0.1em;
+  min-width: 3ch;
+  text-align: left;
+  transition: color 0.2s;
+}
+
+@keyframes counter-pop {
+  0%   { color: #ffffff; text-shadow: 0 0 18px #ffffff, 0 0 35px #00ffff; transform: scale(1.25); }
+  100% { color: #00ffff; text-shadow: 0 0 8px #00ffff, 0 0 20px rgba(0,255,255,0.45); transform: scale(1); }
+}
+#wave-counter.pop {
+  animation: counter-pop 0.3s ease-out forwards;
+}
+
+/*  BADGES  */
+#wave-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  gap: 10px;
+}
+
+.wave-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background-image: url('/images/waveWorms.png');
+  background-size: 1000% auto;  
+  background-repeat: no-repeat;
+  background-position-y: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  transition: filter 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+  image-rendering: pixelated;
+}
+
+/* Head frames: indices 1, 3, 5, 7, 9 out of 10 total frames (0-indexed)
+   Formula: frameIndex / (totalFrames - 1) * 100%
+   Frame 1 → 1/9 * 100% = 11.11%
+   Frame 3 → 3/9 * 100% = 33.33%
+   Frame 5 → 5/9 * 100% = 55.55%
+   Frame 7 → 7/9 * 100% = 77.77%
+   Frame 9 → 9/9 * 100% = 100%    */
+#wave-badge-0 { background-position-x: 11.11%; }
+#wave-badge-1 { background-position-x: 33.33%; }
+#wave-badge-2 { background-position-x: 55.55%; }
+#wave-badge-3 { background-position-x: 77.77%; }
+#wave-badge-4 { background-position-x: 100%;   }
+
+.wave-badge.greyed {
+  filter: grayscale(1) brightness(0.35);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+.wave-badge.unlocked {
+  filter: none;
+
+}
+
+@keyframes badge-unlock-flash {
+  0%   { filter: brightness(3) saturate(2); transform: scale(1.35); box-shadow: 0 0 30px #ffffff, 0 0 50px #00ffff; }
+  60%  { transform: scale(1.08); }
+  100% { filter: none; transform: scale(1); }
+}
+
+.wave-badge.badge-flash {
+  animation: badge-unlock-flash 0.55s ease-out forwards;
+}
+
 /* ====================== MOBILE =========================*/
 @media (max-width: 980px) {
   #ui-buttons {
@@ -1237,5 +1354,20 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   .gameover-btn {
     padding: 10px 28px;
     font-size: 0.75rem;
+  }
+
+  /* ── WAVE HUD — MOBILE ── */
+  #wave-hud {
+    bottom: 140px;  
+  }
+  #wave-counter {
+    font-size: 1.1rem;
+  }
+  .wave-badge {
+    width: 30px;
+    height: 30px;
+  }
+  #wave-badges {
+    gap: 7px;
   }
 }

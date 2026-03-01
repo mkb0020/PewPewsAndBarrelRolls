@@ -16,6 +16,8 @@ import { BabyWormManager }                           from './entities/babyWorm.j
 import { Menu }                                      from './scenes/menu.js';
 import { SlimeAttack }                               from './entities/slimeAttack.js';
 import { OcularPrism }                               from './entities/ocularPrism.js';
+import { WaveWormManager }                           from './entities/waveWorm.js';
+import { GameplayScene }                             from './scenes/gameplay.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 
@@ -42,6 +44,13 @@ const babyWormManager   = new BabyWormManager();
 const menu              = new Menu();
 const slimeAttack       = new SlimeAttack();
 const ocularPrism       = new OcularPrism();
+const waveWormManager   = new WaveWormManager();
+const gameplayScene     = new GameplayScene({
+  enemyManager,
+  waveWormManager,
+  scoreManager,
+  audio,
+});
 
 // ==================== ENEMY CALLBACKS ====================
 enemyManager.onLaserFired  = () => audio.playEnemyLaser();
@@ -76,6 +85,42 @@ ocularPrism.onExpired = () => {
 
 // ==================== SLIME ATTACK CALLBACKS ====================
 slimeAttack.onSplat = () => audio.playSplat();
+
+// ==================== GAMEPLAY SCENE CALLBACKS ====================
+gameplayScene.onCheckpoint = () => saveCheckpoint();
+
+gameplayScene.onWormKill = (kills, required) => {
+  updateWaveCounter(kills, required);
+};
+
+gameplayScene.onWaveStart = (waveIndex) => {
+  updateWaveCounter(0, waveWormManager.getRequired());
+  showWaveHUD(true);
+};
+
+gameplayScene.onWaveCleared = (waveIndex) => {
+  unlockWaveBadge(waveIndex);
+  audio.playImpact(); 
+};
+
+gameplayScene.onAllWavesComplete = () => {
+  showWaveHUD(false);
+
+  setTimeout(() => {
+    saveCheckpoint();               
+    wormBoss.activate();
+    audio.stopMusic();
+    audio.playWormIntro();
+    audio.startBossMusic();
+  }, CONFIG.GAMEPLAY.BOSS_ENTRY_DELAY * 1000);
+};
+
+gameplayScene.onGooHit = () => {
+  if (ship.isAlive && !ship.isInvincible) {
+    ship.takeDamage(CONFIG.GAMEPLAY.GOO_DAMAGE);
+    audio.playOuch();
+  }
+};
 
 // ==================== WORM CALLBACKS ====================
 wormBoss.onAttack        = null; 
@@ -183,6 +228,31 @@ function updateLivesDisplay(lives) {
   if (el) el.textContent = lives;
 }
 
+// ==================== WAVE HUD HELPERS ====================
+function updateWaveCounter(kills, required) {
+  const el = document.getElementById('wave-counter');
+  if (!el) return;
+  el.textContent = `${kills} / ${required}`;
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+function unlockWaveBadge(waveIndex) {
+  const badge = document.getElementById(`wave-badge-${waveIndex}`);
+  if (!badge) return;
+  badge.classList.remove('greyed');
+  badge.classList.add('unlocked');
+  badge.classList.remove('badge-flash');
+  void badge.offsetWidth; 
+  badge.classList.add('badge-flash');
+}
+
+function showWaveHUD(visible) {
+  const el = document.getElementById('wave-hud');
+  if (el) el.classList.toggle('hidden', !visible);
+}
+
 // ==================== OVERLAY HELPERS ====================
 function showGameOver() {
   const overlay = document.getElementById('gameover-overlay');
@@ -260,9 +330,11 @@ function restartGame() {
   ocularPrism.active = false;
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+  gameplayScene.reset();
 
   CONFIG.ENEMIES.MAX_COUNT = (currentMode === 'gameplay') ? currentEnemyCount : 0;  // RESTORE MODE — ENEMY COUNT AND WORM STATE MATCH ORIGINAL MENU SELECTION
   if (currentMode === 'bossBattle') wormBoss.activate();
+  if (currentMode === 'gameplay')   gameplayScene.start();
 
   updateBossHealthBar(1);
   audio.stop();
@@ -273,6 +345,7 @@ function restartGame() {
 function handleContinue() {
   if (!isDeadScreen) return;
   const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
+  const inGameplay   = gameplayScene.isActive();
   hideDiedScreen();
   restoreCheckpoint();
 
@@ -283,9 +356,13 @@ function handleContinue() {
     _wormBattleStarted = false;
   }
 
+  if (inGameplay) {
+    gameplayScene.restartCurrentWave();
+  }
+
   ship.respawn();
   if (inWormBattle) {
-    audio.startBossMusic(); // STILL IN BOSS BATTLE — DON'T SWITCH BACK TO REGULAR THEME
+    audio.startBossMusic();
   } else {
     audio.startMusic();
   }
@@ -375,7 +452,7 @@ function gameLoop() {
     const suctionOn = wormBoss.isActive && wormBoss.attackPhase === 'loop'; // TUNNEL REACTS TO WORM SUCTION ATTACK
     tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
 
-    // ── SLIME ATTACK UPDATE ──────────────────────────────────────────────────
+    //  SLIME ATTACK UPDATE 
     const glorks     = enemyManager.getEnemies().filter(e => e.type === 'TANK');
     const activeGlork = glorks.find(g => g.scale > CONFIG.SLIME_ATTACK.MIN_SCALE);
     const gx = activeGlork ? activeGlork.x : window.innerWidth  / 2;
@@ -388,6 +465,7 @@ function gameLoop() {
     ship.update(dt);
     crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
     enemyManager.update(dt, ship.x, ship.y);
+    gameplayScene.update(dt, ship.x, ship.y);  
     projectileManager.update(dt);
     muzzleFlash.update(dt);
     scoreManager.update(dt);
@@ -434,7 +512,7 @@ function gameLoop() {
       saveCheckpoint();
     }
 
-    // ── COLLISION ──────────────────────────────────────────────
+    // ========================= COLLISION  =========================
     const projectiles = projectileManager.getProjectiles();
     const enemies     = enemyManager.getEnemies();
 
@@ -499,6 +577,19 @@ function gameLoop() {
           projectileManager.removeProjectile(projectile);
           audio.playImpact();
           scoreManager.addScore(CONFIG.OCULAR_PRISM.PUPIL_HIT_SCORE, gameCanvas.width / 2, gameCanvas.height / 2);
+        }
+      }
+
+      // PROJECTILE vs WAVE WORM
+      if (!projectile.isDead && gameplayScene.isActive()) {
+        const wormHit = gameplayScene.checkWormHit(projectile.getSegment());
+        if (wormHit.hit) {
+          projectileManager.removeProjectile(projectile);
+          audio.playImpact();
+          if (wormHit.killed) {
+            projectileManager.createExplosion(wormHit.x, wormHit.y);
+            scoreManager.addScore(CONFIG.GAMEPLAY.WAVE_WORM_KILL_SCORE, wormHit.x, wormHit.y);
+          }
         }
       }
     }
@@ -569,6 +660,8 @@ function gameLoop() {
 
   babyWormManager.drawSlime(ctx);
 
+  gameplayScene.draw(ctx);  
+
 
   if (ocularPrism.active) {
     ocularPrism.captureFrame(tunnel.renderer.domElement, gameCanvas);
@@ -588,8 +681,14 @@ async function startup() {
   currentEnemyCount = enemyCount;
   console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
 
-  CONFIG.ENEMIES.MAX_COUNT = mode === 'gameplay' ? enemyCount : 0;
-  if (mode === 'bossBattle') wormBoss.activate();
+  if (mode === 'bossBattle') {
+    CONFIG.ENEMIES.MAX_COUNT = 0;
+    wormBoss.activate();
+  } else {
+    CONFIG.ENEMIES.MAX_COUNT = 0;  
+    gameplayScene.start();
+    showWaveHUD(true);
+  }
 
   updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP);
   updateLivesDisplay(ship.getLives());

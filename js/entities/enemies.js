@@ -158,7 +158,7 @@ export class Enemy {
   }
 
   update(dt, time, curve, playerProgress) {
-    // ─── ANIMATION (always runs) ───
+    // ─── ANIMATION  ───
     this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
 
     if (this.type === 'FLIMFLAM') {
@@ -366,7 +366,6 @@ export class Enemy {
       ctx.drawImage(sprite, this.wingIndex * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
 
       if (this.ffAttackState === 'TELEGRAPHING') {
-        // RED EYE frame 
         const telegraphPulse = (Math.sin(this.pulsePhase * 4) + 1) * 0.5;
         ctx.save();
         ctx.shadowColor = '#ff0000';
@@ -402,8 +401,7 @@ export class Enemy {
     }
 
     ctx.restore();
-
-    // ─── HEALTH BAR (approach + combat) ───
+    // ─── HEALTH BAR ───
     if (fadeProgress > 0.15) {
       const halfSprite = renderSize * 0.5;
       const barW    = Math.max(55, renderSize * 0.72);
@@ -470,7 +468,13 @@ export class EnemyManager {
     this.onSlimeAttack  = null; 
     this.onBuzzStart    = null; 
     this.onOcularPrism  = null; 
-    this.onTelegraph    = null; 
+    this.onTelegraph    = null;
+
+    //  WAVE CONTROL  
+    this._allowedTypes    = null;   
+    this._spawnWeights    = null;  
+    this._spawningEnabled = true;   
+    this._maxCount        = null;   
   }
 
   randomSpawnDelay() {
@@ -479,6 +483,15 @@ export class EnemyManager {
   }
 
   getRandomEnemyType() {
+    if (this._allowedTypes && this._spawnWeights) {
+      const rand = Math.random();
+      let cumulative = 0;
+      for (let i = 0; i < this._allowedTypes.length; i++) {
+        cumulative += this._spawnWeights[i];
+        if (rand < cumulative) return this._allowedTypes[i];
+      }
+      return this._allowedTypes[this._allowedTypes.length - 1]; // FALLBACK
+    }
     const rand = Math.random();
     if (rand < 0.30) return 'BASIC';
     if (rand < 0.50) return 'FAST';
@@ -487,8 +500,24 @@ export class EnemyManager {
     return 'FLIMFLAM';
   }
 
+  // ── WAVE CONTROL SETTERS — called by GameplayScene ───────────────────────
+  setAllowedTypes(types, weights) {
+    this._allowedTypes = types;
+    this._spawnWeights = weights;
+  }
+
+  setSpawningEnabled(enabled) {
+    this._spawningEnabled = enabled;
+  }
+
+  setMaxCount(n) {
+    this._maxCount = n;
+  }
+
   spawnEnemy() {
-    if (this.enemies.length >= CONFIG.ENEMIES.MAX_COUNT) return;
+    const maxCount = this._maxCount ?? CONFIG.ENEMIES.MAX_COUNT;
+    if (!this._spawningEnabled) return;
+    if (this.enemies.length >= maxCount) return;
 
     const playerProgress = (this.tunnel.getTime() * CONFIG.TUNNEL.SPEED) % 1;
     const spawnProgress  = (playerProgress + 0.3) % 1;

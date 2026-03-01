@@ -13,7 +13,7 @@ const MANIFEST = {
   phil:         { path: 'phil.png' },        // 8 FRAMES
   flimFlam:     { path: 'flimFlam.png' },   // 7 FRAMES: 0-2 wings, 3-6 body
   boom:         { path: 'boom.png' },        // 6 FRAMES 
-  zap:          { path: 'zap.png',     lazy: true },   // 8 FRAMES
+  zap:          { path: 'zap.png',     lazy: true },   // 6 FRAMES
   bam:          { path: 'bam.png' },         // 8 FRAMES
   spiral:       { path: 'spiral.png',  lazy: true },   // 5 FRAMES
   slime:            { path: 'slime.png',            lazy: true },
@@ -22,6 +22,9 @@ const MANIFEST = {
 
   monster:      { path: 'monster.png', lazy: true },   // NO LONGER IN USE
   prismEye:     { path: 'prismEye.png', lazy: true },  // 3 FRAMES: BASE / PUPIL / EYELID
+
+  waveWorms:    { path: 'waveWorms.png', lazy: true },  // 10 FRAMES
+  gooSizzle:    { path: 'gooSizzle.png', lazy: true },  // 9 FRAMES
 };
 
 
