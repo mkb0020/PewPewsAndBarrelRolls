@@ -69,9 +69,8 @@ export class BossBattleScene {
   }
 
   /**
-   * Test a single projectile against the worm boss AND baby worms.
-   * If hit, the projectile is removed, explosion created, and score awarded
-   * automatically.  Returns true if the projectile was consumed.
+   *  TEST A SINGLE PROJECTILE AGAINST THE WORM BOSS AND BABY WORMS
+   * IF HIT, THE PROJECTILE IS REMOVED, EXPLOSION CREATED AND SCORE ADDED AUTOMATICALLY - RETURNS TRUE IF PROJECTILE WAS CONSUMED
    * @param {object} projectile
    * @returns {boolean}
    */
@@ -118,8 +117,6 @@ export class BossBattleScene {
   }
 
   // ── GETTERS ────────────────────────────────────────────────────────────────
-
-  /** True while the worm suction attack is in its loop phase. */
   get isSuctionActive() {
     return this.wormBoss.isActive
       && !this.wormBoss.isDead
@@ -133,8 +130,6 @@ export class BossBattleScene {
   _wireCallbacks() {
     const { wormBoss, babyWormManager, audio, scoreManager,
             projectileManager, transitionScene } = this;
-
-    wormBoss.onAttack = null; // PLACEHOLDER — NOT YET USED
 
     wormBoss.onIntro = () => {
       audio.stopMusic();

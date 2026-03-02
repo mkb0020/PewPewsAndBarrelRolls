@@ -65,7 +65,6 @@ export class GameplayScene {
     };
     this.waveWormManager.onWaveCleared = () => this._onWaveCleared();
     this.waveWormManager.onGooHit      = () => this.onGooHit?.();
-    this.waveWormManager.onWormExit    = () => {};  // SFX PLACEHOLDER
 
     console.log('✔ GameplayScene initialized');
   }
