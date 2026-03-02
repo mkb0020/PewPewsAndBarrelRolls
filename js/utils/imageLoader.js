@@ -9,7 +9,6 @@ const MANIFEST = {
   glork:        { path: 'glork.png' },       // 5 FRAMES
   glipGlop:     { path: 'glipGlop.png' },    // 5 FRAMES
   zipZap:       { path: 'zipZap.png' },      // 6 FRAMES
-  glitch:       { path: 'glitch.png' },      // 5 FRAMES  (unused)
   phil:         { path: 'phil.png' },        // 8 FRAMES
   flimFlam:     { path: 'flimFlam.png' },   // 7 FRAMES: 0-2 wings, 3-6 body
   boom:         { path: 'boom.png' },        // 6 FRAMES 
@@ -20,7 +19,6 @@ const MANIFEST = {
   slimeProjectiles: { path: 'slimeProjectiles.png', lazy: true }, // 4 FRAMES
   slimeDrip:        { path: 'slimeDrip.png',        lazy: true }, // 10 FRAMES (5R + 5L)
 
-  monster:      { path: 'monster.png', lazy: true },   // NO LONGER IN USE
   prismEye:     { path: 'prismEye.png', lazy: true },  // 3 FRAMES: BASE / PUPIL / EYELID
 
   waveWorms:    { path: 'waveWorms.png', lazy: true },  // 10 FRAMES

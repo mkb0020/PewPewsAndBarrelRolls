@@ -75,7 +75,6 @@ export const CONFIG = {
     SPRITE_SIZE: 180,
 
     COMBAT_SCALE:      0.82,  // SCALE THRESHOLD — APPROACH → COMBAT TRANSITION
-    COMBAT_RING_ALPHA: 0,  // TIMEOUT RING OPACITY
 
     TYPES: {
       BASIC: { // GLIP GLOP
@@ -83,7 +82,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, // TESTING
+        HEALTH: 1, // TESTING
         SCORE: 10,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 9,
@@ -100,7 +99,7 @@ export const CONFIG = {
         SPEED: 300,
         COLOR: '#ff3366',
         GLOW_COLOR: '#ff3366',
-        HEALTH: 8, // TESTING
+        HEALTH: 1, // TESTING
         SCORE: 20,
         SPRITE_FRAMES: 6,
         ANIM_SPEED: 12,
@@ -117,7 +116,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 15, // TESTING
+        HEALTH: 1, // TESTING
         SCORE: 50,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 7,
@@ -134,7 +133,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10, // TESTING
+        HEALTH: 1, // TESTING
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
@@ -153,7 +152,7 @@ export const CONFIG = {
         SPEED: 260,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 15, // TESTING
+        HEALTH: 1, // TESTING
         SCORE: 40,
         SPRITE_FRAMES: 8,       // TOTAL: 3 WINGS + 1RED EYE TELEGRAPH + 4 NORMAL BODY
         WING_FRAMES: 3,         // FRAMES 0-2
@@ -333,7 +332,7 @@ EXPLOSIONS: {
 
   WAVE_WORM: {
     SPRITE_FRAMES:  10,        // 10 TOTAL: 5 WAVES × (BODY + HEAD)
-    HEAD_SIZE:            65, 
+    HEAD_SIZE:            70, 
     SEGMENT_SIZE_RATIO:  1, 
     NUM_SEGMENTS:         15,  
     SEGMENT_SPACING:      8,  
@@ -350,14 +349,14 @@ EXPLOSIONS: {
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
-    HEALTH:            7, // TESTING
+    HEALTH:            5, // TESTING
 
     FIRST_SPAWN_DELAY_MIN: 15.0, // TESTING
     FIRST_SPAWN_DELAY_MAX: 20.0,// TESTING
     SPAWN_GAP_MIN:         7,   // TESTING
     SPAWN_GAP_MAX:         12, // TESTING
 
-    KILLS_PER_WAVE: [3, 4, 5, 6, 7],   
+    KILLS_PER_WAVE: [1, 1, 1, 1, 1],   
     
     GOO_FIRST_SHOT_MIN: 1.2,
     GOO_FIRST_SHOT_MAX: 1.7,

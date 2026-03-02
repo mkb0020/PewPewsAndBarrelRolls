@@ -91,7 +91,9 @@ export class AudioManager {
         telegraph:   './audio/telegraph.m4a',
         prism:       './audio/prism.m4a',
         pop:         './audio/pop.m4a',
-        waveWorms:   './audio/waveWorms.m4a',
+        waveWorms:        './audio/waveWorms.m4a',
+        bossTransition1:  './audio/bossTransition1.m4a',
+        bossTransition2:  './audio/bossTransition2.m4a',
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -304,7 +306,9 @@ export class AudioManager {
   playConsumed()    { this._playSfx('consumed',     0.9); } // SHIP SPIRAL-IN DEATH
   playBabyWorms()   { this._playSfx('babyWorms',    1.0); } // BABY WORM SPIT ATTACK
   playWarning()     { this._playSfx('warning',      0.8); }
-  playWaveWormSfx() { this._playSfx('waveWorms',    0.4); } // WAVE WORM SPAWN CUE
+  playWaveWormSfx()    { this._playSfx('waveWorms',        0.4); } // WAVE WORM SPAWN CUE
+  playBossTransition1(){ this._playSfx('bossTransition1',  0.9); } // TUNNEL SURGE — WAVE 5 CLEARED
+  playBossTransition2(){ this._playSfx('bossTransition2',  0.9); } // DARKNESS HITS — WORM INCOMING
 
   // START LOOPING MUSIC FOR THE GIVEN WAVE (0-INDEXED)
   startWaveMusic(waveIndex) {
