@@ -19,6 +19,10 @@ export class Tunnel {
     this._slimeIntensity    = 0;
     this._slimeTarget       = 0;
 
+    // WAVE CLEAR PULSE — TRIPPY PINK/ORANGE DISTORTION STING BETWEEN WAVES
+    this._wavePulseIntensity = 0;
+    this._wavePulseTarget    = 0;
+
     // BOSS TRANSITION — THREE PHASES: SURGE → FLASH → EMERGENCE
     this._bossTransitionSurge       = 0;  // PHASE 1: SPEED x7, CRIMSON BLEED, ROLL RAMP
     this._bossTransitionSurgeTarget = 0;
@@ -153,10 +157,14 @@ export class Tunnel {
   setBossFlash(t)           { this._bossFlashTarget           = Math.max(0, Math.min(1, t)); }
   setBossEmergenceFog(t)    { this._bossEmergenceFogTarget    = Math.max(0, Math.min(1, t)); }
 
+  // ── WAVE CLEAR PULSE SETTER ────────────────────────────────────────────────
+  setWavePulse(t) { this._wavePulseTarget = Math.max(0, Math.min(1, t)); }
+
   resetBossTransition() {
     this._bossTransitionSurge = 0; this._bossTransitionSurgeTarget = 0;
     this._bossFlash           = 0; this._bossFlashTarget           = 0;
     this._bossEmergenceFog    = 0; this._bossEmergenceFogTarget    = 0;
+    this._wavePulseIntensity  = 0; this._wavePulseTarget           = 0;
   }
 
   update(dt) {
@@ -190,10 +198,16 @@ export class Tunnel {
     this._bossEmergenceFog += (this._bossEmergenceFogTarget - this._bossEmergenceFog) * befLerp;
     const bef = this._bossEmergenceFog;                            // EMERGENCE FOG: 0→1
 
-    // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP, SLIME CRAWLS, BOSS SURGE ROCKETS ──
+    // ── WAVE PULSE LERP — SNAPPY IN, GRADUAL FADE ────────────────────────────
+    const wpLerp = this._wavePulseTarget > this._wavePulseIntensity ? 0.18 : 0.025;
+    this._wavePulseIntensity += (this._wavePulseTarget - this._wavePulseIntensity) * wpLerp;
+    const wpi = this._wavePulseIntensity;                          // WAVE PULSE: 0→1
+
+    // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP, SLIME CRAWLS, BOSS SURGE ROCKETS, WAVE PULSE JOLTS ──
     const speedMult = (1 - sli * (1 - CONFIG.SLIME_ATTACK.TUNNEL_SPEED_MULT))
                     * (1 + si * 0.4 + ci * 3.5)
-                    * (1 + bts * 6.5);   // ← SURGE: 1x → 7.5x
+                    * (1 + bts * 6.5)
+                    * (1 + wpi * 1.6);   // ← WAVE PULSE: 1x → 2.6x jolt
     this._consumedSpeedMult = speedMult;
 
     // PROGRESS ALONG CURVE
@@ -206,8 +220,8 @@ export class Tunnel {
     const lookTarget = pos.clone().add(tangent);
     this.camera.lookAt(lookTarget);
 
-    // ROLL — CONSUMED SPINS HARD, SURGE RAMPS UP THE CHAOS
-    const rollAmt = CONFIG.TUNNEL.ROLL_AMOUNT + ci * 2.2 + bts * 1.8;
+    // ROLL — CONSUMED SPINS HARD, SURGE RAMPS UP THE CHAOS, WAVE PULSE ADDS A WOBBLE
+    const rollAmt = CONFIG.TUNNEL.ROLL_AMOUNT + ci * 2.2 + bts * 1.8 + wpi * 0.9;
     this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * rollAmt);
 
     // ── BACKGROUND COLOR — DEEP PURPLE → PURE BLACK → SLIME GREEN ────────────
@@ -259,21 +273,33 @@ export class Tunnel {
       col.lerp(flashColor, bf);
     }
 
+    // WAVE PULSE — SHIMMER BETWEEN HOT PINK (#c71585) AND ORANGE (#ff8800)
+    if (wpi > 0.01) {
+      const shimmer     = Math.sin(this.time * Math.PI * 7) * 0.5 + 0.5; // ~3.5Hz oscillation
+      const pink        = new THREE.Color(0xc71585);
+      const orange      = new THREE.Color(0xff8800);
+      const pulseColor  = new THREE.Color().lerpColors(pink, orange, shimmer);
+      // BRIGHTNESS RIDES THE SHIMMER SO IT FEELS ELECTRIC
+      pulseColor.multiplyScalar(0.85 + shimmer * 0.4);
+      col.lerp(pulseColor, wpi * 0.95);
+    }
+
     // PUSH COLOR TO ALL FOUR MATERIALS
     this.glowMat.color.copy(col);
     this.constrictedMat.color.copy(col);
     this.constrictedGlowMat.color.copy(col);
 
-    // ── OPACITY — SURGE PUMPS GLOW, FLASH SPIKES BOTH LAYERS, EMERGENCE BLACKS OUT ──
+    // ── OPACITY — SURGE PUMPS GLOW, FLASH SPIKES BOTH LAYERS, EMERGENCE BLACKS OUT, WAVE PULSE PUMPS GLOW ──
     const consumedPulse = 0.5 + 0.5 * Math.sin(this.time * 12 * (1 + ci * 3)); // FAST STROBE AS CI RISES
+    const wavePulseGlow = wpi * 0.3 * (0.5 + 0.5 * Math.sin(this.time * Math.PI * 7)); // GLOW THROBS WITH SHIMMER
     const dimEmergence  = 1 - bef * 0.88;   // EMERGENCE FADES TUNNEL TO ~12% OPACITY
-    this.material.opacity           = ((0.4  * (1 - si)) * (1 - ci * 0.6) + bf * 0.55) * dimEmergence;
-    this.glowMat.opacity            = ((0.15 * (1 - si)) * (1 - ci * 0.7) + ci * 0.08 * consumedPulse + bts * 0.22 + bf * 0.85) * dimEmergence;
+    this.material.opacity           = ((0.4  * (1 - si)) * (1 - ci * 0.6) + bf * 0.55 + wpi * 0.25) * dimEmergence;
+    this.glowMat.opacity            = ((0.15 * (1 - si)) * (1 - ci * 0.7) + ci * 0.08 * consumedPulse + bts * 0.22 + bf * 0.85 + wavePulseGlow) * dimEmergence;
     this.constrictedMat.opacity     = ((0.4  * si)       + ci * 0.55 * consumedPulse) * dimEmergence;
     this.constrictedGlowMat.opacity =  (ci * 0.22 * consumedPulse) * dimEmergence;
 
     // ── VERTICAL WAVE ─────────────────────────────────────────────────────────
-    const waveAmp = CONFIG.TUNNEL.VERTICAL_WAVE_AMPLITUDE + si * 55 + bts * 28;  // SURGE ADDS EXTRA JUDDER
+    const waveAmp = CONFIG.TUNNEL.VERTICAL_WAVE_AMPLITUDE + si * 55 + bts * 28 + wpi * 38;  // WAVE PULSE ADDS JUDDER
     this.camera.position.y += Math.sin(this.time * CONFIG.TUNNEL.VERTICAL_WAVE_SPEED) * waveAmp;
   }
 
