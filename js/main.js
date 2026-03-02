@@ -119,6 +119,8 @@ gameplayScene.onWaveCleared = (waveIndex) => {
 
   if (waveIndex < 4) {
     audio.playWaveTransition(); // WAVES 1-4 ONLY
+    tunnel.setWavePulse(1);
+    setTimeout(() => tunnel.setWavePulse(0), 3500); // FADE BACK BEFORE NEXT WAVE STARTS
     return;
   }
 
@@ -127,15 +129,16 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON 
   tunnel.setBossTransitionSurge(1);
   _bossTracerTarget = 1;
-  audio.playWarning();
+  audio.playBossTransition1(); // PHASE 1 SFX — TUNNEL SURGE
 
-  setTimeout(() => tunnel.setBossFlash(1), 5000); //  PHASE 2 (t=5s): RED  -> FLASHES
+  setTimeout(() => tunnel.setBossFlash(1), 1000); //  PHASE 2 (t=5s): RED  -> FLASHES
 
   setTimeout(() => {
     tunnel.setBossFlash(0);
     tunnel.setBossTransitionSurge(0);
     tunnel.setBossEmergenceFog(1);
-  }, 8000); // PHASE 3 (t=8s): FLASHES STOP AND CUT TO DARKNESS
+    audio.playBossTransition2(); // PHASE 3 SFX — DARKNESS HITS
+  }, 5000); // PHASE 3 (t=8s): FLASHES STOP AND CUT TO DARKNESS
 
 
   setTimeout(() => {
@@ -145,7 +148,7 @@ gameplayScene.onWaveCleared = (waveIndex) => {
     audio.stopMusic();
     audio.playWormIntro();
     audio.startBossMusic();
-  }, 9500); // PHASE 4 (t=9.5s): WORM ACTIVATES — EMERGES FROM FOG
+  }, 16000); // PHASE 4 (t=9.5s): WORM ACTIVATES — EMERGES FROM FOG
 };
 
 gameplayScene.onAllWavesComplete = () => {
