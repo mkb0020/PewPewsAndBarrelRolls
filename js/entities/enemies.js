@@ -421,21 +421,6 @@ export class Enemy {
       ctx.restore();
     }
 
-    // ─── TIMEOUT RING - REMOVE THIS ───
-    if (this.phase === 'COMBAT') {
-      const halfSprite = renderSize * 0.5;
-      const ringPct = this.combatTimer / this.config.COMBAT_DURATION;
-      const ringR   = halfSprite + 7;
-      ctx.save();
-      ctx.globalAlpha = CONFIG.ENEMIES.COMBAT_RING_ALPHA;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth   = 2;
-      ctx.lineCap     = 'round';
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, ringR, -Math.PI / 2, -Math.PI / 2 + ringPct * Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 
   takeDamage(amount = 1) {
@@ -500,7 +485,7 @@ export class EnemyManager {
     return 'FLIMFLAM';
   }
 
-  // ── WAVE CONTROL SETTERS — called by GameplayScene ───────────────────────
+  // ── WAVE CONTROL SETTERS — CALLED BY GameplayScene ───────────────────────
   setAllowedTypes(types, weights) {
     this._allowedTypes = types;
     this._spawnWeights = weights;

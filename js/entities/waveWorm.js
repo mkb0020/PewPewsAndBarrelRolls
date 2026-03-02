@@ -287,8 +287,6 @@ class WaveWorm {
       ctx.restore();
     }
 
-    const mag      = Math.sqrt(this.vx * this.vx + this.vy * this.vy); //  HEAD 
-    //const headAngle = -Math.PI / 2;
     const headAngle = 0;
 
     ctx.save();
