@@ -11,6 +11,7 @@ export class Menu {
     this._rafId        = null;
     this._onKey        = null;
     this._deviceScreen = null;
+    this._photoScreen  = null;
 
     this._atmosContext = null;  
     this._atmosSource  = null;  
@@ -43,11 +44,38 @@ export class Menu {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         this._overlay.classList.add('visible');
-        setTimeout(() => this._deviceScreen?.classList.add('visible'), 180);
+        setTimeout(() => this._showPhotoWarning(), 180);
       });
     });
 
     return new Promise(resolve => { this._resolve = resolve; });
+  }
+
+  // ======================= PHOTOSENSITIVITY WARNING =======================
+  _showPhotoWarning() {
+    this._photoScreen = this._overlay.querySelector('#photosensitivity-screen');
+    if (!this._photoScreen) {
+      this._deviceScreen?.classList.add('visible');
+      return;
+    }
+
+    this._photoScreen.classList.remove('visible', 'exit');
+    this._photoScreen.style.display = '';
+    this._photoScreen.classList.add('visible');
+
+    this._photoScreen.querySelector('#photo-btn-ok')
+      ?.addEventListener('click', () => this._onPhotoAck(), { once: true });
+  }
+
+  _onPhotoAck() {
+    if (!this._photoScreen?.classList.contains('visible')) return;
+    this._photoScreen.classList.remove('visible');
+    this._photoScreen.classList.add('exit');
+
+    setTimeout(() => {
+      this._photoScreen.style.display = 'none';
+      this._deviceScreen?.classList.add('visible');
+    }, 460);
   }
 
   // ======================= DEVICE SCREEN =======================
@@ -70,12 +98,6 @@ export class Menu {
   _onDeviceSelect(mobile) {
     if (!this._deviceScreen?.classList.contains('visible')) return;
     setMobileMode(mobile);
-
-    // UNLOCK AUDIO HERE — THIS IS THE EARLIEST USER GESTURE IN THE GAME.
-    // MUST BE CALLED SYNCHRONOUSLY INSIDE THE CLICK HANDLER (NOT AFTER AN AWAIT)
-    // SO IOS SAFARI RECOGNISES IT AS PART OF THE GESTURE AND RESUMES THE CONTEXT.
-    if (this._onStart) { this._onStart(); this._onStart = null; }
-
     this._startAtmosphere();
     this._deviceScreen.classList.remove('visible');
     this._deviceScreen.classList.add('exit');
@@ -112,7 +134,7 @@ export class Menu {
     const slider     = this._overlay?.querySelector('#dev-enemy-count');
     const enemyCount = DEV_MODE ? parseInt(slider?.value ?? '5', 10) : 5;
 
-    if (this._onStart) { this._onStart(); this._onStart = null; } // FALLBACK — NORMALLY FIRED IN _onDeviceSelect
+    if (this._onStart) { this._onStart(); this._onStart = null; }
 
     this._stopAtmosphere();
 
@@ -127,58 +149,37 @@ export class Menu {
   }
 
   // ======================= ATMOSPHERE AUDIO =======================
-  _startAtmosphere() {
-    // IOS FIX: NO async/await HERE — this is called synchronously inside _onDeviceSelect
-    // which is a user gesture click handler. Any await would break the gesture trust
-    // chain and cause the AudioContext to remain suspended on iOS Safari.
+  async _startAtmosphere() {
     try {
       if (!this._atmosContext) {
         this._atmosContext = new (window.AudioContext || window.webkitAudioContext)();
       }
-      // FIRE-AND-FORGET 
       if (this._atmosContext.state === 'suspended') {
-        this._atmosContext.resume().catch(() => {});
+        await this._atmosContext.resume();
       }
 
-      // DECODE AND PLAY ASYNCHRONOUSLY 
-      const doPlay = (arrayBuf) => {
+      if (!this._atmosBuffer) {
+        const arrayBuf = await this._atmosRawProm;
         if (!arrayBuf) return;
-        this._atmosContext.decodeAudioData(arrayBuf).then(buffer => {
-          this._atmosBuffer = buffer;
-          this._stopAtmosphereSource();
-
-          const source    = this._atmosContext.createBufferSource();
-          source.buffer   = this._atmosBuffer;
-          source.loop     = true; // SAMPLE-ACCURATE GAPLESS LOOP
-
-          const gain      = this._atmosContext.createGain();
-          gain.gain.value = 0.6;
-
-          source.connect(gain);
-          gain.connect(this._atmosContext.destination);
-          source.start(0);
-
-          this._atmosSource = source;
-          this._atmosGain   = gain;
-          console.log('♫ Menu atmosphere started (gapless loop)');
-        }).catch(e => console.warn('⚠ Atmosphere decode failed:', e));
-      };
-
-      if (this._atmosBuffer) {
-        this._stopAtmosphereSource();
-        const source    = this._atmosContext.createBufferSource();
-        source.buffer   = this._atmosBuffer;
-        source.loop     = true;
-        const gain      = this._atmosContext.createGain();
-        gain.gain.value = 0.6;
-        source.connect(gain);
-        gain.connect(this._atmosContext.destination);
-        source.start(0);
-        this._atmosSource = source;
-        this._atmosGain   = gain;
-      } else {
-        this._atmosRawProm.then(doPlay).catch(() => {});
+        this._atmosBuffer = await this._atmosContext.decodeAudioData(arrayBuf);
       }
+
+      this._stopAtmosphereSource();
+
+      const source    = this._atmosContext.createBufferSource();
+      source.buffer   = this._atmosBuffer;
+      source.loop     = true; // SAMPLE-ACCURATE GAPLESS LOOP
+
+      const gain      = this._atmosContext.createGain();
+      gain.gain.value = 0.6;
+
+      source.connect(gain);
+      gain.connect(this._atmosContext.destination);
+      source.start(0);
+
+      this._atmosSource = source;
+      this._atmosGain   = gain;
+      console.log('♫ Menu atmosphere started (gapless loop)');
     } catch (e) {
       console.warn('⚠ Atmosphere audio failed:', e);
     }
