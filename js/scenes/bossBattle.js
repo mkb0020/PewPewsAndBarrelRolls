@@ -16,6 +16,7 @@ export class BossBattleScene {
     //  INTERNAL STATE 
     this._wormBattleStarted = false;
     this._warningSounded    = false;
+    this._battleReady       = false; 
 
     //  CALLBACKS (main.js  ) 
     this.onCinematicStart = null;   
@@ -49,7 +50,7 @@ export class BossBattleScene {
   }
 
   /**
-   * Must run every frame even while paused — keeps health bar opacity smooth.
+   * MUST RUN EVERY FRAME WHILE PAUSED - KEEPS HEALTH BAR OPACITY SMOOTH
    */
   updateHUD() {
     const wb  = this.wormBoss;
@@ -77,7 +78,8 @@ export class BossBattleScene {
   processProjectileHit(projectile) {
     const seg = projectile.getSegment();
 
-    // PROJECTILE vs WORM BOSS
+    // PROJECTILE vs WORM BOSS — BLOCKED UNTIL BATTLE IS READY / RISER STOPS / MUSIC STARTS
+    if (!this._battleReady) return false;
     const wormHit = this.wormBoss.checkProjectileHit(seg);
     if (wormHit.hit) {
       this.projectileManager.removeProjectile(projectile);
@@ -114,9 +116,16 @@ export class BossBattleScene {
   reset() {
     this._wormBattleStarted = false;
     this._warningSounded    = false;
+    this._battleReady       = false; 
   }
 
-  // ── GETTERS ────────────────────────────────────────────────────────────────
+  /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
+  readyForBattle() {
+    this._battleReady = true;
+    console.log('⚔ Battle ready — boss damage unlocked');
+  }
+
+  //  GETTERS 
   get isSuctionActive() {
     return this.wormBoss.isActive
       && !this.wormBoss.isDead
@@ -133,8 +142,10 @@ export class BossBattleScene {
 
     wormBoss.onIntro = () => {
       audio.stopMusic();
-      audio.startBossMusic();
+      audio.startBossMusic(); 
       ImageLoader.load('slime');
+      const riserMs = (audio._introBuffer?.duration ?? 10) * 1000;
+      setTimeout(() => this.readyForBattle(), riserMs);
     };
 
     wormBoss.onDeathPauseEnd = () => {
@@ -172,8 +183,6 @@ export class BossBattleScene {
         if (!transitionScene.isGameOver) {
           wormBoss.activate();
           this.onCinematicEnd?.();
-          audio.playWormIntro();
-          audio.startBossMusic();
         }
       }, 10000);
     };

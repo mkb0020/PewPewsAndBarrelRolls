@@ -1625,6 +1625,99 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 
+
+
+/* ========================= BOSS TRANSMISSION TERMINAL ========================= */
+
+#boss-terminal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(320px, 55vw, 650px);
+  height: 260px;
+  z-index: 50;   
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(103, 254, 189, 0.025) 2px,
+      rgba(103, 254, 189, 0.025) 4px
+    ),
+    linear-gradient(160deg, rgba(4, 14, 12, 0.96) 0%, rgba(2, 8, 7, 0.98) 100%);
+
+  border: 1px solid rgba(103, 254, 189, 0.35);
+  border-top: 1px solid rgba(103, 254, 189, 0.6);
+  border-radius: 6px;
+  padding: 0 0 1.4rem;
+
+  box-shadow:
+    0 0 40px rgba(103, 254, 189, 0.12),
+    0 0 2px  rgba(103, 254, 189, 0.4),
+    inset 0 1px 0 rgba(103, 254, 189, 0.08);
+
+  filter: drop-shadow(0 0 18px rgba(103, 254, 189, 0.2));
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+#boss-terminal::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(103, 254, 189, 0.9), transparent);
+  border-radius: 2px;
+}
+
+#boss-terminal.visible {
+  opacity: 1;
+}
+
+#boss-terminal-text {
+  padding: 0.2rem 1.6rem 0;
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+/* ── Glitch scanline overlay — activates via JS class ── */
+#boss-terminal.glitching::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(255, 60, 60, 0.04) 3px,
+    rgba(255, 60, 60, 0.04) 4px
+  );
+  pointer-events: none;
+  animation: boss-terminal-scanline 0.08s steps(1) infinite;
+}
+
+@keyframes boss-terminal-scanline {
+  0%   { transform: translateY(0); }
+  25%  { transform: translateY(-2px); }
+  50%  { transform: translateY(1px); }
+  75%  { transform: translateY(-1px); }
+  100% { transform: translateY(0); }
+}
+
+@media (max-width: 980px) {
+  #boss-terminal {
+    height: 180px;
+  }
+}
+
 /* ========================= CLOSING SCENE ========================= */
 #closing-credits {
   position: fixed;
@@ -1720,5 +1813,9 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
 #opening-terminal {
   height: 180px;
+}
+
+#boss-terminal{
+  height: 250px;
 }
 }

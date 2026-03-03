@@ -82,7 +82,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, // TESTING
+        HEALTH: 1, // FOR TESTING
         SCORE: 10,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 9,
@@ -99,7 +99,7 @@ export const CONFIG = {
         SPEED: 300,
         COLOR: '#ff3366',
         GLOW_COLOR: '#ff3366',
-        HEALTH: 7, // TESTING
+        HEALTH: 1, // FOR TESTING
         SCORE: 20,
         SPRITE_FRAMES: 6,
         ANIM_SPEED: 12,
@@ -116,7 +116,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10, // TESTING
+        HEALTH: 1, // FOR TESTING
         SCORE: 50,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 7,
@@ -133,7 +133,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 7, // TESTING
+        HEALTH: 1, // FOR TESTING
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
@@ -152,7 +152,7 @@ export const CONFIG = {
         SPEED: 260,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10, // TESTING
+        HEALTH: 1, // FOR TESTING
         SCORE: 40,
         SPRITE_FRAMES: 8,       // TOTAL: 3 WINGS + 1RED EYE TELEGRAPH + 4 NORMAL BODY
         WING_FRAMES: 3,         // FRAMES 0-2
@@ -349,12 +349,12 @@ EXPLOSIONS: {
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
-    HEALTH:            5, // TESTING
+    HEALTH:            1, // FOR TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 10.0, // TESTING
-    FIRST_SPAWN_DELAY_MAX: 15.0,// TESTING
-    SPAWN_GAP_MIN:         7,   // TESTING
-    SPAWN_GAP_MAX:         12, // TESTING
+    FIRST_SPAWN_DELAY_MIN: 1.0, // FOR TESTING
+    FIRST_SPAWN_DELAY_MAX: 1.5,// FOR TESTING
+    SPAWN_GAP_MIN:         7,   // FOR TESTING
+    SPAWN_GAP_MAX:         10, // FOR TESTING
 
     KILLS_PER_WAVE: [1, 1, 1, 1, 1],   
     

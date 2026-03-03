@@ -23,6 +23,8 @@ import { BossBattleScene }                           from './scenes/bossBattle.j
 import { StarfieldScene }                            from './visuals/starfieldScene.js';
 import { OpeningScene }                              from './scenes/openingScene.js';
 import { ClosingScene }                              from './scenes/closingScene.js';
+import { BossTransmission }                          from './scenes/bossTransmission.js';
+
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 
@@ -59,6 +61,7 @@ const gameplayScene     = new GameplayScene({
 const transitionScene   = new TransitionScene();
 const starfield         = new StarfieldScene(tunnel.renderer);
 const openingScene      = new OpeningScene(starfield, audio);
+const bossTransmission  = new BossTransmission();
 const closingScene      = new ClosingScene(starfield, tunnel, audio);
 const bossBattleScene   = new BossBattleScene({
   wormBoss,
@@ -125,38 +128,40 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   audio.playImpact();
 
   if (waveIndex < 4) {
-    //audio.playWaveTransition(); // WAVES 1-4 ONLY
-    audio.playWaveTransition(waveIndex + 1);
+    audio.playWaveTransition(waveIndex + 1); // WAVES 1-4 ONLY
     tunnel.setWavePulse(1);
     setTimeout(() => tunnel.setWavePulse(0), 3500); // FADE BACK BEFORE NEXT WAVE STARTS
     return;
   }
 
   // ══════ AFTER KILLING FINAL WAVE WORM - DRAMATIC TRANSITION TO BOSS BATTLE ══════
+
   showWaveHUD(false);
-  // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON 
-  tunnel.setBossTransitionSurge(1);
+  tunnel.setBossTransitionSurge(1); // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON
   _bossTracerTarget = 1;
   audio.playBossTransition1(); // PHASE 1 SFX — TUNNEL SURGE
 
-  setTimeout(() => tunnel.setBossFlash(1), 1000); //  PHASE 2 (t=5s): RED  -> FLASHES
+  setTimeout(() => tunnel.setBossFlash(1), 1000); // PHASE 2 (t=1s): RED -> FLASHES
 
   setTimeout(() => {
     tunnel.setBossFlash(0);
     tunnel.setBossTransitionSurge(0);
     tunnel.setBossEmergenceFog(1);
     audio.playBossTransition2(); // PHASE 3 SFX — DARKNESS HITS
-  }, 5000); // PHASE 3 (t=8s): FLASHES STOP AND CUT TO DARKNESS
+  }, 5000); // PHASE 3 (t=5s): FLASHES STOP AND CUT TO DARKNESS
 
+  setTimeout(() => {
+    bossTransmission.play();
+  }, 7000); // (t=7s): DEEP SPACE COMMAND TRANSMISSION BEGINS - TRANSMISSION APPEARS 2 SECONDS INTO BLACKOUT
 
   setTimeout(() => {
     const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
     transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
+    bossTransmission.hide();
     wormBoss.activate();
     audio.stopMusic();
-    audio.playWormIntro();
-    audio.startBossMusic();
-  }, 16000); // PHASE 4 (t=9.5s): WORM ACTIVATES — EMERGES FROM FOG
+  }, 16000); // PHASE 4 (t=16s): WORM ACTIVATES — EMERGES FROM FOG
+
 };
 
 gameplayScene.onAllWavesComplete = () => {
@@ -494,8 +499,6 @@ function gameLoop() {
     }
   }
 
-
-  // THREE.JS RENDER 
   if (!closingScene.isActive()) tunnel.render();
 
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
@@ -606,7 +609,6 @@ function gameLoop() {
     ocularPrism.render(ctx);
   }
 
-  // CLOSING SCENE 
   closingScene.renderFlash(ctx);
 }
 
@@ -621,15 +623,12 @@ async function startup() {
   currentEnemyCount = enemyCount;
   console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
 
-  // ── OPENING CINEMATIC ──
   await openingScene.play(true); 
   console.log('✔ Opening scene complete');
 
   // REVEAL HUD AND MOBILE CONTROLS AFTER OPENING SCENE
   document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden'));
   revealMobileControls();
-
-  if (mode === 'bossBattle') audio.startBossMusic(); // GAMEPLAY WAVE MUSIC FIRES VIA onWaveStart
 
   if (mode === 'bossBattle') {
     CONFIG.ENEMIES.MAX_COUNT = 0;
