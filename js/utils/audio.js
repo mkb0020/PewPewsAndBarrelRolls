@@ -18,11 +18,13 @@ export class AudioManager {
     // ====== MUSIC — WEB AUDIO API ======
     this._introBuffer        = null;
     this._bossBuffer         = null;
+    this._creditsBuffer      = null;
     this._musicSource        = null;
     this._introSource        = null;
     this._musicGain          = null;
     this._introDecodePromise = null;
     this._bossDecodePromise  = null;
+    this._creditsDecodePromise = null;
 
     // ====== WAVE MUSIC — ONE BUFFER PER WAVE + TRANSITION ======
     this._waveMusicBuffers      = new Array(5).fill(null); // wave1–5.m4a
@@ -61,6 +63,8 @@ export class AudioManager {
         .then(buf => { this._introBuffer = buf; console.log('✔ Intro buffer ready');      return buf; });
       this._bossDecodePromise  = this._prefetchAndDecode('./audio/bossBattle.m4a')
         .then(buf => { this._bossBuffer  = buf; console.log('✔ Boss music buffer ready'); return buf; });
+      this._creditsDecodePromise = this._prefetchAndDecode('./audio/credits.m4a')
+        .then(buf => { this._creditsBuffer = buf; console.log('✔ Credits music buffer ready'); return buf; });
 
       // PRELOAD WAVE MUSIC (wave1–5) + TRANSITION
       for (let i = 0; i < 5; i++) {
@@ -94,6 +98,7 @@ export class AudioManager {
         waveWorms:        './audio/waveWorms.m4a',
         bossTransition1:  './audio/bossTransition1.m4a',
         bossTransition2:  './audio/bossTransition2.m4a',
+        static:           './audio/static.m4a',
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -177,6 +182,18 @@ export class AudioManager {
     this._stopMusicSource();
   }
 
+  startCreditsMusic() {
+    if (this.isMuted) return;
+    if (!this._creditsBuffer) {
+      this._creditsDecodePromise.then(() => {
+        if (!this.isMuted) this._playBuffer(this._creditsBuffer);
+      });
+      return;
+    }
+    this._playBuffer(this._creditsBuffer);
+    console.log('♫ Credits music started');
+  }
+
   startBossMusic() {
     if (this.isMuted) return;
     if (!this._introBuffer || !this._bossBuffer) {
@@ -255,6 +272,11 @@ export class AudioManager {
         setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
       } catch (_) {}
     };
+  }
+
+  // LOOPING STATIC — OPENING SCENE TRANSMISSION EFFECT
+  startLoopStatic(volume = 0.55) {
+    return this._startLoop('static', volume);
   }
 
   // LOOPING TELEGRAPH WHISPER

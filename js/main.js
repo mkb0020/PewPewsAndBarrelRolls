@@ -20,6 +20,9 @@ import { WaveWormManager }                           from './entities/waveWorm.j
 import { GameplayScene }                             from './scenes/gameplay.js';
 import { TransitionScene }                           from './scenes/transitions.js';
 import { BossBattleScene }                           from './scenes/bossBattle.js';
+import { StarfieldScene }                            from './visuals/starfieldScene.js';
+import { OpeningScene }                              from './scenes/openingScene.js';
+import { ClosingScene }                              from './scenes/closingScene.js';
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 
@@ -54,6 +57,9 @@ const gameplayScene     = new GameplayScene({
   audio,
 });
 const transitionScene   = new TransitionScene();
+const starfield         = new StarfieldScene(tunnel.renderer);
+const openingScene      = new OpeningScene(starfield, audio);
+const closingScene      = new ClosingScene(starfield, tunnel, audio);
 const bossBattleScene   = new BossBattleScene({
   wormBoss,
   babyWormManager,
@@ -110,7 +116,7 @@ gameplayScene.onWormKill = (kills, required) => {
 gameplayScene.onWaveStart = (waveIndex) => {
   updateWaveCounter(0, waveWormManager.getRequired());
   showWaveHUD(true);
-  audio.startWaveMusic(waveIndex); // 🎵 KICK OFF THIS WAVE'S LOOP
+  if (waveIndex > 0) audio.startWaveMusic(waveIndex); // 🎵 WAVE 1 MUSIC FIRED BY openingScene
 };
 
 gameplayScene.onWaveCleared = (waveIndex) => {
@@ -174,6 +180,15 @@ bossBattleScene.onCinematicEnd   = () => ship.exitCinematic();
 bossBattleScene.onCheckpoint     = () => {
   const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
   transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
+};
+
+// ==================== WORM DEATH → CLOSING SCENE ====================
+wormBoss.onDeath = () => {
+  audio.stopMusic();
+  ship.exitCinematic();
+  projectileManager.clear(); // CLEAR EXPLOSIONS + PROJECTILES BEFORE SCENE SWAP
+  closingScene.start();
+  console.log('★ Worm defeated — closing scene triggered');
 };
 
 // ==================== SHIP CALLBACKS ====================
@@ -360,35 +375,44 @@ function gameLoop() {
   lastTime  = now;
 
   if (!isPaused && !transitionScene.isBlocking) {
-    tunnel.update(dt);
-    const shipOffset = ship.getOffset();
-    tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
 
-    const suctionOn = bossBattleScene.isSuctionActive; // TUNNEL REACTS TO WORM SUCTION ATTACK
-    tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
+    //  THREE.JS BACKGROUND 
+    if (closingScene.isActive()) {
+      closingScene.update(dt);         
+      starfield.render();              
+      ship.update(dt);                 // SHIP STAYS CONTROLLABLE IN OPEN SPACE
+    } else {
+      tunnel.update(dt);
+      const shipOffset = ship.getOffset();
+      tunnel.updateShipOffset(shipOffset.x, shipOffset.y);
 
-    //  SLIME ATTACK UPDATE 
-    const glorks     = enemyManager.getEnemies().filter(e => e.type === 'TANK');
-    const activeGlork = glorks.find(g => g.scale > CONFIG.SLIME_ATTACK.MIN_SCALE);
-    const gx = activeGlork ? activeGlork.x : window.innerWidth  / 2;
-    const gy = activeGlork ? activeGlork.y : window.innerHeight / 2;
-    slimeAttack.update(dt, gx, gy, ship.x, ship.y);
+      const suctionOn = bossBattleScene.isSuctionActive;
+      tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
 
-    tunnel.setSlimeIntensity(slimeAttack.getSlimeIntensity());
-    ship.setSlimeHeaviness(slimeAttack.getSlimeIntensity());
+      //  SLIME ATTACK UPDATE
+      const glorks      = enemyManager.getEnemies().filter(e => e.type === 'TANK');
+      const activeGlork = glorks.find(g => g.scale > CONFIG.SLIME_ATTACK.MIN_SCALE);
+      const gx = activeGlork ? activeGlork.x : window.innerWidth  / 2;
+      const gy = activeGlork ? activeGlork.y : window.innerHeight / 2;
+      slimeAttack.update(dt, gx, gy, ship.x, ship.y);
 
-    ship.update(dt);
-    crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
-    enemyManager.update(dt, ship.x, ship.y);
-    gameplayScene.update(dt, ship.x, ship.y);
-    bossBattleScene.update(dt, ship);   // WORM + BABY + SUCTION + CHECKPOINT
-    projectileManager.update(dt);
+      tunnel.setSlimeIntensity(slimeAttack.getSlimeIntensity());
+      ship.setSlimeHeaviness(slimeAttack.getSlimeIntensity());
 
-    if (wormBoss.isActive) {
-      if (wormBoss.alpha > 0.5)  tunnel.setBossEmergenceFog(0); // FOG FADE OUT
-      if (wormBoss.alpha > 0.85) _bossTracerTarget = 0;         // TRACER FADE OUT
+      ship.update(dt);
+      crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
+      enemyManager.update(dt, ship.x, ship.y);
+      gameplayScene.update(dt, ship.x, ship.y);
+      bossBattleScene.update(dt, ship);
+      projectileManager.update(dt);
+
+      if (wormBoss.isActive) {
+        if (wormBoss.alpha > 0.5)  tunnel.setBossEmergenceFog(0);
+        if (wormBoss.alpha > 0.85) _bossTracerTarget = 0;
+      }
+      _bossTracerIntensity += (_bossTracerTarget - _bossTracerIntensity) * 0.04;
     }
-    _bossTracerIntensity += (_bossTracerTarget - _bossTracerIntensity) * 0.04;
+
     muzzleFlash.update(dt);
     scoreManager.update(dt);
     ocularPrism.update(dt);
@@ -469,16 +493,20 @@ function gameLoop() {
   }
 
 
-  tunnel.render();
+  // THREE.JS RENDER 
+  if (!closingScene.isActive()) tunnel.render();
+
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-  projectileManager.draw(ctx);
-  crosshair.draw(ctx);
-  wormBoss.draw(ctx);
-  babyWormManager.draw(ctx);
-  gameplayScene.drawBehindEnemies(ctx);  // WORM IS DISTANT — DRAW UNDER ENEMIES
-  enemyManager.draw(ctx);
-  gameplayScene.drawAboveEnemies(ctx);   // WORM IS LARGE — DRAW OVER ENEMIES, UNDER SHIP
+  if (!closingScene.isActive()) {
+    projectileManager.draw(ctx);
+    crosshair.draw(ctx);
+    wormBoss.draw(ctx);
+    babyWormManager.draw(ctx);
+    gameplayScene.drawBehindEnemies(ctx);
+    enemyManager.draw(ctx);
+    gameplayScene.drawAboveEnemies(ctx);
+  }
 
   slimeAttack.draw(ctx);
 
@@ -575,6 +603,9 @@ function gameLoop() {
     ocularPrism.captureFrame(tunnel.renderer.domElement, gameCanvas);
     ocularPrism.render(ctx);
   }
+
+  // CLOSING SCENE 
+  closingScene.renderFlash(ctx);
 }
 
 // ==================== STARTUP ====================
@@ -584,10 +615,15 @@ async function startup() {
 
   const { mode, enemyCount } = await menu.show(tunnel, () => audio.start());
 
-  if (mode === 'bossBattle') audio.startBossMusic(); // GAMEPLAY WAVE MUSIC FIRES VIA onWaveStart
   currentMode       = mode;
   currentEnemyCount = enemyCount;
   console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
+
+  // ── OPENING CINEMATIC ──
+  await openingScene.play();
+  console.log('✔ Opening scene complete');
+
+  if (mode === 'bossBattle') audio.startBossMusic(); // GAMEPLAY WAVE MUSIC FIRES VIA onWaveStart
 
   if (mode === 'bossBattle') {
     CONFIG.ENEMIES.MAX_COUNT = 0;
