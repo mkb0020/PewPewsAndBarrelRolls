@@ -55,14 +55,13 @@ export class StarfieldScene {
   }
 
   // ======================== PUBLIC API ========================
-
   /** START RENDERING STARFIELD THROUGH SHARED RENDERER*/
   start() {
     this._active = true;
     console.log('★ StarfieldScene started');
   }
 
-  /** Stop rendering — renderer returns to whoever calls it next */
+  /** STOP RENDERING - RENDERER RETURNS TO WHOEVER CALLS IT NEXT */
   stop() {
     this._active = false;
     console.log('★ StarfieldScene stopped');
