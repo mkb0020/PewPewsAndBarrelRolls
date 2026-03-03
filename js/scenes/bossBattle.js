@@ -160,15 +160,29 @@ export class BossBattleScene {
       babyWormManager.triggerSlimeSplat(w, h);
     };
 
-    wormBoss.onSegmentDeath = (x, y, segIndex) => {
-      projectileManager.createExplosion(x, y);
-      if (segIndex === 0) {
-        audio.playWormDeath3();
-        audio.stopMusic();
-        setTimeout(() => projectileManager.createExplosion(x + 20, y - 15), 60);
-        setTimeout(() => projectileManager.createExplosion(x - 15, y + 20), 120);
-      }
-    };
+
+  wormBoss.onSegmentDeath = (x, y, segIndex) => {
+    projectileManager.createExplosion(x, y);
+
+    if (segIndex === 0) {  // HEAD — GRAND FINALE
+      audio.playWormDeath3();
+      audio.stopMusic();
+
+      // PRE-WARM BOTH LAZY SPRITES SO THEY'RE READY BY FINALE TIME
+      ImageLoader.load('zap');
+      ImageLoader.load('spiral');
+
+      // ZAP CLUSTER — FOUR OVERLAPPING BURSTS SCATTERED AROUND THE HEAD
+      setTimeout(() => projectileManager.createExplosion(x + 35,  y - 20,  'zap'), 25);
+      setTimeout(() => projectileManager.createExplosion(x - 30,  y + 30,  'zap'), 50);
+      setTimeout(() => projectileManager.createExplosion(x + 15,  y + 40,  'zap'), 75);
+      setTimeout(() => projectileManager.createExplosion(x - 40,  y - 25,  'zap'), 100);
+
+      setTimeout(() => projectileManager.createExplosion(x, y, 'spiral'), 110);
+      setTimeout(() => projectileManager.burstSmoke(x, y), 130);
+    }
+  };
+
 
     wormBoss.onDeath = () => {
       this.updateHUD(); // SNAP BAR TO 0

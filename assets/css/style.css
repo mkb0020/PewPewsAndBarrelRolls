@@ -1489,9 +1489,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 /* ========================= OPENING SCENE ========================= */
-
-
-
 #opening-cockpit {
   position: fixed;
   inset: 0;
@@ -1628,7 +1625,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
 
 /* ========================= BOSS TRANSMISSION TERMINAL ========================= */
-
 #boss-terminal {
   position: fixed;
   left: 50%;
@@ -1688,7 +1684,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   gap: 0.55rem;
 }
 
-/* ── Glitch scanline overlay — activates via JS class ── */
 #boss-terminal.glitching::after {
   content: '';
   position: absolute;
@@ -1719,6 +1714,60 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 /* ========================= CLOSING SCENE ========================= */
+#closing-victory {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  z-index: 14;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+#closing-victory.visible {
+  opacity: 1;
+}
+
+#victory-headline {
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(1.5rem, 6vw, 5rem);
+  letter-spacing: 0.4em;
+    background: linear-gradient(135deg, #e25513 0%,
+    #c71585 25%,
+    #8a2be2 45%,
+    #00ffff 70%,
+    #67febd 80%,
+    #58e84c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-transform: uppercase;
+}
+
+#victory-sub {
+  font-family: 'SpaceLetters', 'Orbitron', monospace;
+  font-size: clamp(0.55rem, 1.8vw, 1rem);
+  letter-spacing: 0.25em;
+  color: rgba(200, 180, 255, 0.8);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+#victory-score {
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+  letter-spacing: 0.3em;
+  color: #67febd;
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+}
+
+
+
 #closing-credits {
   position: fixed;
   inset: 0;
@@ -1730,7 +1779,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   z-index: 15;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.8s ease;
+  transition: opacity 2s ease;
 }
 
 #closing-credits.visible {
@@ -1779,7 +1828,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   font-size: clamp(0.55rem, 2vw, 0.8rem);
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: #00FFFF; /*67FEBD*/
+  color: #00FFFF;
   text-align: center;
 }
 
@@ -1788,7 +1837,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   font-size: clamp(0.85rem, 1.7vw, 1rem);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #FFC7FF; /*FFC7FF*/
+  color: #FFC7FF; 
   text-align: center;
 }
 
@@ -1800,7 +1849,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 .credit-hidden {
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition: opacity 0.6s ease, transform 2s ease;
 }
 
 .credit-visible {

@@ -190,16 +190,27 @@ export class AudioManager {
     this._stopMusicSource();
   }
 
-  startCreditsMusic() {
+  startCreditsMusic(fadeDuration = 3.0) {
     if (this.isMuted) return;
+    const play = () => {
+      if (!this._creditsBuffer || !this.context) return;
+      this._stopMusicSource();
+      const source  = this.context.createBufferSource();
+      source.buffer = this._creditsBuffer;
+      source.loop   = true;
+      source.connect(this._musicGain);
+      // FADE IN FROM SILENCE
+      this._musicGain.gain.setValueAtTime(0, this.context.currentTime);
+      this._musicGain.gain.linearRampToValueAtTime(this.MUSIC_VOLUME, this.context.currentTime + fadeDuration);
+      source.start(0);
+      this._musicSource = source;
+      console.log('♫ Credits music fading in');
+    };
     if (!this._creditsBuffer) {
-      this._creditsDecodePromise.then(() => {
-        if (!this.isMuted) this._playBuffer(this._creditsBuffer);
-      });
+      this._creditsDecodePromise.then(() => { if (!this.isMuted) play(); });
       return;
     }
-    this._playBuffer(this._creditsBuffer);
-    console.log('♫ Credits music started');
+    play();
   }
 
   startBossMusic() {

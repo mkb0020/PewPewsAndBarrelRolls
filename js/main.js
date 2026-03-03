@@ -135,7 +135,6 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   }
 
   // ══════ AFTER KILLING FINAL WAVE WORM - DRAMATIC TRANSITION TO BOSS BATTLE ══════
-
   showWaveHUD(false);
   tunnel.setBossTransitionSurge(1); // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON
   _bossTracerTarget = 1;
@@ -175,10 +174,10 @@ gameplayScene.onGooHit = () => {
 };
 
 // ==================== WAVE WORM CALLBACKS ====================
-waveWormManager.onWormSpawn  = () => audio.playWaveWormSfx(); // 🎵 8-SEC SPAWN CUE
+waveWormManager.onWormSpawn  = () => audio.playWaveWormSfx(); 
 
 waveWormManager.onWormKilled = (x, y) => {
-  projectileManager.createExplosion(x, y, 'zap'); // ⚡ ZAP SPRITE — 6 FRAMES
+  projectileManager.createExplosion(x, y, 'zap'); 
 };
 
 // ==================== BOSS BATTLE SCENE CALLBACKS ====================
@@ -193,8 +192,11 @@ bossBattleScene.onCheckpoint     = () => {
 wormBoss.onDeath = () => {
   audio.stopMusic();
   ship.exitCinematic();
-  projectileManager.clear(); // CLEAR EXPLOSIONS + PROJECTILES BEFORE SCENE SWAP
-  closingScene.start();
+  document.querySelectorAll('#hud, #hp-container, #lives-container, #boss-health-container, #wave-hud, #ui-buttons')
+    .forEach(el => el.classList.add('pre-game-hidden'));
+  const rawScore = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
+  closingScene.start(parseInt(rawScore, 10) || 0);
+  setTimeout(() => projectileManager.clear(), 11000);
   console.log('★ Worm defeated — closing scene triggered');
 };
 
@@ -411,7 +413,6 @@ function gameLoop() {
       enemyManager.update(dt, ship.x, ship.y);
       gameplayScene.update(dt, ship.x, ship.y);
       bossBattleScene.update(dt, ship);
-      projectileManager.update(dt);
 
       if (wormBoss.isActive) {
         if (wormBoss.alpha > 0.5)  tunnel.setBossEmergenceFog(0);
@@ -419,7 +420,7 @@ function gameLoop() {
       }
       _bossTracerIntensity += (_bossTracerTarget - _bossTracerIntensity) * 0.04;
     }
-
+    projectileManager.update(dt);
     muzzleFlash.update(dt);
     scoreManager.update(dt);
     ocularPrism.update(dt);
@@ -499,18 +500,20 @@ function gameLoop() {
     }
   }
 
-  if (!closingScene.isActive()) tunnel.render();
+  if (!closingScene.shouldHideTunnel) tunnel.render();
+
 
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-  if (!closingScene.isActive()) {
-    projectileManager.draw(ctx);
-    crosshair.draw(ctx);
-    wormBoss.draw(ctx);
-    babyWormManager.draw(ctx);
-    gameplayScene.drawBehindEnemies(ctx);
-    enemyManager.draw(ctx);
-    gameplayScene.drawAboveEnemies(ctx);
+ 
+  projectileManager.draw(ctx); // ALWAYS DRAW — EXPLOSIONS MUST SURVIVE INTO CLOSING SCENE
+    if (!closingScene.isActive()) {
+      wormBoss.draw(ctx);
+      babyWormManager.draw(ctx);
+      crosshair.draw(ctx);
+      gameplayScene.drawBehindEnemies(ctx);
+      enemyManager.draw(ctx);
+      gameplayScene.drawAboveEnemies(ctx);
   }
 
   slimeAttack.draw(ctx);

@@ -50,7 +50,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           150,
+  HEALTH:           150, 
   SEGMENT_HEALTH:   2,     
   HEAD_HEALTH_MULT: 3,     
 };

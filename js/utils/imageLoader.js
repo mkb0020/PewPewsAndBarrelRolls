@@ -14,7 +14,7 @@ const MANIFEST = {
   boom:         { path: 'boom.png' },        // 6 FRAMES 
   zap:          { path: 'zap.png',     lazy: true },   // 6 FRAMES
   bam:          { path: 'bam.png' },         // 8 FRAMES
-  spiral:       { path: 'spiral.png',  lazy: true },   // 5 FRAMES
+  spiral:       { path: 'spiral.png',  lazy: true },   // 13 FRAMES
   slime:            { path: 'slime.png',            lazy: true },
   slimeProjectiles: { path: 'slimeProjectiles.png', lazy: true }, // 4 FRAMES
   slimeDrip:        { path: 'slimeDrip.png',        lazy: true }, // 10 FRAMES (5R + 5L)

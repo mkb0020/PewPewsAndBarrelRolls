@@ -114,8 +114,14 @@ export class Explosion {
     } else if (type === 'zap') {
       this.spriteKey = 'zap';
       this.frames    = 6;
-      this.size      = 300; // BIGGER THAN BOOM — WAVE WORM DEATHS ARE DRAMATIC
+      this.size      = 400; // BIGGER THAN BOOM — WAVE WORM DEATHS ARE DRAMATIC
       ImageLoader.load('zap'); // LAZY-LOAD IF NOT ALREADY
+    } else if (type === 'spiral') {
+      this.spriteKey = 'spiral';
+      this.frames    = 13;
+      this.size      = 1000; // COLOSSAL — THE GRAND FINALE
+      this.frameDuration = 0.04;
+      ImageLoader.load('spiral'); // LAZY-LOAD IF NOT ALREADY
     } else {
       this.spriteKey = 'bam';
       this.frames    = CONFIG.EXPLOSIONS.BAM_FRAMES;
@@ -125,7 +131,7 @@ export class Explosion {
 
   update(dt) {
     this.frameTime += dt;
-    if (this.frameTime >= CONFIG.EXPLOSIONS.FRAME_DURATION) {
+    if (this.frameTime >= (this.frameDuration ?? CONFIG.EXPLOSIONS.FRAME_DURATION)) {
       this.frameTime = 0;
       this.currentFrame++;
       if (this.currentFrame >= this.frames) this.isDead = true;
@@ -149,12 +155,150 @@ export class Explosion {
   }
 }
 
+
+
+// ======================= EXPLOSION SMOKE =======================
+const EXPLOSION_SMOKE = {
+  FRAMES:          9,
+  COUNT:           30,
+  OPACITY_MIN:     0.05,
+  OPACITY_MAX:     0.1,
+  SIZE_START:      25,          // TINY AT SPAWN
+  SIZE_DRIFT_MIN:  120,         // STAY-NEAR-CENTER TARGET SIZE
+  SIZE_DRIFT_MAX:  280,
+  SIZE_EXPAND_MIN: 450,         // REACH-THE-EDGES TARGET SIZE
+  SIZE_EXPAND_MAX: 900,
+  GROW_DURATION:   1.8,         // SECONDS TO REACH TARGET SIZE
+  SPEED_DRIFT_MIN: 40,
+  SPEED_DRIFT_MAX: 130,
+  SPEED_EXPAND_MIN: 220,
+  SPEED_EXPAND_MAX: 520,
+  DECEL:           0.8,         // DRAG COEFFICIENT
+  LIFE:            10.0,
+  FADE_IN_FRAC:    0.05,
+  FADE_OUT_FRAC:   0.80,
+  ROTATE_SPEED:    0.3,
+};
+
+function _smokeEase(t) { return 1 - Math.pow(1 - t, 3); }
+
+class ExplosionSmokeParticle {
+  constructor(x, y, sprite, frameWidth) {
+    this.x = x;
+    this.y = y;
+
+    const angle     = Math.random() * Math.PI * 2;
+    const isExpander = Math.random() < 0.4;
+
+    const speed = isExpander
+      ? EXPLOSION_SMOKE.SPEED_EXPAND_MIN + Math.random() * (EXPLOSION_SMOKE.SPEED_EXPAND_MAX - EXPLOSION_SMOKE.SPEED_EXPAND_MIN)
+      : EXPLOSION_SMOKE.SPEED_DRIFT_MIN  + Math.random() * (EXPLOSION_SMOKE.SPEED_DRIFT_MAX  - EXPLOSION_SMOKE.SPEED_DRIFT_MIN);
+
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+
+    this.targetSize = isExpander
+      ? EXPLOSION_SMOKE.SIZE_EXPAND_MIN + Math.random() * (EXPLOSION_SMOKE.SIZE_EXPAND_MAX - EXPLOSION_SMOKE.SIZE_EXPAND_MIN)
+      : EXPLOSION_SMOKE.SIZE_DRIFT_MIN  + Math.random() * (EXPLOSION_SMOKE.SIZE_DRIFT_MAX  - EXPLOSION_SMOKE.SIZE_DRIFT_MIN);
+
+    this.size      = EXPLOSION_SMOKE.SIZE_START;
+    this.growTimer = 0;
+    this.frame     = Math.floor(Math.random() * EXPLOSION_SMOKE.FRAMES);
+    this.peakAlpha = EXPLOSION_SMOKE.OPACITY_MIN + Math.random() * (EXPLOSION_SMOKE.OPACITY_MAX - EXPLOSION_SMOKE.OPACITY_MIN);
+    this.maxLife   = EXPLOSION_SMOKE.LIFE;
+    this.life      = this.maxLife;
+    this.rotation  = Math.random() * Math.PI * 2;
+    this.rotSpeed  = (Math.random() < 0.5 ? 1 : -1) * (EXPLOSION_SMOKE.ROTATE_SPEED + Math.random() * 0.3);
+
+    this.sprite     = sprite;
+    this.frameWidth = frameWidth;
+    this.isDead     = false;
+  }
+
+  update(dt) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.vx *= (1 - EXPLOSION_SMOKE.DECEL * dt);
+    this.vy *= (1 - EXPLOSION_SMOKE.DECEL * dt);
+
+    this.growTimer += dt;
+    const g    = Math.min(this.growTimer / EXPLOSION_SMOKE.GROW_DURATION, 1);
+    this.size  = EXPLOSION_SMOKE.SIZE_START + (this.targetSize - EXPLOSION_SMOKE.SIZE_START) * _smokeEase(g);
+
+    this.rotation += this.rotSpeed * dt;
+    this.life -= dt;
+    if (this.life <= 0) this.isDead = true;
+  }
+
+  draw(ctx) {
+    if (!this.sprite || this.frameWidth <= 0) return;
+
+    const progress = 1 - (this.life / this.maxLife);
+    let envelope;
+    if (progress < EXPLOSION_SMOKE.FADE_IN_FRAC) {
+      envelope = progress / EXPLOSION_SMOKE.FADE_IN_FRAC;
+    } else if (progress > (1 - EXPLOSION_SMOKE.FADE_OUT_FRAC)) {
+      envelope = (1 - progress) / EXPLOSION_SMOKE.FADE_OUT_FRAC;
+    } else {
+      envelope = 1.0;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = this.peakAlpha * Math.max(0, envelope);
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.drawImage(
+      this.sprite,
+      this.frame * this.frameWidth, 0, this.frameWidth, this.sprite.height,
+      -this.size / 2, -this.size / 2, this.size, this.size
+    );
+    ctx.restore();
+  }
+}
+
+class ExplosionSmokeSystem {
+  constructor() {
+    this.particles   = [];
+    this.sprite      = new Image();
+    this.frameWidth  = 0;
+    this.spriteLoaded = false;
+
+    this.sprite.src = './images/smoke.png';
+    this.sprite.onload = () => {
+      this.spriteLoaded = true;
+      this.frameWidth   = this.sprite.width / EXPLOSION_SMOKE.FRAMES;
+    };
+  }
+
+  burst(x, y) {
+    if (!this.spriteLoaded) return;
+    for (let i = 0; i < EXPLOSION_SMOKE.COUNT; i++) {
+      this.particles.push(new ExplosionSmokeParticle(x, y, this.sprite, this.frameWidth));
+    }
+  }
+
+  update(dt) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      this.particles[i].update(dt);
+      if (this.particles[i].isDead) this.particles.splice(i, 1);
+    }
+  }
+
+  draw(ctx) {
+    for (const p of this.particles) p.draw(ctx);
+  }
+
+  clear() { this.particles = []; }
+}
 // ======================= PROJECTILE MANAGER =======================
 export class ProjectileManager {
   constructor() {
     this.projectiles = [];
     this.explosions  = [];
+    this.explosionSmoke = new ExplosionSmokeSystem();
   }
+
+  burstSmoke(x, y) { this.explosionSmoke.burst(x, y); }
 
   shoot(x, y, targetX, targetY) {
     if (this.projectiles.length >= CONFIG.SHOOTING.MAX_PROJECTILES) return;
@@ -179,11 +323,13 @@ export class ProjectileManager {
       this.explosions[i].update(dt);
       if (this.explosions[i].isDead) this.explosions.splice(i, 1);
     }
+    this.explosionSmoke.update(dt);
   }
 
   draw(ctx) {
     for (const p of this.projectiles) p.draw(ctx);
     for (const e of this.explosions)  e.draw(ctx);
+    this.explosionSmoke.draw(ctx); 
   }
 
   getProjectiles()          { return this.projectiles; }
@@ -191,7 +337,7 @@ export class ProjectileManager {
     const i = this.projectiles.indexOf(projectile);
     if (i > -1) this.projectiles.splice(i, 1);
   }
-  clear() { this.projectiles = []; this.explosions = []; }
+  clear() { this.projectiles = []; this.explosions = []; this.explosionSmoke.clear();}
 }
 
 // ======================= CROSSHAIR =======================

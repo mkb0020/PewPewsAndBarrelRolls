@@ -1,6 +1,4 @@
 // scenes/closingScene.js
-
-//  CREDITS DATA 
 const CREDITS = [
   { role: null,   name: 'WORMHOLES'               },  
   { role: null,   name: 'ALL THE WAY DOWN'        },  
@@ -11,13 +9,15 @@ const CREDITS = [
   { role: 'Head of Chaos Department',     name: 'Grok'     },
 ];
 
-//  TIMING 
-const BURST_FLASH_DURATION = 2;
-const WARP_SPEED_START     = 28;
+const BURST_FLASH_DELAY    = 0.7;
+const BURST_FLASH_DURATION = 13;
+const WARP_SPEED_START     = 2;
 const WARP_SPEED_END       = 7;
 const WARP_DECEL_DURATION  = 3.5;
-const CREDITS_FADE_START   = 5;
-const CREDITS_LINE_INTERVAL = 3;   
+const VICTORY_FADE_START   = 14;
+const VICTORY_FADE_END = 22; 
+const CREDITS_FADE_START   = 23; 
+const CREDITS_LINE_INTERVAL = 2;   
 const CREDITS_FADE_EACH    = 2;    
 
 export class ClosingScene {
@@ -35,14 +35,13 @@ export class ClosingScene {
     this._active    = false;
     this._elapsed   = 0;
 
-    // BURST FLASH STATE — drawn on 2D canvas
     this._flashAlpha  = 0;
     this._flashActive = false;
 
     // DOM REFS
     this._creditsEl    = document.getElementById('closing-credits');
     this._creditLines  = [];  
-
+    this._victoryStarted  = false;
     this._creditsStarted  = false;
     this._linesRevealed   = 0;
 
@@ -51,16 +50,16 @@ export class ClosingScene {
 
   //  PUBLIC API 
   isActive() { return this._active; }
-  start() {
+  start(finalScore = 0) {
     if (this._active) return;
-    this._active  = true;
-    this._elapsed = 0;
+    this._active    = true;
+    this._elapsed   = 0;
+    this._finalScore = finalScore;
 
-    // START BURST
-    this._flashAlpha  = 1.0;
-    this._flashActive = true;
+    this._flashAlpha  = 0;
+    this._flashActive = false;
+    this._flashPending = true; 
 
-    // STARFIELD 
     this._starfield.speed   = WARP_SPEED_START;
     this._starfield.opacity = 0;
     this._starfield.start();
@@ -70,21 +69,26 @@ export class ClosingScene {
     this._buildCreditLines();
 
     this._audio?.stopMusic();
-    this._audio?.startCreditsMusic();
+    setTimeout(() => this._audio?.startCreditsMusic(), 6800);
 
     console.log('★ ClosingScene started');
-  }
+}
 
   /**
-   * Called every frame from the main game loop.
-   * @param {number} dt  delta time seconds
+   * CALLED EVERY FRAME FROM MAIN GAME LOOP
+   * @param {number} dt  
    */
   update(dt) {
     if (!this._active) return;
 
     this._elapsed += dt;
 
-    // ── BURST FLASH FADE ──
+    // ── BURST FLASH DELAY + FADE ──
+    if (this._flashPending && this._elapsed >= BURST_FLASH_DELAY) {
+      this._flashPending = false;
+      this._flashAlpha   = 1.0;
+      this._flashActive  = true;
+    }
     if (this._flashActive) {
       this._flashAlpha -= dt / BURST_FLASH_DURATION;
       if (this._flashAlpha <= 0) {
@@ -93,17 +97,21 @@ export class ClosingScene {
       }
     }
 
-    // ── WARP DECELERATION ──
     const warpT = Math.min(this._elapsed / WARP_DECEL_DURATION, 1);
     this._starfield.speed = WARP_SPEED_START + (WARP_SPEED_END - WARP_SPEED_START) * easeOut(warpT);
 
-    // ── STARFIELD FADE IN ── 
-    this._starfield.opacity = Math.min(this._elapsed / BURST_FLASH_DURATION, 1);
+    this._starfield.opacity = Math.max(0, Math.min((this._elapsed - BURST_FLASH_DELAY) / BURST_FLASH_DURATION, 1));
 
-    // ── STARFIELD UPDATE ──
     this._starfield.update(dt);
 
-    // ── CREDITS REVEAL ──
+    if (!this._victoryStarted && this._elapsed >= VICTORY_FADE_START) {
+      this._victoryStarted = true;
+      this._showVictoryText();
+    }
+    if (this._victoryStarted && this._elapsed >= VICTORY_FADE_END) {
+      document.getElementById('closing-victory')?.classList.remove('visible');
+    }
+
     if (!this._creditsStarted && this._elapsed >= CREDITS_FADE_START) {
       this._creditsStarted = true;
       this._creditsEl?.classList.add('visible');
@@ -112,15 +120,14 @@ export class ClosingScene {
   }
 
   /**
-   * Draws the burst flash overlay on the 2D canvas.
-   * Call this AFTER all other 2D draws so the flash sits on top.
+    DRAWS BURST FLASH OVERLAY ON 2D CANVAS
    * @param {CanvasRenderingContext2D} ctx
    */
   renderFlash(ctx) {
     if (!this._active || this._flashAlpha <= 0) return;
     ctx.save();
     ctx.globalAlpha = this._flashAlpha;
-    ctx.fillStyle   = '#d0aaff';
+    ctx.fillStyle   = '#dac1f8';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
   }
@@ -129,7 +136,15 @@ export class ClosingScene {
     return this._active;
   }
 
-  //  CREDITS 
+  get shouldHideTunnel() { return this._active && !this._flashPending; }
+
+  _showVictoryText() {
+    const el = document.getElementById('closing-victory');
+    if (!el) return;
+    el.querySelector('#victory-score').textContent = 
+      'SCORE: ' + this._finalScore.toLocaleString();
+    el.classList.add('visible');
+  }
 
   _buildCreditLines() {
     if (!this._creditsEl) return;
@@ -160,7 +175,6 @@ export class ClosingScene {
         lineEl.appendChild(nameEl);
       }
 
-      // ALL LINES START INVISIBLE
       lineEl.classList.add('credit-hidden');
       this._creditsEl.appendChild(lineEl);
       this._creditLines.push(lineEl);
@@ -181,7 +195,6 @@ export class ClosingScene {
   }
 }
 
-//  HELPERS 
 function easeOut(t) {
   return 1 - Math.pow(1 - t, 3);
 }
