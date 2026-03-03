@@ -2,7 +2,7 @@
 
 //  CREDITS DATA 
 const CREDITS = [
-  { role: null,   name: 'WORMHOLE'               },  
+  { role: null,   name: 'WORMHOLES'               },  
   { role: null,   name: 'ALL THE WAY DOWN'        },  
   { role: null,   name: null                      },  
   { role: 'Concept · Art · Music · SFX',  name: 'MK'      },
@@ -12,13 +12,13 @@ const CREDITS = [
 ];
 
 //  TIMING 
-const BURST_FLASH_DURATION = 0.45;
+const BURST_FLASH_DURATION = 2;
 const WARP_SPEED_START     = 28;
-const WARP_SPEED_END       = 3.5;
-const WARP_DECEL_DURATION  = 3.2;
+const WARP_SPEED_END       = 7;
+const WARP_DECEL_DURATION  = 3.5;
 const CREDITS_FADE_START   = 5;
 const CREDITS_LINE_INTERVAL = 3;   
-const CREDITS_FADE_EACH    = 1;    
+const CREDITS_FADE_EACH    = 2;    
 
 export class ClosingScene {
 
@@ -120,7 +120,7 @@ export class ClosingScene {
     if (!this._active || this._flashAlpha <= 0) return;
     ctx.save();
     ctx.globalAlpha = this._flashAlpha;
-    ctx.fillStyle   = '#ffffff';
+    ctx.fillStyle   = '#d0aaff';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
   }

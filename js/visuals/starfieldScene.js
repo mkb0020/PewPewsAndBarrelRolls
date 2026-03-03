@@ -36,7 +36,7 @@ export class StarfieldScene {
     this._starGeometry = new THREE.BufferGeometry();
     this._starMaterial = new THREE.PointsMaterial({
       color:       0xffffff,
-      size:        1.5,
+      size:        2.5,
       transparent: true,
       opacity:     0,
       depthWrite:  false,

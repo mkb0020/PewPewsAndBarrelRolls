@@ -82,7 +82,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 1, // TESTING
+        HEALTH: 5, // TESTING
         SCORE: 10,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 9,
@@ -99,7 +99,7 @@ export const CONFIG = {
         SPEED: 300,
         COLOR: '#ff3366',
         GLOW_COLOR: '#ff3366',
-        HEALTH: 1, // TESTING
+        HEALTH: 7, // TESTING
         SCORE: 20,
         SPRITE_FRAMES: 6,
         ANIM_SPEED: 12,
@@ -116,7 +116,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 1, // TESTING
+        HEALTH: 10, // TESTING
         SCORE: 50,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 7,
@@ -133,7 +133,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 1, // TESTING
+        HEALTH: 7, // TESTING
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
@@ -152,7 +152,7 @@ export const CONFIG = {
         SPEED: 260,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 1, // TESTING
+        HEALTH: 10, // TESTING
         SCORE: 40,
         SPRITE_FRAMES: 8,       // TOTAL: 3 WINGS + 1RED EYE TELEGRAPH + 4 NORMAL BODY
         WING_FRAMES: 3,         // FRAMES 0-2
@@ -332,7 +332,7 @@ EXPLOSIONS: {
 
   WAVE_WORM: {
     SPRITE_FRAMES:  10,        // 10 TOTAL: 5 WAVES × (BODY + HEAD)
-    HEAD_SIZE:            80, 
+    HEAD_SIZE:            90, 
     SEGMENT_SIZE_RATIO:  1, 
     NUM_SEGMENTS:         15,  
     SEGMENT_SPACING:      8,  
@@ -351,14 +351,14 @@ EXPLOSIONS: {
 
     HEALTH:            5, // TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 1.0, // TESTING
-    FIRST_SPAWN_DELAY_MAX: 2.0,// TESTING
+    FIRST_SPAWN_DELAY_MIN: 10.0, // TESTING
+    FIRST_SPAWN_DELAY_MAX: 15.0,// TESTING
     SPAWN_GAP_MIN:         7,   // TESTING
     SPAWN_GAP_MAX:         12, // TESTING
 
     KILLS_PER_WAVE: [1, 1, 1, 1, 1],   
     
-    GOO_FIRST_SHOT_MIN: 1.2,
+    GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,
     GOO_INTERVAL_MIN:   2.5,
     GOO_INTERVAL_MAX:   4.5,

@@ -1203,7 +1203,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 24px rgba(138, 43, 226, 0.6));
   animation: title-flicker 3s ease-in-out infinite;
 }
 
@@ -1220,7 +1219,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   font-size: 1.5rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.614);
   margin-top: -6px;
   font-family: 'GothNerd';
 }
@@ -1511,7 +1510,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   top: 50%;
   transform: translate(-50%, -50%);
   width: clamp(320px, 55vw, 650px);
-  height: 200px;
+  height: 210px;
   z-index: 20;
 
   background:
@@ -1646,20 +1645,26 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 .credit-title-line {
-  font-family: 'SpaceLetters', 'Orbitron', monospace;
-  font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(1rem, 4.5vw, 4rem);
   letter-spacing: 0.35em;
-  color: rgba(220, 180, 255, 0.95);
-  text-shadow:
-    0 0 20px rgba(160, 80, 255, 0.8),
-    0 0 50px rgba(160, 80, 255, 0.3);
+  background: linear-gradient(135deg, #e25513 0%,
+    #c71585 25%,
+    #8a2be2 45%,
+    #00ffff 70%,
+    #67febd 80%,
+    #58e84c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
   text-transform: uppercase;
   text-align: center;
   margin-bottom: 0.2rem;
 }
 
 .credit-title-line + .credit-title-line {
-  font-size: clamp(0.65rem, 1.3vw, 0.9rem);
+  font-size: clamp(0.65rem, 1.5vw, 1.8rem);
   letter-spacing: 0.55em;
   color: rgba(180, 140, 255, 0.65);
   text-shadow: none;
@@ -1672,26 +1677,25 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.18rem;
-  margin-bottom: 0.5rem;
+  gap: 0.2rem;
+  margin-bottom: 0.7rem;
 }
 
 .credit-role {
   font-family: 'SpaceLetters', 'Orbitron', monospace;
-  font-size: clamp(0.55rem, 1vw, 0.7rem);
+  font-size: clamp(0.55rem, 2vw, 0.8rem);
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: rgba(103, 254, 189, 0.55);
+  color: #00FFFF; /*67FEBD*/
   text-align: center;
 }
 
 .credit-name {
-  font-family: 'SpaceLetters', 'Orbitron', monospace;
-  font-size: clamp(0.85rem, 1.7vw, 1.15rem);
+  font-family: 'GothNerd';
+  font-size: clamp(0.85rem, 1.7vw, 1rem);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(220, 200, 255, 0.92);
-  text-shadow: 0 0 14px rgba(160, 100, 255, 0.5);
+  color: #FFC7FF; /*FFC7FF*/
   text-align: center;
 }
 
