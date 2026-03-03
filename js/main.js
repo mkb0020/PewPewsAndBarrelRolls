@@ -1,7 +1,7 @@
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
-import { initKeyboard, initMobileControls }          from './utils/controls.js';
+import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
 import { segmentCircleCollision }                    from './utils/collision.js';
 import { AudioManager }                              from './utils/audio.js';
 import { GameUI }                                    from './utils/ui.js';
@@ -613,15 +613,19 @@ async function startup() {
   await ImageLoader.preloadCritical();
   console.log('✔ Images ready');
 
-  const { mode, enemyCount } = await menu.show(tunnel, () => audio.start());
+  const { mode, enemyCount } = await menu.show(starfield, () => audio.start());
 
   currentMode       = mode;
   currentEnemyCount = enemyCount;
   console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
 
   // ── OPENING CINEMATIC ──
-  await openingScene.play();
+  await openingScene.play(true); 
   console.log('✔ Opening scene complete');
+
+  // REVEAL HUD AND MOBILE CONTROLS AFTER OPENING SCENE
+  document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden'));
+  revealMobileControls();
 
   if (mode === 'bossBattle') audio.startBossMusic(); // GAMEPLAY WAVE MUSIC FIRES VIA onWaveStart
 

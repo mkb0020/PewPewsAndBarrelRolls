@@ -25,11 +25,14 @@ export let analogInput = { x: 0, y: 0 };
 // ======================= DEVICE MODE =======================
 export function setMobileMode(val) {
   isMobile = val;
+  console.log(`✔ Device mode set: ${val ? 'MOBILE' : 'DESKTOP'}`);
+}
+
+export function revealMobileControls() {
   const mobileControls = document.getElementById('mobile-controls');
   if (mobileControls) {
-    mobileControls.style.display = val ? 'flex' : 'none';
+    mobileControls.style.display = isMobile ? 'flex' : 'none';
   }
-  console.log(`✔ Device mode set: ${val ? 'MOBILE' : 'DESKTOP'}`);
 }
 
 export function initKeyboard() {
@@ -163,7 +166,7 @@ function updateJoystick(touch, joystick, joystickKnob) {
     analogInput.y = 0;
   }
 
-  // ── DIGITAL KEYS (for movement / barrel roll direction) ──
+  // ── DIGITAL KEYS  ──
   if (Math.abs(deltaX) > deadZone) {
     virtualKeys['a']         = deltaX < 0;
     virtualKeys['arrowleft'] = deltaX < 0;

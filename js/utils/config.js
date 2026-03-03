@@ -332,7 +332,7 @@ EXPLOSIONS: {
 
   WAVE_WORM: {
     SPRITE_FRAMES:  10,        // 10 TOTAL: 5 WAVES × (BODY + HEAD)
-    HEAD_SIZE:            70, 
+    HEAD_SIZE:            80, 
     SEGMENT_SIZE_RATIO:  1, 
     NUM_SEGMENTS:         15,  
     SEGMENT_SPACING:      8,  
@@ -351,8 +351,8 @@ EXPLOSIONS: {
 
     HEALTH:            5, // TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 15.0, // TESTING
-    FIRST_SPAWN_DELAY_MAX: 20.0,// TESTING
+    FIRST_SPAWN_DELAY_MIN: 1.0, // TESTING
+    FIRST_SPAWN_DELAY_MAX: 2.0,// TESTING
     SPAWN_GAP_MIN:         7,   // TESTING
     SPAWN_GAP_MAX:         12, // TESTING
 
