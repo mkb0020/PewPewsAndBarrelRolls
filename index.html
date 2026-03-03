@@ -56,6 +56,7 @@
 
 
 
+    <div id="menu-blackout"></div>
     <div class="dev-badge">Dev Mode</div>
     <div class="menu-title">Wormholes</div>
     <div class="menu-subtitle">ALL THE WAY DOWN</div>
@@ -93,7 +94,7 @@
 
 
 
-  <div id="ui-buttons">
+  <div id="ui-buttons" class="pre-game-hidden">
     <button class="ui-icon" id="btn-sound" aria-label="Toggle sound"></button>
     <button class="ui-icon" id="btn-pause" aria-label="Toggle pause"></button>
   </div>
@@ -102,14 +103,14 @@
     <div class="pause-title">PAUSED</div>
   </div>
 
-<div id="hud">
+<div id="hud" class="pre-game-hidden">
   <div class="hud-block" id="score-block">
     <div class="hud-label">SCORE</div>
     <div id="score-value">000,000</div>
   </div>
 </div>
 
-<div id="hp-container">
+<div id="hp-container" class="pre-game-hidden">
   <div class="hud-label">HP</div>
   <div id="hp-bar-track">
     <div id="hp-bar-fill"></div>
@@ -119,14 +120,14 @@
   </div>
 </div>
 
-<div id="lives-container">
+<div id="lives-container" class="pre-game-hidden">
   <img src="./images/lives.png" id="lives-icon" alt="Lives" />
   <span id="lives-count">X 3</span>
 </div>
 
 
 <!-- ========================= BOSS HEALTH BAR ========================= -->
-<div id="boss-health-container">
+<div id="boss-health-container" class="pre-game-hidden">
   <div class="hud-label boss-label">WORM</div>
   <div id="boss-bar-track">
     <div id="boss-bar-fill"></div>
