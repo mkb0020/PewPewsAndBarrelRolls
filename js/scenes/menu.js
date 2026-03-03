@@ -7,11 +7,13 @@ export class Menu {
   constructor() {
     this._overlay      = document.getElementById('menu-overlay');
     this._resolve      = null;
-    this._tunnel       = null;
+    this._starfield    = null;
     this._rafId        = null;
     this._onKey        = null;
     this._deviceScreen = null;
     this._photoScreen  = null;
+    this._cockpitImg   = document.getElementById('opening-cockpit');
+    this._lastTime     = 0;
 
     this._atmosContext = null;  
     this._atmosSource  = null;  
@@ -23,9 +25,9 @@ export class Menu {
   }
 
   // ======================= PUBLIC: SHOW =======================
-  show(tunnel, onStart) {
-    this._tunnel  = tunnel;
-    this._onStart = onStart ?? null; // CALLED SYNCHRONOUSLY INSIDE THE GAME MODE CLICK — WHILE STILL IN USER GESTURE
+  show(starfield, onStart) {
+    this._starfield = starfield;
+    this._onStart   = onStart ?? null; // CALLED SYNCHRONOUSLY INSIDE THE GAME MODE CLICK — WHILE STILL IN USER GESTURE
 
     if (!this._overlay) {
       console.error('[Menu] #menu-overlay not found in DOM');
@@ -33,7 +35,7 @@ export class Menu {
     }
 
     this._buildDeviceScreen();
-    this._animateTunnel();
+    this._animateStarfield();
 
     if (!this._atmosRawProm) {
       this._atmosRawProm = fetch('./audio/menuAtmosphere.m4a')
@@ -99,6 +101,10 @@ export class Menu {
     if (!this._deviceScreen?.classList.contains('visible')) return;
     setMobileMode(mobile);
     this._startAtmosphere();
+
+    const blackout = this._overlay?.querySelector('#menu-blackout');
+    if (blackout) blackout.classList.add('fade-out');
+
     this._deviceScreen.classList.remove('visible');
     this._deviceScreen.classList.add('exit');
 
@@ -140,9 +146,11 @@ export class Menu {
 
     this._overlay?.classList.remove('visible');
     window.removeEventListener('keydown', this._onKey);
-    cancelAnimationFrame(this._rafId);
 
+    // KEEP STARFIELD RAF RUNNING THROUGH THE MENU'S EXIT FADE
+    // SO THERE'S NO GAP BEFORE THE OPENING SCENE TAKES OVER
     setTimeout(() => {
+      cancelAnimationFrame(this._rafId); // OPENING SCENE WILL START ITS OWN LOOP NOW
       this._overlay?.classList.add('hidden');
       this._resolve({ mode, enemyCount });
     }, 650);
@@ -199,6 +207,36 @@ export class Menu {
       this._atmosBuffer  = null;
     }
     console.log('♫ Menu atmosphere stopped');
+  }
+
+  // ======================= STARFIELD ANIMATION =======================
+  _animateStarfield() {
+    const cockpit = this._cockpitImg;
+
+    // FADE IN COCKPIT OVER ~1s WHILE MENU OPENS
+    const FADE_MS = 1000;
+    const fadeStart = performance.now();
+    const fadeTick = (now) => {
+      const t = Math.min((now - fadeStart) / FADE_MS, 1);
+      if (cockpit) cockpit.style.opacity = t;
+      if (t < 1) requestAnimationFrame(fadeTick);
+    };
+    requestAnimationFrame(fadeTick);
+
+    this._starfield.opacity = 0;
+    this._starfield.speed   = 3;
+    this._starfield.start();
+
+    this._lastTime = performance.now();
+    const tick = (now) => {
+      this._rafId = requestAnimationFrame(tick);
+      const dt = Math.min((now - this._lastTime) / 1000, 0.05);
+      this._lastTime = now;
+      this._starfield.opacity = Math.min(this._starfield.opacity + dt * 1.2, 1); // MATCHES ~1s FADE
+      this._starfield.update(dt);
+      this._starfield.render();
+    };
+    this._rafId = requestAnimationFrame(tick);
   }
 
   // ======================= TUNNEL ANIMATION =======================

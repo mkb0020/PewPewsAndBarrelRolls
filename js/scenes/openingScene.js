@@ -4,13 +4,13 @@ const TRANSMISSION_LINES = [
   'Commander Rosen has crossed the event horizon.',
   'Gravitational interference increasing.',
   'Signal integrity failing\u2026',
-  'We\'ve lost all communication.',
+  'We\'ve lost all communication...',
 ];
 
 // TYPING SPEED - AND PAUSE BETWEEN LINES
 const CHAR_DELAY_MS   = 42;
 const LINE_PAUSE_MS   = 520;
-const HOLD_AFTER_MS   = 2200;  
+const HOLD_AFTER_MS   = 4500;  
 const FADE_DURATION_S = 1.4;  
 
 export class OpeningScene {
@@ -39,14 +39,17 @@ export class OpeningScene {
 
   /**
    * RUN FULL OPENING SEQUENCE
+   * @param {boolean} skipFadeIn  
    * @returns {Promise<void>}  
    */
-  play() {
+  play(skipFadeIn = false) {
     this._active = true;
 
-    this._starfield.speed   = 3;
-    this._starfield.opacity = 0;
-    this._starfield.start();
+    if (!skipFadeIn) {
+      this._starfield.speed   = 3;
+      this._starfield.opacity = 0;
+      this._starfield.start();
+    }
 
     // CUT MENU MUSIC, START STATIC LOOP
     this._audio?.stopMusic();
@@ -66,7 +69,7 @@ export class OpeningScene {
 
     return new Promise(resolve => {
       this._resolve = resolve;
-      this._runSequence();
+      this._runSequence(skipFadeIn);
     });
   }
 
@@ -80,9 +83,11 @@ export class OpeningScene {
 
   // ======================== SEQUENCE ========================
 
-  async _runSequence() {
+  async _runSequence(skipFadeIn = false) {
     // ── PHASE 1: FADE IN STARS + COCKPIT ──
-    await this._fadeIn(FADE_DURATION_S);
+    if (!skipFadeIn) {
+      await this._fadeIn(FADE_DURATION_S);
+    }
 
     // ── PHASE 2: SHOW TERMINAL, START TYPEWRITER ──
     this._showTerminal();
