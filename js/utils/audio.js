@@ -26,11 +26,11 @@ export class AudioManager {
     this._bossDecodePromise  = null;
     this._creditsDecodePromise = null;
 
-    // ====== WAVE MUSIC — ONE BUFFER PER WAVE + TRANSITION ======
-    this._waveMusicBuffers      = new Array(5).fill(null); // wave1–5.m4a
-    this._transitionBuffer      = null;                    // transition.m4a
+    // ====== WAVE MUSIC — ONE BUFFER PER WAVE + ONE TRANSITION PER WAVE (1–4) ======
+    this._waveMusicBuffers        = new Array(5).fill(null); // wave1–5.m4a
+    this._transitionBuffers       = new Array(4).fill(null); // transition1–4.m4a (end of waves 1–4)
     this._waveMusicDecodePromises = [];
-    this._transitionDecodePromise = null;
+    this._transitionDecodePromises = [];
 
     // ====== SFX — WEB AUDIO API BUFFERS ======
     // ALL SFX USE WEB AUDIO BUFFERSOURCE NODES — NO HTML AUDIO ELEMENTS.
@@ -66,15 +66,22 @@ export class AudioManager {
       this._creditsDecodePromise = this._prefetchAndDecode('./audio/credits.m4a')
         .then(buf => { this._creditsBuffer = buf; console.log('✔ Credits music buffer ready'); return buf; });
 
-      // PRELOAD WAVE MUSIC (wave1–5) + TRANSITION
+      // PRELOAD WAVE MUSIC (wave1–5)
       for (let i = 0; i < 5; i++) {
         const idx = i;
         const p = this._prefetchAndDecode(`./audio/wave${idx + 1}.m4a`)
           .then(buf => { this._waveMusicBuffers[idx] = buf; console.log(`✔ Wave ${idx + 1} music buffer ready`); return buf; });
         this._waveMusicDecodePromises.push(p);
       }
-      this._transitionDecodePromise = this._prefetchAndDecode('./audio/transition.m4a')
-        .then(buf => { this._transitionBuffer = buf; console.log('✔ Transition buffer ready'); return buf; });
+
+      // PRELOAD TRANSITION STINGS — ONE PER WAVE END (transition1–4.m4a, used after waves 1–4)
+      // WAVE 5 HAS NO TRANSITION STING — IT GOES STRAIGHT INTO THE BOSS BATTLE SEQUENCE.
+      for (let i = 0; i < 4; i++) {
+        const idx = i;
+        const p = this._prefetchAndDecode(`./audio/transition${idx + 1}.m4a`)
+          .then(buf => { this._transitionBuffers[idx] = buf; console.log(`✔ Transition ${idx + 1} buffer ready`); return buf; });
+        this._transitionDecodePromises.push(p);
+      }
 
       // PRELOAD ALL SFX AS WEB AUDIO BUFFERS
       const sfxFiles = {
@@ -99,6 +106,7 @@ export class AudioManager {
         bossTransition1:  './audio/bossTransition1.m4a',
         bossTransition2:  './audio/bossTransition2.m4a',
         static:           './audio/static.m4a',
+        waveStart:        './audio/waveStart.m4a',  // CYMBAL CRASH — PLAYS AT THE TOP OF EVERY WAVE (1–5), LAYERED OVER WAVE MUSIC
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -331,6 +339,7 @@ export class AudioManager {
   playWaveWormSfx()    { this._playSfx('waveWorms',        0.4); } // WAVE WORM SPAWN CUE
   playBossTransition1(){ this._playSfx('bossTransition1',  0.9); } // TUNNEL SURGE — WAVE 5 CLEARED
   playBossTransition2(){ this._playSfx('bossTransition2',  0.9); } // DARKNESS HITS — WORM INCOMING
+  playWaveStart() { this._playSfx('waveStart', 0.55); } // CRASH AFTER RISER FROM TRANSITION
 
   // START LOOPING MUSIC FOR THE GIVEN WAVE (0-INDEXED)
   startWaveMusic(waveIndex) {
@@ -346,10 +355,17 @@ export class AudioManager {
     this._playBuffer(buf);
   }
 
-  
-  playWaveTransition() { // PLAY TRANSITION STING ONCE — NO LOOP
+  // PLAY THE TRANSITION STING FOR THE GIVEN WAVE END — ONE SHOT, NO LOOP.
+  // waveNumber IS 1-BASED (1–4). WAVE 5 HAS NO TRANSITION — BOSS SEQUENCE HANDLES ITS OWN AUDIO.
+  playWaveTransition(waveNumber) {
     if (this.isMuted || !this.context) return;
     this._stopMusicSource(); // CUT WAVE MUSIC IMMEDIATELY
+
+    const idx = waveNumber - 1; // CONVERT TO 0-BASED INDEX FOR _transitionBuffers
+    if (idx < 0 || idx > 3) {
+      console.warn(`[AudioManager] playWaveTransition: invalid waveNumber ${waveNumber} — expected 1–4`);
+      return;
+    }
 
     const play = (buf) => {
       if (!buf) return;
@@ -361,10 +377,11 @@ export class AudioManager {
       this._musicSource = source; // SO stopMusic() / toggleMute() CAN REACH IT
     };
 
-    if (this._transitionBuffer) {
-      play(this._transitionBuffer);
+    const buf = this._transitionBuffers[idx];
+    if (buf) {
+      play(buf);
     } else {
-      this._transitionDecodePromise?.then(buf => { if (!this.isMuted) play(buf); });
+      this._transitionDecodePromises[idx]?.then(b => { if (!this.isMuted) play(b); });
     }
   }
 }

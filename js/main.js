@@ -116,6 +116,7 @@ gameplayScene.onWormKill = (kills, required) => {
 gameplayScene.onWaveStart = (waveIndex) => {
   updateWaveCounter(0, waveWormManager.getRequired());
   showWaveHUD(true);
+  audio.playWaveStart();
   if (waveIndex > 0) audio.startWaveMusic(waveIndex); // 🎵 WAVE 1 MUSIC FIRED BY openingScene
 };
 
@@ -124,7 +125,8 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   audio.playImpact();
 
   if (waveIndex < 4) {
-    audio.playWaveTransition(); // WAVES 1-4 ONLY
+    //audio.playWaveTransition(); // WAVES 1-4 ONLY
+    audio.playWaveTransition(waveIndex + 1);
     tunnel.setWavePulse(1);
     setTimeout(() => tunnel.setWavePulse(0), 3500); // FADE BACK BEFORE NEXT WAVE STARTS
     return;

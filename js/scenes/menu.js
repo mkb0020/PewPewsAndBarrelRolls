@@ -15,11 +15,11 @@ export class Menu {
     this._cockpitImg   = document.getElementById('opening-cockpit');
     this._lastTime     = 0;
 
-    this._atmosContext = null;  
-    this._atmosSource  = null;  
-    this._atmosGain    = null; 
-    this._atmosBuffer  = null;  
-    this._atmosRawProm = null;  
+    this._atmosContext = null;
+    this._atmosSource  = null;
+    this._atmosGain    = null;
+    this._atmosBuffer  = null;
+    this._atmosRawProm = null;
 
     if (DEV_MODE) this._overlay?.classList.add('dev-mode');
   }
@@ -71,6 +71,11 @@ export class Menu {
 
   _onPhotoAck() {
     if (!this._photoScreen?.classList.contains('visible')) return;
+
+    // START ATMOSPHERE HERE — THIS IS THE FIRST USER GESTURE, EARLIER THAN DEVICE SELECT.
+    // THE CLICK UNLOCKS THE AudioContext SO WE KICK OFF THE FADE-IN IMMEDIATELY.
+    this._startAtmosphere();
+
     this._photoScreen.classList.remove('visible');
     this._photoScreen.classList.add('exit');
 
@@ -87,7 +92,7 @@ export class Menu {
       console.error('[Menu] #device-select-screen not found — did you add the HTML snippet to index.html?');
       return;
     }
-  
+
     this._deviceScreen.classList.remove('visible', 'exit'); // RESET STATE IN CASE show() IS CALLED MORE THAN ONCE (E.G. AFTER RESTART)
     this._deviceScreen.style.display = '';
 
@@ -100,7 +105,8 @@ export class Menu {
   _onDeviceSelect(mobile) {
     if (!this._deviceScreen?.classList.contains('visible')) return;
     setMobileMode(mobile);
-    this._startAtmosphere();
+    // NOTE: _startAtmosphere() HAS ALREADY BEEN CALLED FROM _onPhotoAck() —
+    // NO NEED TO CALL IT AGAIN HERE.
 
     const blackout = this._overlay?.querySelector('#menu-blackout');
     if (blackout) blackout.classList.add('fade-out');
@@ -142,7 +148,7 @@ export class Menu {
 
     if (this._onStart) { this._onStart(); this._onStart = null; }
 
-    this._stopAtmosphere();
+    this._stopAtmosphere(); // FADES OUT, THEN CLOSES THE CONTEXT
 
     this._overlay?.classList.remove('visible');
     window.removeEventListener('keydown', this._onKey);
@@ -179,15 +185,21 @@ export class Menu {
       source.loop     = true; // SAMPLE-ACCURATE GAPLESS LOOP
 
       const gain      = this._atmosContext.createGain();
-      gain.gain.value = 0.6;
+      gain.gain.value = 0; // START SILENT — FADE IN BELOW
 
       source.connect(gain);
       gain.connect(this._atmosContext.destination);
       source.start(0);
 
+      // FADE IN TO TARGET VOLUME OVER ~1.5s
+      const TARGET_VOLUME = 0.6;
+      const FADE_IN_SEC   = 1.5;
+      gain.gain.setValueAtTime(0, this._atmosContext.currentTime);
+      gain.gain.linearRampToValueAtTime(TARGET_VOLUME, this._atmosContext.currentTime + FADE_IN_SEC);
+
       this._atmosSource = source;
       this._atmosGain   = gain;
-      console.log('♫ Menu atmosphere started (gapless loop)');
+      console.log('♫ Menu atmosphere started (fade-in)');
     } catch (e) {
       console.warn('⚠ Atmosphere audio failed:', e);
     }
@@ -200,13 +212,29 @@ export class Menu {
   }
 
   _stopAtmosphere() {
-    this._stopAtmosphereSource();  // CLOSE THE CONTEXT SO IT DOESN'T LINGER — GAME AUDIO CREATES ITS OWN
-    if (this._atmosContext) {
-      this._atmosContext.close().catch(() => {});
-      this._atmosContext = null;
-      this._atmosBuffer  = null;
+    // FADE OUT OVER ~0.8s, THEN CLOSE THE CONTEXT SO IT DOESN'T LINGER.
+    // GAME AUDIO CREATES ITS OWN AudioContext SEPARATELY.
+    if (this._atmosGain && this._atmosContext) {
+      const FADE_OUT_SEC = 0.8;
+      this._atmosGain.gain.setTargetAtTime(0, this._atmosContext.currentTime, FADE_OUT_SEC / 3);
+      setTimeout(() => {
+        this._stopAtmosphereSource();
+        if (this._atmosContext) {
+          this._atmosContext.close().catch(() => {});
+          this._atmosContext = null;
+          this._atmosBuffer  = null;
+        }
+        console.log('♫ Menu atmosphere stopped (fade-out complete)');
+      }, FADE_OUT_SEC * 1000 + 200); // SMALL BUFFER AFTER FADE COMPLETES
+    } else {
+      // CONTEXT EXISTS BUT GAIN NODE DOESN'T (E.G. STILL LOADING) — CLOSE IMMEDIATELY
+      this._stopAtmosphereSource();
+      if (this._atmosContext) {
+        this._atmosContext.close().catch(() => {});
+        this._atmosContext = null;
+        this._atmosBuffer  = null;
+      }
     }
-    console.log('♫ Menu atmosphere stopped');
   }
 
   // ======================= STARFIELD ANIMATION =======================
