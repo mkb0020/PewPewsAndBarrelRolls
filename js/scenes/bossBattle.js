@@ -19,9 +19,14 @@ export class BossBattleScene {
     this._battleReady       = false; 
 
     //  CALLBACKS (main.js  ) 
-    this.onCinematicStart = null;   
-    this.onCinematicEnd   = null;   
-    this.onCheckpoint     = null;   
+    this.onCinematicStart    = null;   
+    this.onCinematicEnd      = null;   
+    this.onCheckpoint        = null;
+    this.onWormholeGameOver  = null;   // FIRES AFTER VORTEX COMPLETES — WIRE TO WAVE-1 RESTART IN main.js
+
+    //  WORMHOLE GAME OVER STATE
+    this._wormholeActive = false;
+    this._vortex         = null;
 
     //  DOM REFS — BOSS HEALTH BAR 
     this._bossBarFill      = document.getElementById('boss-bar-fill');
@@ -47,6 +52,9 @@ export class BossBattleScene {
 
     this._updateSuction(dt, ship);
     this._checkBattleCheckpoint();
+
+    // VORTEX UPDATE — DRIVES THREE.JS RENDER EACH FRAME AFTER SHIP IS CONSUMED
+    this._vortex?.update(dt);
   }
 
   /**
@@ -116,13 +124,61 @@ export class BossBattleScene {
   reset() {
     this._wormBattleStarted = false;
     this._warningSounded    = false;
-    this._battleReady       = false; 
+    this._battleReady       = false;
+    this._wormholeActive    = false;
+    this._vortex            = null;
   }
 
   /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
   readyForBattle() {
     this._battleReady = true;
     console.log('⚔ Battle ready — boss damage unlocked');
+  }
+
+  /**
+   * BOSS GAME OVER SEQUENCE — SWALLOWS THE SHIP THEN PLAYS THE VORTEX.
+   * CALLED FROM main.js INSTEAD OF transitionScene.handleDeath() WHEN
+   * livesLeft === 0 AND THE PLAYER IS IN THE BOSS BATTLE.
+   * WORKS REGARDLESS OF WHICH ATTACK IS CURRENTLY ACTIVE.
+   */
+  startWormholeGameOver(ship) {
+    if (this._wormholeActive) return;
+    this._wormholeActive = true;
+
+    // FORCE WORM INTO SUCTION VISUALS (MAY HAVE BEEN MID-BABY-ATTACK OR IDLE)
+    this.wormBoss.forceSuction();
+
+    // NULL OUT onDeath SO THE CONSUMED ANIMATION DOESN'T RE-TRIGGER THE DEATH FLOW
+    ship.onDeath = null;
+
+    // REVIVE SHIP JUST LONG ENOUGH TO PLAY THE CONSUMED ANIMATION
+    ship.isAlive             = true;
+    ship.isInvincible        = true;
+    ship.invincibilityTimer  = 9999;
+    ship.hp                  = 1;
+    ship.consumedMode        = false;
+    ship._consumedDeathFired = false;
+    ship.suctionScale        = Math.max(ship.suctionScale, 0.7); // ENSURE VISIBLE PULL-IN
+
+    // WHEN CONSUMED ANIMATION COMPLETES → LAUNCH VORTEX
+    ship.onConsumedComplete = () => {
+      ship.onConsumedComplete  = null;
+      this.wormBoss.isActive   = false;  // SHIP IS IN THE MOUTH — WORM GONE BEFORE VORTEX BEGINS
+      import('../visuals/wormholeVortex.js').then(({ WormholeVortex }) => {
+        this._vortex            = new WormholeVortex();
+        this._vortex.onComplete = () => {
+          this._vortex         = null;
+          this._wormholeActive = false;
+          this.onWormholeGameOver?.();
+        };
+        const shipSprite = ImageLoader.get('ship');
+        this._vortex.start(shipSprite);
+      });
+    };
+
+    // SEND SHIP SPIRALING INTO THE WORM'S MOUTH
+    const head = this.wormBoss.getHeadPosition();
+    ship.enterConsumed(head.x, head.y);
   }
 
   //  GETTERS 

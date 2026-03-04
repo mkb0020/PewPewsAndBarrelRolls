@@ -43,6 +43,7 @@ export class Ship {
     this.onDeath            = null; 
     this.onHPChange         = null;
     this.onLivesChange      = null;
+    this.onConsumedComplete = null; // BOSS GAME OVER PATH — SET BY bossBattle.startWormholeGameOver(); BYPASSES _triggerDeath
 
     this.suctionActive = false;
     this.suctionScale  = 1.0;
@@ -339,7 +340,11 @@ export class Ship {
       this._consumedDeathFired = true;
       this.consumedFlashAlpha  = 0;
       this.consumedMode        = false;
-      this._triggerDeath();
+      if (this.onConsumedComplete) {
+        this.onConsumedComplete(); // BOSS GAME OVER: FIRE VORTEX, SKIP _triggerDeath
+      } else {
+        this._triggerDeath();      // NORMAL PATH: LOSE A LIFE
+      }
     }
   }
 
@@ -406,6 +411,7 @@ export class Ship {
     this.consumedTimer       = 0;
     this.consumedFlashAlpha  = 0;
     this._consumedDeathFired = false;
+    this.onConsumedComplete  = null;
     this.cinematicMode  = false;
     this.cinematicScale = 1.0;
     this.x = window.innerWidth  / 2;

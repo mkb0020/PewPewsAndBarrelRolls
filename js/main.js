@@ -206,6 +206,13 @@ ship.onLivesChange = (lives)     => updateLivesDisplay(lives);
 ship.onDeath       = (livesLeft) => {
   audio.stopMusic();
   const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
+
+  // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
+  if (livesLeft <= 0 && inWormBattle) {
+    bossBattleScene.startWormholeGameOver(ship);
+    return;
+  }
+
   transitionScene.handleDeath(livesLeft, inWormBattle);
 };
 
@@ -285,6 +292,38 @@ transitionScene.onRestart = () => {
   audio.stop();
   audio.start();
   if (currentMode !== 'bossBattle') audio.startWaveMusic(0);
+};
+
+// ==================== WORMHOLE GAME OVER → RESTART FROM WAVE 1 ====================
+// FIRES AFTER THE VORTEX SEQUENCE COMPLETES — FULL RESET, BACK TO WAVE 1
+bossBattleScene.onWormholeGameOver = () => {
+  wormBoss.isActive = false;  // HIDE WORM IMMEDIATELY — WILL RE-ACTIVATE WHEN PLAYER REACHES BOSS BATTLE AGAIN
+  ship.resetForNewGame();
+  scoreManager.reset();
+  enemyManager.clear();
+  projectileManager.clear();
+  babyWormManager.clear();
+  slimeAttack.reset();
+  ocularPrism.active = false;
+  ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
+  ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+  gameplayScene.reset();
+  bossBattleScene.reset();
+  tunnel.resetBossTransition();
+  _bossTracerTarget    = 0;
+  _bossTracerIntensity = 0;
+
+  currentMode = 'gameplay'; // ALWAYS RETURN TO WAVE 1 — NEVER BACK TO BOSS DIRECTLY
+  CONFIG.ENEMIES.MAX_COUNT = currentEnemyCount;
+  gameplayScene.start();
+  bossBattleScene.updateHUD();
+  showWaveHUD(true);
+
+  audio.stop();
+  audio.start();
+  audio.startWaveMusic(0);
+
+  console.log('★ Wormhole game over — restarting from wave 1');
 };
 
 transitionScene.onContinue = () => {

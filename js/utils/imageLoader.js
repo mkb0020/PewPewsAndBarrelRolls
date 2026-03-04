@@ -4,7 +4,7 @@ const BASE_PATH = './images/';
 const MANIFEST = {
 
   ship:         { path: 'spaceship.png' },
-  worm:         { path: 'worm.png' },
+  worm:         { path: 'worm.png' }, // NOW 14 FRAMES
   babyWorm:     { path: 'babyWorm.png' },
   glork:        { path: 'glork.png' },       // 5 FRAMES
   glipGlop:     { path: 'glipGlop.png' },    // 5 FRAMES
