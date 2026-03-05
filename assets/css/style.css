@@ -304,6 +304,8 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 .photo-btn {
+  position: relative;
+  overflow: hidden;
   font-family: 'Orbitron', 'SpaceLetters', sans-serif;
   font-size: clamp(0.75rem, 1.5vw, 0.9rem);
   letter-spacing: 0.3em;
@@ -318,6 +320,20 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   box-shadow: 0 0 18px rgba(140, 60, 255, 0.15);
   -webkit-tap-highlight-color: transparent;
   margin-top: 0.4rem;
+}
+
+.photo-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: 0.7s;
+}
+
+.photo-btn:hover::before,
+.photo-btn:focus::before {
+  left: 100%;
 }
 
 .photo-btn:hover,
@@ -380,6 +396,8 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 .device-btn {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -398,6 +416,20 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   transition: border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.15s;
   box-shadow: 0 0 18px rgba(140, 60, 255, 0.15);
   -webkit-tap-highlight-color: transparent;
+}
+
+.device-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: 0.7s;
+}
+
+.device-btn:hover::before,
+.device-btn:focus::before {
+  left: 100%;
 }
 
 .device-btn:hover,
@@ -520,6 +552,19 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   text-align: left;
   transition: background 0.2s, border-color 0.2s, transform 0.12s;
   overflow: hidden;
+}
+
+.menu-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.18), transparent);
+  transition: 0.7s;
+}
+
+.menu-btn:hover::after {
+  left: 100%;
 }
 
 .menu-btn::before {
@@ -781,7 +826,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 400;
+  z-index: 10000;
   pointer-events: none;
   flex-direction: column;
   align-items: center;
@@ -1081,12 +1126,12 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 #died-overlay {
   position: fixed;
   inset: 0;
-  z-index: 490;               
+  z-index: 10000;               
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 20px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.4s ease;
@@ -1124,39 +1169,56 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
 .died-sub {
   font-family: 'GothNerd';
-  font-size: 1rem;
+  font-size: 1.1rem;
   letter-spacing: 0.3em;
-  color: #FFC7FF;
+  color: #FFFFFF;
   margin-top: -4px;
+  max-width: 80vw;
+  text-align: center;
 }
 
 .died-lives {
   font-family: 'GothNerd';
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   letter-spacing: 0.2em;
   color: #FFC7FF;
   margin-top: 4px;
 }
 
 .died-btn {
+  position: relative;
+  overflow: hidden;
   margin-top: 25px;
   padding: 12px 40px;
   font-size: 1.2rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: #FFC7FF;
+  color: rgb(144,144,192);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(144, 144, 192, 0.619);
   cursor: pointer;
   clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
   transition: background 0.2s, color 0.2s, border-color 0.2s;
   font-family: 'GothNerd';
 }
 
+.died-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: 0.7s;
+}
+
+.died-btn:hover::before {
+  left: 100%;
+}
+
 .died-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: #FFC7FF;
-  color: #ffffff;
+  background: rgba(70, 70, 99, 0.614);
+  border-color: #58e84c;
+  color: #58e84c;
 }
 
 .died-hint {
@@ -1170,7 +1232,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 #gameover-overlay {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1222,27 +1284,44 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   color: rgba(255, 255, 255, 0.614);
   margin-top: -6px;
   font-family: 'GothNerd';
+  max-width: 80vw;
+  text-align: center;
 }
 
 .gameover-btn {
+  position: relative;
+  overflow: hidden;
   margin-top: 20px;
   padding: 12px 40px;
   font-size: 1.1rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: #FFC7FF;
+  color: rgba(144, 144, 192);
   background: transparent;
-  border: 1px solid #FFC7FF;
+  border: 1px solid rgba(144, 144, 192, 0.619);
   cursor: pointer;
   clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
   transition: background 0.2s, color 0.2s, border-color 0.2s;
   font-family: 'GothNerd';
 }
 
+.gameover-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: 0.7s;
+}
+
+.gameover-btn:hover::before {
+  left: 100%;
+}
+
 .gameover-btn:hover {
-  background: rgba(0, 255, 255, 0.12);
-  border-color: #FFC7FF;
-  color: #ffffff;
+  background: rgba(70, 70, 99, 0.614);
+  border-color: #58e84c;
+  color: #58e84c;
 }
 
 .gameover-hint {
@@ -1867,4 +1946,9 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 #boss-terminal{
   height: 250px;
 }
+}
+
+.gold-star {
+  width: 100px;
+
 }
