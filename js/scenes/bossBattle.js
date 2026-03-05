@@ -145,7 +145,10 @@ export class BossBattleScene {
     if (this._wormholeActive) return;
     this._wormholeActive = true;
 
-    // FORCE WORM INTO SUCTION VISUALS (MAY HAVE BEEN MID-BABY-ATTACK OR IDLE)
+    this.audio.stopMusic();
+    this.audio.playGameOver2();
+
+    // FORCE WORM INTO SUCTION VISUALS
     this.wormBoss.forceSuction();
 
     // NULL OUT onDeath SO THE CONSUMED ANIMATION DOESN'T RE-TRIGGER THE DEATH FLOW

@@ -15,8 +15,8 @@ export const CONFIG = {
   },
 
   SHIP: {
-    WIDTH: 180,
-    HEIGHT: 160,
+    WIDTH: 150,
+    HEIGHT: 130,
     SPEED: 5,             
     ACCELERATION: 2400,   // px/sÃ‚Â² 
     DAMPING: 0.85,        // HIGHER = SPACE ICE
@@ -72,7 +72,7 @@ export const CONFIG = {
     SPAWN_INTERVAL_MIN: 2.0, 
     SPAWN_INTERVAL_MAX: 5.5,
     SPAWN_DISTANCE: 400, 
-    SPRITE_SIZE: 180,
+    SPRITE_SIZE: 150,
 
     COMBAT_SCALE:      0.82,  // SCALE THRESHOLD — APPROACH → COMBAT TRANSITION
 
@@ -263,7 +263,7 @@ EXPLOSIONS: {
   BABY_WORM: {
     SPRITE_PATH:         './images/babyWorm.png',
     SPRITE_FRAMES:       2,
-    HEAD_SIZE:           80,
+    HEAD_SIZE:           60,
     SEGMENT_SIZE_RATIO:  1,
     NUM_SEGMENTS:        6,
     SEGMENT_SPACING:     11,
@@ -332,8 +332,8 @@ EXPLOSIONS: {
 
   WAVE_WORM: {
     SPRITE_FRAMES:  10,        // 10 TOTAL: 5 WAVES × (BODY + HEAD)
-    HEAD_SIZE:            90, 
-    SEGMENT_SIZE_RATIO:  1, 
+    HEAD_SIZE:            70, 
+    SEGMENT_SIZE_RATIO:  0.9, 
     NUM_SEGMENTS:         15,  
     SEGMENT_SPACING:      8,  
     TAPER_RATIO:         0.8, // TAIL

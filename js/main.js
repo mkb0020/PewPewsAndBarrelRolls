@@ -209,8 +209,23 @@ ship.onDeath       = (livesLeft) => {
 
   // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
   if (livesLeft <= 0 && inWormBattle) {
+    babyWormManager.clear(); // CLEAR BABY WORMS BEFORE VORTEX BEGINS SO THEY DON'T LATCH ON POST-RESET
     bossBattleScene.startWormholeGameOver(ship);
     return;
+  }
+
+  // BOSS REGULAR DEATH — CLEAR BABY WORMS SO THEY DON'T PERSIST ON THE DIED SCREEN
+  if (inWormBattle) {
+    babyWormManager.clear();
+  }
+
+  // GAMEPLAY DEATH (REGULAR OR GAME OVER) — CLEAR ALL ENEMIES AND CANCEL ANY ACTIVE ATTACKS
+  if (!inWormBattle) {
+    enemyManager.clear();
+    slimeAttack.reset();
+    ocularPrism.active = false;
+    ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
+    ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
   }
 
   transitionScene.handleDeath(livesLeft, inWormBattle);
@@ -353,6 +368,7 @@ transitionScene.onContinue = () => {
   }
 };
 
+transitionScene.onGameOver = () => audio.playGameOver1();
 // ==================== GAME STATE ====================
 let isPaused           = false;
 let isMuted            = false;

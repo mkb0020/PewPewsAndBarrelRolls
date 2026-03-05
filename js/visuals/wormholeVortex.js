@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 const VORTEX = {
-  DURATION:         10,   // TOTAL SECONDS
+  DURATION:         12,   // TOTAL SECONDS
   FADE_IN:          1,  // SECONDS TO FULL OPACITY
   FADE_OUT_START:   7,   // WHEN FADE-TO-BLACK BEGINS
   TEXT_FADE_IN:     6,   // WHEN "WORMHOLES ALL THE WAY DOWN" TEXT APPEARS
@@ -31,7 +31,6 @@ const VORTEX = {
 export class WormholeVortex {
   constructor() {
     this._canvas     = null;
-    this._textEl     = null;
     this._renderer   = null;
     this._scene      = null;
     this._camera     = null;
@@ -95,13 +94,7 @@ export class WormholeVortex {
     this._alpha = Math.max(0, Math.min(1, this._alpha));
     if (this._canvas) this._canvas.style.opacity = this._alpha;
 
-    // TEXT — FADES IN INDEPENDENTLY, ALSO MODULATED BY CANVAS ALPHA
-    if (this._textEl) {
-      const textProgress = this._time > VORTEX.TEXT_FADE_IN
-        ? Math.min(1, (this._time - VORTEX.TEXT_FADE_IN) / 0.7)
-        : 0;
-      this._textEl.style.opacity = (textProgress * this._alpha).toFixed(3);
-    }
+
   }
 
   _updateCamera(dt) {
@@ -155,34 +148,7 @@ export class WormholeVortex {
     });
     document.body.appendChild(this._canvas);
 
-    // TEXT OVERLAY — DOM SO IT'S CRISP AT ANY RESOLUTION
-    this._textEl = document.createElement('div');
-    Object.assign(this._textEl.style, {
-      position:      'fixed',
-      top:           '50%',
-      left:          '50%',
-      transform:     'translate(-50%, -50%)',
-      zIndex:        '9991',
-      pointerEvents: 'none',
-      opacity:       '0',
-      color:         '#ff2020',
-      fontFamily:    '"Courier New", monospace',
-      fontSize:      'clamp(16px, 3.5vw, 34px)',
-      fontWeight:    'bold',
-      letterSpacing: '0.18em',
-      textTransform: 'uppercase',
-      textAlign:     'center',
-      textShadow:    '0 0 25px #ff0000, 0 0 55px #660000, 0 0 90px #440000',
-      lineHeight:    '1.7',
-      userSelect:    'none',
-    });
-    this._textEl.innerHTML =
-      'WORMHOLES ALL THE WAY DOWN' //+
-      //'<br>' +
-     // '<span style="font-size:0.5em; opacity:0.65; letter-spacing:0.38em;">' +
-      //  'RETURNING TO WAVE 1' +
-      //'</span>';
-    document.body.appendChild(this._textEl);
+
   }
 
   _setupRenderer() {
@@ -291,7 +257,6 @@ export class WormholeVortex {
 
     if (this._renderer) { this._renderer.dispose(); this._renderer = null; }
     if (this._canvas)   { this._canvas.remove();    this._canvas   = null; }
-    if (this._textEl)   { this._textEl.remove();    this._textEl   = null; }
 
     this._scene      = null;
     this._camera     = null;

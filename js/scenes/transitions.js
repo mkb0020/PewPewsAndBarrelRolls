@@ -10,18 +10,20 @@ export class TransitionScene {
 
     //  CALLBACKS (main.js) 
     this.onContinue = null;   
-    this.onRestart  = null;  
+    this.onRestart  = null;
+    this.onGameOver = null;   // ★ NEW — FIRED WHEN REGULAR GAMEPLAY GAME OVER SCREEN SHOWS
+                              //   WIRE IN main.js: transitionScene.onGameOver = () => audio.playGameOver1();
 
     //  DOM REFS 
-    this._diedOverlay    = document.getElementById('died-overlay');
+    this._diedOverlay     = document.getElementById('died-overlay');
     this._gameoverOverlay = document.getElementById('gameover-overlay');
-    this._bossDefeated   = document.getElementById('boss-defeated');
-    this._diedSubEl      = document.getElementById('died-sub');
-    this._diedLivesEl    = document.getElementById('died-lives');
+    this._bossDefeated    = document.getElementById('boss-defeated');
+    this._diedSubEl       = document.getElementById('died-sub');
+    this._diedLivesEl     = document.getElementById('died-lives');
 
     //  WIRE BUTTONS 
-    document.getElementById('btn-continue')?.addEventListener('click',  () => this._handleContinue());
-    document.getElementById('btn-restart')?.addEventListener('click',   () => this._handleRestart());
+    document.getElementById('btn-continue')?.addEventListener('click', () => this._handleContinue());
+    document.getElementById('btn-restart')?.addEventListener('click',  () => this._handleRestart());
 
     //  KEYBOARD SHORTCUTS 
     window.addEventListener('keydown', (e) => {
@@ -33,15 +35,10 @@ export class TransitionScene {
   }
 
   //  PUBLIC API
-  get isBlocking() { return this._isGameOver || this._isDeadScreen; }
+  get isBlocking()   { return this._isGameOver || this._isDeadScreen; }
   get isDeadScreen() { return this._isDeadScreen; }
   get isGameOver()   { return this._isGameOver;   }
 
-  /**
-   *  CALLED FROM ship.onDeath
-   * @param {number}  livesLeft    
-   * @param {boolean} inWormBattle  
-   */
   handleDeath(livesLeft, inWormBattle) {
     if (livesLeft <= 0) {
       this._isGameOver = true;
@@ -66,26 +63,19 @@ export class TransitionScene {
     clearTimeout(this._bossDefeatedTimeout);
   }
 
-  /**
-   *  SNAPSHOT CURRENT SCORE AT A SAGE POINT - RAW INTEGER  SCORE VALUE
-   * @param {number} score 
-   */
   saveCheckpoint(score) {
     this._checkpointScore = score || 0;
     console.log(`✔ Checkpoint saved: ${this._checkpointScore}`);
   }
 
-  /** RETURNS SAVED CHECKPOINT SCORE SO MAIN.JS CAN RESTORE IT */
   getCheckpointScore() {
     return this._checkpointScore;
   }
 
-  /** RESTORE CHECKPOINT ON FULL RESTART - CLEARS SAVED SCORE TOO */
   resetCheckpoint() {
     this._checkpointScore = 0;
   }
 
-  /** FULL SCENE RESET - CALLED ON GAME RESTART  */
   reset() {
     this._isGameOver   = false;
     this._isDeadScreen = false;
@@ -101,7 +91,7 @@ export class TransitionScene {
     if (this._diedSubEl) {
       this._diedSubEl.textContent = inWormBattle
         ? 'pull yourself up by your bootstraps and get back out there, kiddo!'
-        : 'returning to last checkpoint';
+        : 'but we still believe in you! head back to the last checkpoint and make us proud!';
     }
     if (this._diedLivesEl) {
       this._diedLivesEl.textContent =
@@ -117,6 +107,7 @@ export class TransitionScene {
 
   _showGameOver() {
     if (this._gameoverOverlay) this._gameoverOverlay.classList.add('active');
+    this.onGameOver?.(); // TRIGGER GAMEOVER1 MUSIC VIA CALLBACK
   }
 
   _hideGameOver() {
@@ -134,6 +125,6 @@ export class TransitionScene {
   _handleRestart() {
     this._hideGameOver();
     this.resetCheckpoint();
-    this.onRestart?.();
+    this.onRestart?.(); // onRestart calls audio.stop() in main.js — that stops gameover1 automatically
   }
 }

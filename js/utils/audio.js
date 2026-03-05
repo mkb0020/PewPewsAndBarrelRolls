@@ -27,16 +27,22 @@ export class AudioManager {
     this._creditsDecodePromise = null;
 
     // ====== WAVE MUSIC — ONE BUFFER PER WAVE + ONE TRANSITION PER WAVE (1–4) ======
-    this._waveMusicBuffers        = new Array(5).fill(null); // wave1–5.m4a
-    this._transitionBuffers       = new Array(4).fill(null); // transition1–4.m4a (end of waves 1–4)
+    this._waveMusicBuffers        = new Array(5).fill(null);
+    this._transitionBuffers       = new Array(4).fill(null);
     this._waveMusicDecodePromises = [];
     this._transitionDecodePromises = [];
 
+    // GAME OVER MUSIC — TRACKED SEPARATELY FROM _musicSource ======
+    // GAMEOVER1: LOOPING — REGULAR GAMEPLAY GAME OVER. STOPPED BY audio.stop() ON RESTART.
+    // GAMEOVER2: ONE-SHOT, SCHEDULED FADE-OUT — BOSS GAME OVER / WORMHOLE SEQUENCE.
+    this._gameover1Buffer = null;
+    this._gameover1Source = null;
+    this._gameover1Gain   = null;
+    this._gameover2Buffer = null;
+    this._gameover2Source = null;
+    this._gameover2Gain   = null;
+
     // ====== SFX — WEB AUDIO API BUFFERS ======
-    // ALL SFX USE WEB AUDIO BUFFERSOURCE NODES — NO HTML AUDIO ELEMENTS.
-    // THIS MEANS ONLY THE AUDIOCONTEXT NEEDS TO BE UNLOCKED (ONE context.resume()
-    // IN A USER GESTURE), AND ALL SUBSEQUENT PLAYS WORK WITHOUT ANY PER-ELEMENT
-    // UNLOCKING DANCE — SOLVING THE IOS "ALL SFX FIRE AT ONCE" BUG FOR GOOD.
     this._sfxBuffers = {};
 
     this._initContext();
@@ -66,6 +72,12 @@ export class AudioManager {
       this._creditsDecodePromise = this._prefetchAndDecode('./audio/credits.m4a')
         .then(buf => { this._creditsBuffer = buf; console.log('✔ Credits music buffer ready'); return buf; });
 
+      //  PRELOAD GAME OVER MUSIC
+      this._prefetchAndDecode('./audio/gameover1.m4a')
+        .then(buf => { this._gameover1Buffer = buf; console.log('✔ GameOver1 buffer ready'); });
+      this._prefetchAndDecode('./audio/gameover2.m4a')
+        .then(buf => { this._gameover2Buffer = buf; console.log('✔ GameOver2 buffer ready'); });
+
       // PRELOAD WAVE MUSIC (wave1–5)
       for (let i = 0; i < 5; i++) {
         const idx = i;
@@ -74,8 +86,7 @@ export class AudioManager {
         this._waveMusicDecodePromises.push(p);
       }
 
-      // PRELOAD TRANSITION STINGS — ONE PER WAVE END (transition1–4.m4a, used after waves 1–4)
-      // WAVE 5 HAS NO TRANSITION STING — IT GOES STRAIGHT INTO THE BOSS BATTLE SEQUENCE.
+      // PRELOAD TRANSITION STINGS
       for (let i = 0; i < 4; i++) {
         const idx = i;
         const p = this._prefetchAndDecode(`./audio/transition${idx + 1}.m4a`)
@@ -106,7 +117,7 @@ export class AudioManager {
         bossTransition1:  './audio/bossTransition1.m4a',
         bossTransition2:  './audio/bossTransition2.m4a',
         static:           './audio/static.m4a',
-        waveStart:        './audio/waveStart.m4a',  // CYMBAL CRASH — PLAYS AT THE TOP OF EVERY WAVE (1–5), LAYERED OVER WAVE MUSIC
+        waveStart:        './audio/waveStart.m4a',
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -123,7 +134,6 @@ export class AudioManager {
     }
   }
 
-  // SHARED HELPER — FETCH RAW BYTES THEN DECODE. RETURNS Promise<AudioBuffer|null>.
   _prefetchAndDecode(url) {
     return fetch(url)
       .then(r  => r.arrayBuffer())
@@ -131,7 +141,6 @@ export class AudioManager {
       .catch(e  => { console.warn(`⚠ Audio pre-decode failed (${url}):`, e); return null; });
   }
 
-  // PLAY AN SFX BUFFER VIA A DISPOSABLE BUFFERSOURCE NODE.
   _playSfx(name, volume = 1.0) {
     if (this.isMuted || !this.context) return;
     const buffer = this._sfxBuffers[name];
@@ -169,9 +178,18 @@ export class AudioManager {
     this._musicSource = null;
   }
 
+  // STOP BOTH GAME OVER TRACKS. CALLED FROM stop() ON FULL RESTART.
+  _stopGameOverSources() {
+    try { this._gameover1Source?.stop(); } catch (_) {}
+    this._gameover1Source = null;
+    this._gameover1Gain   = null;
+
+    try { this._gameover2Source?.stop(); } catch (_) {}
+    this._gameover2Source = null;
+    this._gameover2Gain   = null;
+  }
+
   // ==================== PUBLIC API ====================
-  // IOS FIX: EVERYTHING IS NOW WEB AUDIO API. ONE context.resume() IN A USER
-  // GESTURE UNLOCKS ALL FUTURE AUDIO — NO PER-ELEMENT HTML AUDIO PRIMING NEEDED.
   start() {
     if (this.isStarted) return;
     this.isStarted = true;
@@ -184,6 +202,7 @@ export class AudioManager {
   stop() {
     this.isStarted = false;
     this._stopMusicSource();
+    this._stopGameOverSources(); //  CLEAN UP GAME OVER TRACKS ON FULL RESTART
   }
 
   stopMusic() {
@@ -199,7 +218,6 @@ export class AudioManager {
       source.buffer = this._creditsBuffer;
       source.loop   = true;
       source.connect(this._musicGain);
-      // FADE IN FROM SILENCE
       this._musicGain.gain.setValueAtTime(0, this.context.currentTime);
       this._musicGain.gain.linearRampToValueAtTime(this.MUSIC_VOLUME, this.context.currentTime + fadeDuration);
       source.start(0);
@@ -242,9 +260,70 @@ export class AudioManager {
     boss.loop   = true;
     boss.connect(this._musicGain);
     boss.start(bossStartTime);
-    this._musicSource = boss; // MAIN REFERENCE — USED BY stopMusic() AND toggleMute()
+    this._musicSource = boss;
 
     console.log(`♫ Intro → Boss scheduled (handoff in ${this._introBuffer.duration.toFixed(2)}s)`);
+  }
+
+  //  REGULAR GAMEPLAY GAME OVER — LOOPING, NO FADE - STOPS CURRENT MUSIC IMMEDIATELY. CLEANED UP BY audio.stop() ON RESTART.
+  playGameOver1() {
+    if (this.isMuted || !this.context) return;
+    if (!this._gameover1Buffer) {
+      console.warn('[AudioManager] playGameOver1: buffer not ready');
+      return;
+    }
+
+    this._stopMusicSource();      // CUT GAMEPLAY MUSIC IMMEDIATELY
+    this._stopGameOverSources();  // PREVENT DOUBLE-TRIGGER
+
+    const gain = this.context.createGain();
+    gain.gain.value = this.MUSIC_VOLUME;
+    gain.connect(this.masterGain);
+
+    const source = this.context.createBufferSource();
+    source.buffer = this._gameover1Buffer;
+    source.loop   = true;
+    source.connect(gain);
+    source.start(0);
+
+    this._gameover1Source = source;
+    this._gameover1Gain   = gain;
+    console.log('♫ GameOver1 started (looping)');
+  }
+
+  //  BOSS GAME OVER — ONE-SHOT, SCHEDULED FADE-OUT OVER LAST fadeDuration SECONDS.
+  // STOPS CURRENT MUSIC IMMEDIATELY. CLEANED UP BY audio.stop() ON RESTART.
+  playGameOver2(fadeDuration = 4.0) {
+    if (this.isMuted || !this.context) return;
+    if (!this._gameover2Buffer) {
+      console.warn('[AudioManager] playGameOver2: buffer not ready');
+      return;
+    }
+
+    this._stopMusicSource();      // CUT BOSS MUSIC IMMEDIATELY
+    this._stopGameOverSources();  // PREVENT DOUBLE-TRIGGER
+
+    const gain = this.context.createGain();
+    gain.gain.value = this.MUSIC_VOLUME;
+    gain.connect(this.masterGain);
+
+    const source = this.context.createBufferSource();
+    source.buffer = this._gameover2Buffer;
+    source.loop   = false;
+    source.connect(gain);
+
+    // SCHEDULE FADE-OUT: HOLD FULL VOLUME → RAMP TO 0 OVER LAST fadeDuration SECONDS
+    const duration  = this._gameover2Buffer.duration;
+    const now       = this.context.currentTime;
+    const fadeStart = now + Math.max(0, duration - fadeDuration);
+    gain.gain.setValueAtTime(this.MUSIC_VOLUME, fadeStart);
+    gain.gain.linearRampToValueAtTime(0, now + duration);
+
+    source.start(now);
+
+    this._gameover2Source = source;
+    this._gameover2Gain   = gain;
+    console.log(`♫ GameOver2 started (fade-out starts at ${(duration - fadeDuration).toFixed(2)}s, over ${fadeDuration}s)`);
   }
 
   toggleMute() {
@@ -261,15 +340,11 @@ export class AudioManager {
         this._musicGain.gain.setTargetAtTime(this.MUSIC_VOLUME, this.context.currentTime, 0.05);
         this.masterGain.gain.setTargetAtTime(1.0, this.context.currentTime, 0.05);
       }
-      if (!this._musicSource) {
-        // MUSIC RESTART ON UNMUTE IS HANDLED BY THE CALLER (startWaveMusic / startBossMusic)
-      }
     }
 
     return this.isMuted;
   }
 
-  // CREATE A LOOPING BUZZ FOR ONE FLIM FLAM — RETURNS A stopFn TO CALL WHEN ENEMY DIES.
   startLoopBuzz(volume = 0.35) {
     if (this.isMuted || !this.context) return () => {};
     const buffer = this._sfxBuffers['buzz'];
@@ -293,22 +368,10 @@ export class AudioManager {
     };
   }
 
-  // LOOPING STATIC — OPENING SCENE TRANSMISSION EFFECT
-  startLoopStatic(volume = 0.55) {
-    return this._startLoop('static', volume);
-  }
+  startLoopStatic(volume = 0.55)    { return this._startLoop('static',    volume); }
+  startLoopTelegraph(volume = 0.9)  { return this._startLoop('telegraph', volume); }
+  startLoopPrism(volume = 0.65)     { return this._startLoop('prism',     volume); }
 
-  // LOOPING TELEGRAPH WHISPER
-  startLoopTelegraph(volume = 0.9) {
-    return this._startLoop('telegraph', volume);
-  }
-
-  // LOOPING PRISM FREQUENCY — PLAYS FOR FULL PRISM ATTACK DURATION
-  startLoopPrism(volume = 0.65) {
-    return this._startLoop('prism', volume);
-  }
-
-  // SHARED LOOP HELPER — CREATES A LOOPING BUFFERSOURCE, RETURNS A STOP CLOSURE
   _startLoop(name, volume) {
     if (this.isMuted || !this.context) return () => {};
     const buffer = this._sfxBuffers[name];
@@ -333,31 +396,29 @@ export class AudioManager {
   }
 
   // ==================== PUBLIC PLAY METHODS ====================
-  playOuch()        { this._playSfx('ouch',        0.5); } // SHIP TAKES DAMAGE
-  playPop()         { this._playSfx('pop',          0.9); } // OCULAR PRISM PUPIL DESTROYED
-  playSplat()       { this._playSfx('splat',       0.7); } // SLIME HITS SHIP
-  playLaser()       { this._playSfx('laser',       this.LASER_VOLUME);       }
-  playEnemyLaser()  { this._playSfx('enemyLasers', this.ENEMY_LASER_VOLUME); } // ENEMY LASER FIRE
-  playImpact()      { this._playSfx('impact',      this.IMPACT_VOLUME);      }
-  playSpawn()       { this._playSfx('spawn',        this.SPAWN_VOLUME);      }
-  playBarrelRoll()  { this._playSfx('barrelRoll',   this.BARREL_ROLL_VOLUME);}
-  playWormDeath1()  { this._playSfx('wormDeath1',   0.9); } // KILL SHOT / FREEZE
-  playWormDeath2()  { this._playSfx('wormDeath2',   0.9); } // SEGMENT POP WAVE
-  playWormDeath3()  { this._playSfx('wormDeath3',   0.9); } // HEAD POP + COOLDOWN
-  playConsumed()    { this._playSfx('consumed',     0.9); } // SHIP SPIRAL-IN DEATH
-  playBabyWorms()   { this._playSfx('babyWorms',    1.0); } // BABY WORM SPIT ATTACK
-  playWarning()     { this._playSfx('warning',      0.8); }
-  playWaveWormSfx()    { this._playSfx('waveWorms',        0.4); } // WAVE WORM SPAWN CUE
-  playBossTransition1(){ this._playSfx('bossTransition1',  0.9); } // TUNNEL SURGE — WAVE 5 CLEARED
-  playBossTransition2(){ this._playSfx('bossTransition2',  0.9); } // DARKNESS HITS — WORM INCOMING
-  playWaveStart() { this._playSfx('waveStart', 0.55); } // CRASH AFTER RISER FROM TRANSITION
+  playOuch()        { this._playSfx('ouch',        0.5); }
+  playPop()         { this._playSfx('pop',          0.9); }
+  playSplat()       { this._playSfx('splat',        0.7); }
+  playLaser()       { this._playSfx('laser',        this.LASER_VOLUME);       }
+  playEnemyLaser()  { this._playSfx('enemyLasers',  this.ENEMY_LASER_VOLUME); }
+  playImpact()      { this._playSfx('impact',       this.IMPACT_VOLUME);      }
+  playSpawn()       { this._playSfx('spawn',         this.SPAWN_VOLUME);      }
+  playBarrelRoll()  { this._playSfx('barrelRoll',    this.BARREL_ROLL_VOLUME);}
+  playWormDeath1()  { this._playSfx('wormDeath1',    0.9); }
+  playWormDeath2()  { this._playSfx('wormDeath2',    0.9); }
+  playWormDeath3()  { this._playSfx('wormDeath3',    0.9); }
+  playConsumed()    { this._playSfx('consumed',      0.9); }
+  playBabyWorms()   { this._playSfx('babyWorms',     1.0); }
+  playWarning()     { this._playSfx('warning',       0.8); }
+  playWaveWormSfx()     { this._playSfx('waveWorms',       0.4); }
+  playBossTransition1() { this._playSfx('bossTransition1', 0.9); }
+  playBossTransition2() { this._playSfx('bossTransition2', 0.9); }
+  playWaveStart()       { this._playSfx('waveStart',       0.55); }
 
-  // START LOOPING MUSIC FOR THE GIVEN WAVE (0-INDEXED)
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;
     const buf = this._waveMusicBuffers[waveIndex];
     if (!buf) {
-      // BUFFER NOT READY YET — WAIT FOR IT
       this._waveMusicDecodePromises[waveIndex]?.then(() => {
         if (!this.isMuted) this._playBuffer(this._waveMusicBuffers[waveIndex]);
       });
@@ -366,13 +427,11 @@ export class AudioManager {
     this._playBuffer(buf);
   }
 
-  // PLAY THE TRANSITION STING FOR THE GIVEN WAVE END — ONE SHOT, NO LOOP.
-  // waveNumber IS 1-BASED (1–4). WAVE 5 HAS NO TRANSITION — BOSS SEQUENCE HANDLES ITS OWN AUDIO.
   playWaveTransition(waveNumber) {
     if (this.isMuted || !this.context) return;
-    this._stopMusicSource(); // CUT WAVE MUSIC IMMEDIATELY
+    this._stopMusicSource();
 
-    const idx = waveNumber - 1; // CONVERT TO 0-BASED INDEX FOR _transitionBuffers
+    const idx = waveNumber - 1;
     if (idx < 0 || idx > 3) {
       console.warn(`[AudioManager] playWaveTransition: invalid waveNumber ${waveNumber} — expected 1–4`);
       return;
@@ -385,7 +444,7 @@ export class AudioManager {
       source.loop   = false;
       source.connect(this._musicGain);
       source.start(0);
-      this._musicSource = source; // SO stopMusic() / toggleMute() CAN REACH IT
+      this._musicSource = source;
     };
 
     const buf = this._transitionBuffers[idx];
