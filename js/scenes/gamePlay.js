@@ -1,6 +1,4 @@
-// Updated 3/5/26 @ 8:00PM
-
-
+// Updated 3/6/26 @ 6AM
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -10,7 +8,7 @@ const WAVE_CONFIGS = [
   { // WAVE 1 — GLIP GLOP ONLY
     types:      ['BASIC'],
     weights:    [1.00],
-    maxEnemies: 4,
+    maxEnemies: 4, // FOR TESTING
   },
   { // WAVE 2 — + ZIP ZAP
     types:      ['BASIC', 'FAST'],
@@ -41,10 +39,7 @@ const STATE = {
   COMPLETE:     'COMPLETE',     // ALL 5 WAVES COMPLETE
 };
 
-
-// ─────────────────────────────────────────────────────────────────────────────
 export class GameplayScene {
-
   constructor({ enemyManager, waveWormManager, scoreManager, audio }) {
     this.enemyManager    = enemyManager;
     this.waveWormManager = waveWormManager;

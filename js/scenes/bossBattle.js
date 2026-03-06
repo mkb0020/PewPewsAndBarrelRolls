@@ -1,3 +1,4 @@
+// Updated 3/6/26 @ 12:00PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -5,13 +6,14 @@ import { ImageLoader } from '../utils/imageLoader.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 export class BossBattleScene {
 
-  constructor({ wormBoss, babyWormManager, audio, scoreManager, projectileManager, transitionScene }) {
-    this.wormBoss          = wormBoss;
-    this.babyWormManager   = babyWormManager;
-    this.audio             = audio;
-    this.scoreManager      = scoreManager;
-    this.projectileManager = projectileManager;
-    this.transitionScene   = transitionScene;
+  constructor({ wormBoss, babyWormManager, audio, scoreManager, projectileManager, transitionScene, singularityBombManager }) {
+    this.wormBoss              = wormBoss;
+    this.babyWormManager       = babyWormManager;
+    this.audio                 = audio;
+    this.scoreManager          = scoreManager;
+    this.projectileManager     = projectileManager;
+    this.transitionScene       = transitionScene;
+    this.singularityBombManager = singularityBombManager ?? null;
 
     //  INTERNAL STATE 
     this._wormBattleStarted = false;
@@ -127,6 +129,7 @@ export class BossBattleScene {
     this._battleReady       = false;
     this._wormholeActive    = false;
     this._vortex            = null;
+    if (this.singularityBombManager) this.singularityBombManager.isBossBattle = false;
   }
 
   /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
@@ -203,6 +206,7 @@ export class BossBattleScene {
       audio.stopMusic();
       audio.startBossMusic(); 
       ImageLoader.load('slime');
+      if (this.singularityBombManager) this.singularityBombManager.isBossBattle = true;
       const riserMs = (audio._introBuffer?.duration ?? 10) * 1000;
       setTimeout(() => this.readyForBattle(), riserMs);
     };
