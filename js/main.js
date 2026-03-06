@@ -1,5 +1,4 @@
-// Updated 3/6/26 @ 12:00AM
-
+// Updated 3/6/26 @ 7:30am
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -11,7 +10,7 @@ import { ScoreManager }                              from './utils/score.js';
 import { ImageLoader }                               from './utils/imageLoader.js';
 import { Tunnel }                                    from './visuals/tunnel.js';
 import { Ship }                                      from './entities/ship.js';
-import { EnemyManager }                              from './entities/enemies.js';
+import { EnemyManager, setActiveSingularityBH }      from './entities/enemies.js';
 import { ProjectileManager, Crosshair, MuzzleFlash } from './entities/projectiles.js';
 import { WormBoss }                                  from './entities/worm.js';
 import { BabyWormManager }                           from './entities/babyWorm.js';
@@ -28,6 +27,7 @@ import { ClosingScene }                              from './scenes/closingScene
 import { BossTransmission }                          from './scenes/bossTransmission.js';
 import { CosmicPrismManager }                        from './entities/cosmicPrism.js';
 import { TesseractFragmentManager }                  from './entities/tesseractFragment.js';
+import { SingularityBombManager }                    from './entities/singularityBomb.js';
 
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
@@ -60,6 +60,8 @@ const cosmicPrismManager = new CosmicPrismManager();
 cosmicPrismManager.audio = audio; 
 const tesseractManager   = new TesseractFragmentManager();
 tesseractManager.audio   = audio;
+const singularityBombManager = new SingularityBombManager();
+singularityBombManager.audio = audio;
 const gameplayScene     = new GameplayScene({
   enemyManager,
   waveWormManager,
@@ -78,6 +80,7 @@ const bossBattleScene   = new BossBattleScene({
   scoreManager,
   projectileManager,
   transitionScene,
+  singularityBombManager, 
 });
 
 // ==================== ENEMY CALLBACKS ====================
@@ -121,7 +124,15 @@ cosmicPrismManager.onCollect = (healAmt) => {
 
 // ==================== TESSERACT FRAGMENT CALLBACKS ====================
 tesseractManager.onCollect = () => {
-  // Boost is managed internally by the manager — no ship.heal needed
+};
+
+// ==================== SINGULARITY BOMB CALLBACKS ====================
+singularityBombManager.onInventoryChange = (count) => {
+  updateBombDisplay(count);
+};
+singularityBombManager.onEnemyKilledByBH = (x, y) => {
+  projectileManager.createExplosion(x, y, 'bam');
+  audio.playImpact();
 };
 
 // ==================== GAMEPLAY SCENE CALLBACKS ====================
@@ -142,6 +153,7 @@ gameplayScene.onWaveStart = (waveIndex) => {
   if (waveIndex === 0) {
     cosmicPrismManager.start();        // 🔮 BEGIN PRISM SPAWNING FROM WAVE 1
     tesseractManager.start();          // ◈ BEGIN TESSERACT SPAWNING FROM WAVE 1
+    singularityBombManager.start();    // 💣 BEGIN SINGULARITY BOMB SPAWNING FROM WAVE 1
   }
 };
 
@@ -160,6 +172,7 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   showWaveHUD(false);
   cosmicPrismManager.stop(); // 🔮 NO PRISMS DURING BOSS SEQUENCE
   tesseractManager.stop();   // ◈ NO TESSERACT FRAGMENTS DURING BOSS SEQUENCE
+  singularityBombManager.stop(); // 💣 NO NEW BOMBS DURING BOSS SEQUENCE (keep inventory)
   tunnel.setBossTransitionSurge(1); // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON
   _bossTracerTarget = 1;
   audio.playBossTransition1(); // PHASE 1 SFX — TUNNEL SURGE
@@ -216,7 +229,7 @@ bossBattleScene.onCheckpoint     = () => {
 wormBoss.onDeath = () => {
   audio.stopMusic();
   ship.exitCinematic();
-  document.querySelectorAll('#hud, #hp-container, #lives-container, #boss-health-container, #wave-hud, #ui-buttons')
+  document.querySelectorAll('#hud, #hp-container, #lives-container, #boss-health-container, #wave-hud, #ui-buttons, #bomb-container')
     .forEach(el => el.classList.add('pre-game-hidden'));
   const rawScore = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
   closingScene.start(parseInt(rawScore, 10) || 0);
@@ -267,6 +280,18 @@ function updateHPBar(hp, maxHP) {
 function updateLivesDisplay(lives) {
   const el = document.getElementById('lives-count');
   if (el) el.textContent = lives;
+}
+
+function updateBombDisplay(count) {
+  const el = document.getElementById('bomb-count');
+  if (el) el.textContent = `x ${count}`;
+  const container = document.getElementById('bomb-container');
+  if (container) {
+    container.classList.toggle('bomb-empty', count === 0);
+    container.classList.remove('bomb-flash');
+    void container.offsetWidth;
+    container.classList.add('bomb-flash');
+  }
 }
 
 // ==================== WAVE HUD HELPERS ====================
@@ -324,6 +349,7 @@ transitionScene.onRestart = () => {
   gameplayScene.reset();
   cosmicPrismManager.reset();
   tesseractManager.reset();
+  singularityBombManager.reset();
 
   bossBattleScene.reset();
   tunnel.resetBossTransition();
@@ -362,6 +388,7 @@ bossBattleScene.onWormholeGameOver = () => {
   CONFIG.ENEMIES.MAX_COUNT = currentEnemyCount;
   cosmicPrismManager.reset();
   tesseractManager.reset();
+  singularityBombManager.reset();
   gameplayScene.start();
   bossBattleScene.updateHUD();
   showWaveHUD(true);
@@ -412,6 +439,11 @@ let currentMode       = 'bossBattle';
 let currentEnemyCount = 5;
 
 // ==================== KEYBOARD SHORTCUTS ====================
+function deployBomb() {
+  if (isPaused || !ship.isAlive) return;
+  singularityBombManager.deploy(ship.x, ship.y);
+}
+
 window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP') {
     isPaused = !isPaused;
@@ -440,6 +472,17 @@ window.addEventListener('keydown', (e) => {
     audio.playBarrelRoll();
     return;
   }
+  if (e.code === 'KeyF') {
+    e.preventDefault();
+    deployBomb();
+    return;
+  }
+});
+
+
+gameCanvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  deployBomb();
 });
 
 // ==================== BUTTON EVENTS ====================
@@ -500,6 +543,15 @@ function gameLoop() {
       enemyManager.update(dt, ship.x, ship.y);
       gameplayScene.update(dt, ship.x, ship.y);
       bossBattleScene.update(dt, ship);
+
+      // SINGULARITY BOMB —
+      singularityBombManager.update(dt, ship.x, ship.y);
+      singularityBombManager.applyGravityAndBossEffect(dt, enemyManager.getEnemies(), wormBoss);
+      setActiveSingularityBH(
+        singularityBombManager.blackHole && !singularityBombManager.blackHole.isDead()
+          ? singularityBombManager.blackHole
+          : null
+      );
 
       if (wormBoss.isActive) {
         if (wormBoss.alpha > 0.5)  tunnel.setBossEmergenceFog(0);
@@ -605,10 +657,12 @@ function gameLoop() {
       babyWormManager.draw(ctx);
       crosshair.draw(ctx);
       gameplayScene.drawBehindEnemies(ctx);
+      singularityBombManager.drawBlackHole(ctx); // 💣 BLACK HOLE BEHIND ENEMIES
       enemyManager.draw(ctx);
       gameplayScene.drawAboveEnemies(ctx);
       if (gameplayScene.isActive()) cosmicPrismManager.draw(ctx); // 🔮 PRISMS ABOVE ENEMIES, BELOW SHIP
       if (gameplayScene.isActive()) tesseractManager.drawItems(ctx); // ◈ TESSERACT FRAGMENTS
+      if (gameplayScene.isActive()) singularityBombManager.drawItems(ctx); // 💣 SPINOR COLLECTIBLES
   }
 
   slimeAttack.draw(ctx);
@@ -746,8 +800,8 @@ async function startup() {
   initMobileControls(
     (direction) => { ship.startBarrelRoll(direction); audio.playBarrelRoll(); },
     () => doShoot(),
-    () => audio.playPowerUp1(),   // ← X button
-    () => audio.playPowerUp2()    // ← Y button
+    () => audio.playPowerUp1(),   
+    () => deployBomb()           
   );
 
 
