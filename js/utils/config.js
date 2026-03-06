@@ -1,5 +1,4 @@
-// Updated 3/5/26 @ 8:00PM
-
+// Updated 3/6/26 @ 6:30PM
 // config.js
 export const CONFIG = {
   TUNNEL: {
@@ -54,9 +53,6 @@ export const CONFIG = {
     COLOR_SECONDARY: '#8C92AC',
   },
 
-
-
-
   COSMIC_PRISM: {
     RADIUS:            25,    
     COLLECT_RADIUS:    48,    
@@ -67,7 +63,7 @@ export const CONFIG = {
     LIFETIME:          14,    
     FIRST_SPAWN_DELAY: 15,     //FOR TESTING
     SPAWN_INTERVAL:    20,    //FOR TESTING
-    MAX_COUNT:         1,    
+    MAX_COUNT:         0,    //FOR TESTING
     HEAL_AMOUNT:       30,    
   },
 
@@ -78,7 +74,7 @@ export const CONFIG = {
     LIFETIME:          15,    
     FIRST_SPAWN_DELAY: 7,    //FOR TESTING
     SPAWN_INTERVAL:    25,     //FOR TESTING
-    MAX_COUNT:         1,     
+    MAX_COUNT:         0,     //FOR TESTING
     BOOST_DURATION:    8.0,   
   },
 
@@ -98,12 +94,11 @@ export const CONFIG = {
   MAX_PIXEL_RATIO: 2,
 
   ENEMIES: {
-    MAX_COUNT: 5, 
+    MAX_COUNT: 1, // FOR TESTING
     SPAWN_INTERVAL_MIN: 2.0, 
     SPAWN_INTERVAL_MAX: 5.5,
     SPAWN_DISTANCE: 400, 
     SPRITE_SIZE: 150,
-
     COMBAT_SCALE:      0.82,  // SCALE THRESHOLD — APPROACH → COMBAT TRANSITION
 
     TYPES: {
@@ -225,7 +220,6 @@ export const CONFIG = {
     PROJECTILE_COLOR: '#00ffff',
     PROJECTILE_GLOW_COLOR: '#00ffff',
     MAX_PROJECTILES: 50,
-    
     CROSSHAIR_SIZE: 60,
     CROSSHAIR_AIM_DEFLECT_PX: 500,    // MAX px FROM CENTER — CROSSHAIR RANGE OF MOTION
     CROSSHAIR_OFFSET_MULTIPLIER: 0.55,
@@ -297,10 +291,8 @@ export const CONFIG = {
     SEGMENT_SIZE_RATIO:  1,
     NUM_SEGMENTS:        6,
     SEGMENT_SPACING:     11,
-
     SPAWN_COUNT:         5,
     SPAWN_INTERVAL:      0.30,
-
     SEEK_SPEED:          175,
     SEEK_ACCEL:          55,
     MAX_SPEED:           310,
@@ -318,7 +310,6 @@ export const CONFIG = {
     TRAIL_MAX_SIZE:      13,
     TRAIL_MIN_SIZE:      2,
     TRAIL_MAX_ALPHA:     0.65,
-
     ATTACK_DURATION:     9.0,
   },
 
@@ -329,10 +320,8 @@ export const CONFIG = {
     MIN_SCALE:           0.50,  // GLORK MUST BE THIS SIZE TO ATTACK
     TUNNEL_SPEED_MULT:   0.28,  // TUNNEL SLOWS TO THIS PERCENT OF NORMAL SPEED 
     TUNNEL_GREEN:       0x22ff44, 
-
     TRAIL_MAX:           10,    // TRACERS
     TRAIL_CAPTURE_RATE:  0.055, // SECONDS BETWEEN SNAPSHOTS
-    
     CONTROL_ACCEL_MULT:  0.45, // MOLLASSES PHYSICS 
     CONTROL_DAMP_MULT:   0.60, 
   },
@@ -340,15 +329,11 @@ export const CONFIG = {
   OCULAR_PRISM: {
     DURATION:       14.0,   
     FADE_DURATION:   0.6,   
-
     SHARD_MIN:       3,     
     SHARD_MAX:       5,     
-
     PUPIL_RADIUS:   68,     
     PUPIL_HEALTH:    3,     
-
     ICHOR_COUNT:    55,     
-
     PUPIL_HIT_SCORE: 25,    
     PUPIL_KILL_SCORE: 200,  
   },
@@ -381,12 +366,12 @@ export const CONFIG = {
 
     HEALTH:            5, // FOR TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 5.0, // FOR TESTING
-    FIRST_SPAWN_DELAY_MAX: 7.5,// FOR TESTING
+    FIRST_SPAWN_DELAY_MIN: 1.0, // FOR TESTING
+    FIRST_SPAWN_DELAY_MAX: 2.5,// FOR TESTING
     SPAWN_GAP_MIN:         7,   // FOR TESTING
     SPAWN_GAP_MAX:         10, // FOR TESTING
 
-    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // FOR TESTING   
+    KILLS_PER_WAVE: [1, 1, 1, 1, 1], // FOR TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,
@@ -403,5 +388,41 @@ export const CONFIG = {
     SIZZLE_FRAMES:  9,     
     SIZZLE_FPS:    15,
     SIZZLE_SIZE:   120,     
+  },
+
+  SINGULARITY_BOMB: {
+    RADIUS:               20,    // SPINOR ITEM
+    COLLECT_RADIUS:       50,    
+    LIFETIME:             10,    
+    FIRST_SPAWN_DELAY:    5,    // FOR TESTING
+    SPAWN_INTERVAL:       5,   // FOR TESTING
+    MAX_COUNT:             1,   
+    MAX_INVENTORY:         5,    
+    ROTATION_SPEED:        1.4,  // radians/s — INTERNAL SPINOR ANGLE
+
+    BH_LIFETIME:           7,  // SECONDS AT FULL SIZE (CURRENT SFX IS 4 BARS = 10.67 SECONDS / COLLAPSE SOUND IS AT BAR 3 = 8 SECONDS)
+    BH_GROW_TIME:          0.7,  // HOW LONG TO REACH FULL RADIUS
+    BH_COLLAPSE_TIME:      1.1,  // HOW LONG TO COLLAPSE
+    BH_MAX_RADIUS:         60,   // px — EVENT HORIZON RADIUS
+    BH_WANDER_SPEED:       48,   // px/s — WANDER MOVEMENT SPEED
+    BH_WANDER_X:          200,   // px — HORIZONTAL RANGE AROUND WANDER ZONE CENTER
+    BH_WANDER_Y:          130,   // px — VERTICAL RANGE AROUND WANDER ZONE CENTER
+    BH_WANDER_BIAS_X:     0.68,  // FRACTION OF SCREEN WIDTH — CENTER OF WANDER ZONE (RIGHT BIAS)
+    BH_WANDER_BIAS_Y:     0.30,  // FRACTION OF SCREEN HEIGHT — CENTER OF WANDER ZONE (UPPER BIAS)
+    GRAVITY_STRENGTH:    260,   
+    GRAVITY_RANGE:       340,    // px — MAX INFLUENCE RADIUS
+    ORBIT_SPEED:         220,    // radians*sqrt(px)/s
+    ORBIT_CAPTURE_RANGE: 300,    // px — DISTANCE ENEMY FALLS INTO ORBIT
+    ORBIT_DRIFT_RATE:     10,    // px/s — SLOWER ORBIT
+    ORBIT_COLLAPSE_RATE: 380,    // px/s — FAST INWARD DRAIN WHEN BH STARTS COLLAPSING
+    STRETCH_MAX:           3.2,  // ── SPAGHETTIFICATION 
+    STRETCH_RANGE:        200,   
+    BOSS_STUN_DURATION:    4.0,  
+    BOSS_STUN_RANGE:      300,   
+    BOSS_ORBIT_RADIUS:   200,  
+    BOSS_ORBIT_SPEED:    1.55,  
+    BOSS_ORBIT_EASE:     1.6,   
+    HAWKING_PARTICLES:    22,
+    HAWKING_SPEED:        380,   
   },
 };

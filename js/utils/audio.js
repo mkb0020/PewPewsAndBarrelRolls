@@ -1,6 +1,4 @@
-
-// Updated 3/5/26 @ 7:15PM
-
+// Updated 3/6/26 @ 6:00am
 // audio.js
 export class AudioManager {
   constructor() {
@@ -122,9 +120,10 @@ export class AudioManager {
         static:           './audio/static.m4a',
         waveStart:        './audio/waveStart.m4a',
         // ====== POWER-UPS ======
-        powerUp1:    './audio/powerUp1.m4a',  // COSMIC PRISM HP HEAL COLLECT
-        powerUp2:    './audio/powerUp2.m4a',  // RESERVED — FUTURE POWER-UP
-        powerUp3:    './audio/powerUp3.m4a',  // RESERVED — FUTURE POWER-UP
+        powerUp1:       './audio/powerUp1.m4a',      // COSMIC PRISM HP HEAL COLLECT
+        powerUp2:       './audio/powerUp2.m4a',      // LASER BOOST
+        powerUp3:       './audio/powerUp3.m4a',      // SINGULARITY BOMB COLLECT
+        babyBlackhole:  './audio/babyBlackhole.m4a', // SINGULARITY BOMB DEPLOY
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -425,7 +424,8 @@ export class AudioManager {
   // ====== POWER-UP SFX ======
   playPowerUp1() { this._playSfx('powerUp1', 0.5); }  // COSMIC PRISM HP HEAL COLLECT
   playPowerUp2() { this._playSfx('powerUp2', 0.5); }  // LASER BOOST
-  playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // RESERVED — FUTURE POWER-UP
+  playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
+  playBabyBlackhole() { this._playSfx('babyBlackhole', 0.8); } // SINGULARITY BOMB DEPLOY
 
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;
