@@ -1,5 +1,4 @@
-// Updated 3/5/26 @ 7:15PM
-
+// Updated 3/6/26 @ 6:30PM
 // cosmicPrism.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -225,19 +224,20 @@ class CollectEffect {
       let sx, sy, alpha, sz;
 
       if (t < 0.18) {
-        // BURST OUTWARD
+        // BURST 
         const st = t / 0.18;
         sx    = this.px + shard.vx * st * 0.18;
         sy    = this.py + shard.vy * st * 0.18;
         alpha = st;
         sz    = shard.size * (0.5 + st * 0.5);
       } else if (t < 0.22) {
-        // FREEZE BRIEFLY
+        // FREEZE 
         sx    = this.px + shard.vx * 0.18;
         sy    = this.py + shard.vy * 0.18;
         alpha = 1;
         sz    = shard.size;
       } else if (t < 0.7) {
+        // SPIRAL 
         const st  = (t - 0.22) / 0.48;
         const eased = st * st * (3 - 2 * st); 
         const frozenX = this.px + shard.vx * 0.18;
@@ -297,8 +297,6 @@ export class CosmicPrismManager {
     this._spawnTimer = 0;
 
     this.onCollect = null;
-
- 
     this.audio = null;
   }
 
@@ -358,11 +356,15 @@ export class CosmicPrismManager {
     for (const e of this.effects) e.draw(ctx);
   }
 
-  _spawnPrism() {
+  _spawnPrism() { // SPAWN IN SHIP'S REACHABLE ZONE
     const C      = CONFIG.COSMIC_PRISM;
-    const margin = 140;
-    const x      = margin + Math.random() * (window.innerWidth  - margin * 2);
-    const y      = margin + Math.random() * (window.innerHeight - margin * 2);
+    const SHIP   = CONFIG.SHIP;
+    const cx     = window.innerWidth  / 2;
+    const cy     = window.innerHeight / 2;
+    const rangeX = SHIP.MAX_OFFSET_X - 50;
+    const rangeY = SHIP.MAX_OFFSET_Y - 50;
+    const x      = cx + (Math.random() * 2 - 1) * rangeX;
+    const y      = cy + (Math.random() * 2 - 1) * rangeY;
     this.prisms.push(new Prism(x, y));
   }
 
