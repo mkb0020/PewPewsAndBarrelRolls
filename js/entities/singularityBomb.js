@@ -1,0 +1,696 @@
+// Updated 3/6/26 @ 6:30PM
+// js/entities/singularityBomb.js
+import { CONFIG } from '../utils/config.js';
+
+class SpinorItem {
+  constructor(x, y) {
+    this.x         = x;
+    this.y         = y;
+    this.timer     = 0;
+    this.angle     = 0;   // INTERNAL ANGLE - ADVANCES AT FULL ROTATION_SPEED
+    this.bobPhase  = Math.random() * Math.PI * 2;
+    this.collected = false;
+  }
+
+  isDead() {
+    const C = CONFIG.SINGULARITY_BOMB;
+    return this.timer >= C.LIFETIME || this.collected;
+  }
+
+  update(dt) {
+    this.timer += dt;
+    this.angle += CONFIG.SINGULARITY_BOMB.ROTATION_SPEED * dt;
+  }
+
+  draw(ctx) {
+    if (this.collected) return;
+    const C    = CONFIG.SINGULARITY_BOMB;
+    const fade = Math.min(1, Math.min((C.LIFETIME - this.timer) / 2, this.timer / 0.6));
+    if (fade <= 0) return;
+
+    const bob = Math.sin(this.timer * 2.1 + this.bobPhase) * 7;
+    const cx  = this.x;
+    const cy  = this.y + bob;
+    const R   = C.RADIUS;
+
+    // SPINOR RULE: displayAngle = internalAngle / 2  (ONE VISUAL CYCLE = 720° INTERNAL) - isFlipped    = TRUE WHEN INTERNAL 60-720
+    const dispAngle = this.angle * 0.5;
+    const isFlipped = (this.angle % (Math.PI * 2)) > Math.PI;
+
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.translate(cx, cy);
+
+    // ── OUTER GLOW AURA ──
+    const grd = ctx.createRadialGradient(0, 0, R * 0.15, 0, 0, R * 2.2);
+    grd.addColorStop(0,   'rgba(180, 80, 255, 0.4)');
+    grd.addColorStop(0.5, 'rgba(100, 20, 200, 0.15)');
+    grd.addColorStop(1,   'rgba(60,  0, 140, 0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── OUTER RING — ROTATES AT FULL DISPLAY ANGLE (HORIZONTAL TOROID) ──
+    ctx.save();
+    ctx.rotate(dispAngle);
+    ctx.strokeStyle = '#c060ff';
+    ctx.lineWidth   = 2.5;
+    ctx.shadowBlur  = 14;
+    ctx.shadowColor = '#9900ff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, R, R * 0.32, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── INNER RING — COUNTER-ROTATES, FLIPS AT 360° INTERNAL ──
+    ctx.save();
+    ctx.rotate(-dispAngle * 0.6);
+    if (isFlipped) ctx.scale(-1, 1);   // SPINOR INVERSION 
+    ctx.strokeStyle = '#e8b0ff';
+    ctx.lineWidth   = 2;
+    ctx.shadowBlur  = 10;
+    ctx.shadowColor = '#cc44ff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, R * 0.38, R, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── CORE DARK SPHERE ──
+    const core = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.6);
+    core.addColorStop(0,   'rgba(10, 0, 25, 1)');
+    core.addColorStop(0.65,'rgba(60, 0, 130, 0.7)');
+    core.addColorStop(1,   'rgba(60, 0, 130, 0)');
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── CENTRE DOT  ──
+    const pulse = 0.5 + 0.5 * Math.sin(this.timer * 5.5);
+    ctx.shadowBlur  = 8 + pulse * 10;
+    ctx.shadowColor = '#ff88ff';
+    ctx.fillStyle   = `rgba(255, 200, 255, ${0.6 + pulse * 0.35})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+
+export class BabyBlackHole {
+  constructor(x, y, isBossBattle = false) {
+    this.x      = x;
+    this.y      = y;
+    this.phase  = 'growing';
+    this.phaseTimer = 0;
+    this.radius = 0;
+    this.angle  = 0;
+    this._isBossBattle = isBossBattle;
+
+    this._ripples          = [];
+    this._rippleTimer      = 0;
+    this._hawking          = [];
+    this._dead             = false;
+    this._bossStunApplied  = false;
+
+    this._bossOrbitActive  = false; // BOSS ORBIT STATE
+    this._bossOrbitAngle   = 0;
+    this._bossOrbitRadius  = 0;
+
+    this._wanderTargetX = x; // ORGANIC WANDER - SKIP FOR BOSS BATTLE
+    this._wanderTargetY = y;
+    if (!isBossBattle) this._pickWanderTarget();
+  }
+
+  isDead() { return this._dead; }
+
+  // ── MAIN UPDATE ──────────────────────────────────────────────────────────────
+  update(dt) {
+    const C = CONFIG.SINGULARITY_BOMB;
+    this.phaseTimer += dt;
+    this.angle      += 2.2 * dt;
+
+    // RIPPLE SPAWNER
+    if (this.phase !== 'burst' && this.phase !== 'dead') {
+      this._rippleTimer -= dt;
+      if (this._rippleTimer <= 0 && this._ripples.length < 8) {
+        this._ripples.push({ r: this.radius * 0.5, alpha: 0.65 });
+        this._rippleTimer = 0.28;
+      }
+    }
+
+    for (let i = this._ripples.length - 1; i >= 0; i--) {
+      const rip = this._ripples[i];
+      rip.r     += 110 * dt;
+      rip.alpha -= 1.5 * dt;
+      if (rip.alpha <= 0) this._ripples.splice(i, 1);
+    }
+
+    // ── PHASE MACHINE ──
+    if (this.phase === 'growing') {
+      const t    = Math.min(1, this.phaseTimer / C.BH_GROW_TIME);
+      this.radius = t * C.BH_MAX_RADIUS;
+      if (t >= 1) { this.phase = 'active'; this.phaseTimer = 0; }
+
+    } else if (this.phase === 'active') {
+      this.radius = C.BH_MAX_RADIUS;
+      if (!this._isBossBattle) this._updateWander(dt);
+
+      if (this.phaseTimer >= C.BH_LIFETIME) {
+        this.phase = 'collapsing';
+        this.phaseTimer = 0;
+      }
+
+    } else if (this.phase === 'collapsing') {
+      const t    = Math.min(1, this.phaseTimer / C.BH_COLLAPSE_TIME);
+      this.radius = C.BH_MAX_RADIUS * (1 - t);
+      if (t >= 1) {
+        this.phase = 'burst';
+        this.phaseTimer = 0;
+        this._spawnHawking();
+      }
+
+    } else if (this.phase === 'burst') {
+      // UPDATE HAWKING PARTICLES
+      for (let i = this._hawking.length - 1; i >= 0; i--) {
+        const p = this._hawking[i];
+        p.x    += p.vx * dt;
+        p.y    += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) this._hawking.splice(i, 1);
+      }
+      if (this.phaseTimer > 1.5 && this._hawking.length === 0) {
+        this._dead = true;
+      }
+    }
+  }
+
+  applyGravity(dt, enemies) {
+    const C = CONFIG.SINGULARITY_BOMB;
+    const isActive     = this.phase === 'active';
+    const isCollapsing = this.phase === 'collapsing';
+
+    if (!isActive && !isCollapsing) {
+      for (const enemy of enemies) {
+        if (enemy._bhSucked) enemy._bhSucked = false;
+      }
+      return;
+    }
+
+    for (const enemy of enemies) {
+      if (enemy.isDead) continue;
+
+      const dx   = this.x - enemy.x;
+      const dy   = this.y - enemy.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (isActive) {
+        if (dist > C.GRAVITY_RANGE || dist < 1) continue;
+
+        if (!enemy._bhSucked && dist < C.ORBIT_CAPTURE_RANGE) {
+          enemy._bhSucked        = true;
+          enemy._bhOrbitAngle    = Math.atan2(enemy.y - this.y, enemy.x - this.x);
+          enemy._bhOrbitRadius   = dist;
+          enemy._bhOriginalScale = enemy.scale;
+        }
+
+        if (enemy._bhSucked) {
+          const orbitSpeed = C.ORBIT_SPEED / Math.sqrt(Math.max(enemy._bhOrbitRadius, 20));
+          enemy._bhOrbitAngle  += orbitSpeed * dt;
+          enemy._bhOrbitRadius  = Math.max(
+            this.radius * 1.5,
+            enemy._bhOrbitRadius - C.ORBIT_DRIFT_RATE * dt
+          );
+        } else {
+          const nx   = dx / dist;
+          const ny   = dy / dist;
+          const pull = Math.min(C.GRAVITY_STRENGTH / dist * 55, 700) * dt;
+          enemy.x += nx * pull;
+          enemy.y += ny * pull;
+        }
+
+      // ── COLLAPSING PHASE ──
+      } else if (isCollapsing) {
+        if (!enemy._bhSucked) continue;
+
+        const orbitSpeed = C.ORBIT_SPEED / Math.sqrt(Math.max(enemy._bhOrbitRadius, 5));
+        enemy._bhOrbitAngle  += orbitSpeed * dt * 2.5; 
+        enemy._bhOrbitRadius  = Math.max(
+          0,
+          enemy._bhOrbitRadius - C.ORBIT_COLLAPSE_RATE * dt
+        );
+      }
+
+      // ── APPLY POLAR POSITION  ──
+      if (enemy._bhSucked) {
+        enemy.x       = this.x + Math.cos(enemy._bhOrbitAngle) * enemy._bhOrbitRadius;
+        enemy.y       = this.y + Math.sin(enemy._bhOrbitAngle) * enemy._bhOrbitRadius;
+        enemy.screenX = enemy.x;
+        enemy.screenY = enemy.y;
+
+        // SHRINK 
+        const maxR = C.ORBIT_CAPTURE_RANGE;
+        const shrinkT = Math.max(0, (enemy._bhOrbitRadius - this.radius) / (maxR - this.radius));
+        enemy.scale   = Math.max(0.04, enemy._bhOriginalScale * shrinkT);
+
+        // EVENT HORIZON 
+        if (enemy._bhOrbitRadius <= this.radius * 1.1) {
+          enemy._bhSucked = false;
+          enemy.health    = 0;
+          enemy.isDead    = true;
+        }
+      }
+    }
+  }
+
+  // ── ORGANIC WANDER ────────────────────────────────────────────────────────────
+  _updateWander(dt) {
+    const C    = CONFIG.SINGULARITY_BOMB;
+    const step = C.BH_WANDER_SPEED * dt;
+    const dx   = this._wanderTargetX - this.x;
+    const dy   = this._wanderTargetY - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist <= step + 2) {
+      this.x = this._wanderTargetX;
+      this.y = this._wanderTargetY;
+      this._pickWanderTarget();
+    } else {
+      const inv = 1 / dist;
+      this.x += dx * inv * step;
+      this.y += dy * inv * step;
+    }
+  }
+
+  _pickWanderTarget() {
+    const C      = CONFIG.SINGULARITY_BOMB;
+    const margin = 80;
+    const cx     = window.innerWidth  * C.BH_WANDER_BIAS_X;
+    const cy     = window.innerHeight * C.BH_WANDER_BIAS_Y;
+    this._wanderTargetX = Math.max(margin, Math.min(window.innerWidth  - margin, cx + (Math.random() * 2 - 1) * C.BH_WANDER_X));
+    this._wanderTargetY = Math.max(margin, Math.min(window.innerHeight - margin, cy + (Math.random() * 2 - 1) * C.BH_WANDER_Y));
+  }
+
+  // ── MINI HAWKING BURST  ────────────────────────────────────
+  _spawnEnemyConsumptionBurst(x, y) {
+    const C       = CONFIG.SINGULARITY_BOMB;
+    const palette = ['#e25513', '#ff8a55', '#ffb48a', '#c71585', '#ff6030', '#ffff88'];
+    const count   = 10;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = C.HAWKING_SPEED * (0.25 + Math.random() * 0.45);
+      const life  = 0.28 + Math.random() * 0.3;
+      this._hawking.push({
+        x, y,
+        vx:      Math.cos(angle) * speed,
+        vy:      Math.sin(angle) * speed,
+        color:   palette[Math.floor(Math.random() * palette.length)],
+        size:    1 + Math.random() * 2.5,
+        life,
+        maxLife: life,
+      });
+    }
+  }
+
+  // ── BOSS ORBIT — TRAPS WORM HEAD IN CIRCULAR ORBIT, BODY FOLLOWS VIA IK CHAIN ─
+  applyBossEffect(wormBoss, dt) {
+    if (!wormBoss || !wormBoss.isActive || wormBoss.isDead) return;
+
+    const C             = CONFIG.SINGULARITY_BOMB;
+    const isOrbitPhase  = (this.phase === 'active' || this.phase === 'collapsing');
+
+    if (isOrbitPhase) {
+      if (!this._bossOrbitActive) {
+        // CAPTURE — MEASURE WORM'S HEAD'S CURRENT SCREEN POSITION TO SET STARTING ANGLE/RADIUS
+        this._bossOrbitActive = true;
+        const head = wormBoss.segments[0];
+        this._bossOrbitAngle  = Math.atan2(head.screenY - this.y, head.screenX - this.x);
+        this._bossOrbitRadius = Math.min(
+          Math.hypot(head.screenX - this.x, head.screenY - this.y),
+          350  // DON'T START TOO FAR OUT
+        );
+        console.log('🌀 Worm boss captured in black hole orbit');
+      }
+
+      // ADVANCE ORBIT ANGLE
+      this._bossOrbitAngle += C.BOSS_ORBIT_SPEED * dt;
+
+      // EASE RADIUS TOWARD TARGET
+      this._bossOrbitRadius +=
+        (C.BOSS_ORBIT_RADIUS - this._bossOrbitRadius) * Math.min(1, C.BOSS_ORBIT_EASE * dt);
+
+      // PUSH ORBIT TARGET TO WORM EACH FRAME
+      const targetSX = this.x + Math.cos(this._bossOrbitAngle) * this._bossOrbitRadius;
+      const targetSY = this.y + Math.sin(this._bossOrbitAngle) * this._bossOrbitRadius;
+      wormBoss.setOrbitPosition(targetSX, targetSY);
+
+    } else if (this._bossOrbitActive) {
+      // PHASE ENDED — RELEASE WORM
+      this._bossOrbitActive = false;
+      wormBoss.clearOrbit();
+      console.log('🌀 Worm boss released from orbit');
+    }
+  }
+
+  // ── HAWKING BURST ────────────────────────────────────────────────────────────
+  _spawnHawking() {
+    const C      = CONFIG.SINGULARITY_BOMB;
+    const count  = C.HAWKING_PARTICLES;
+    const palette = ['#e25513', '#ff8a55', '#ffb48a', '#c71585', '#ff6030', '#ffb48a'];
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+      const speed = C.HAWKING_SPEED * (0.55 + Math.random() * 0.9);
+      const life  = 0.55 + Math.random() * 0.5;
+      this._hawking.push({
+        x:       this.x,
+        y:       this.y,
+        vx:      Math.cos(angle) * speed,
+        vy:      Math.sin(angle) * speed,
+        color:   palette[Math.floor(Math.random() * palette.length)],
+        size:    1.5 + Math.random() * 4.5,
+        life,
+        maxLife: life,
+      });
+    }
+  }
+
+  // ── DRAW ─────────────────────────────────────────────────────────────────────
+  draw(ctx) {
+    if (this._dead) return;
+    const r  = this.radius;
+    const cx = this.x;
+    const cy = this.y;
+
+    // ── HAWKING BURST  ──
+    if (this._hawking.length > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of this._hawking) {
+        const a = p.life / p.maxLife;
+        ctx.globalAlpha = a * 0.85;
+        ctx.fillStyle   = p.color;
+        ctx.shadowBlur  = 8;
+        ctx.shadowColor = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    if (r < 1) return;
+
+    ctx.save();
+
+    // ── 1. OUTER CORONA / GRAVITATIONAL GLOW ──────────────────────────────────
+    const coronaR = r * 4.5;
+    const corona  = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, coronaR);
+    corona.addColorStop(0,    'rgba(226,  85, 19, 0.25)');  
+    corona.addColorStop(0.28, 'rgba(199,  21,133, 0.15)'); 
+    corona.addColorStop(0.60, 'rgba(199,  21,133, 0.05)');  
+    corona.addColorStop(1,    'rgba(  0,   0,  0, 0)');
+    ctx.fillStyle = corona;
+    ctx.beginPath();
+    ctx.arc(cx, cy, coronaR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── 2. SPACE RIPPLES ────────────────────
+    if (this._ripples.length > 0) {
+      ctx.save();
+      ctx.lineWidth   = 1.2;
+      ctx.shadowBlur  = 6;
+      ctx.shadowColor = '#e25513';
+      for (const rip of this._ripples) {
+        if (rip.alpha <= 0) continue;
+        ctx.globalAlpha = rip.alpha * 0.35;
+        ctx.strokeStyle = '#ff8a55';
+        ctx.beginPath();
+        ctx.arc(cx, cy, rip.r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ── 3. ACCRETION DISK — FIXED ELLIPSE / SPINNING CONTENT  ───────────────────
+    const TILT   = 0.08;         // VIEWING ANGLE COMPRESION: 1= FACE-ON. 0 = SIDE
+    const DISK_R = r * 2.5;      // OUTER RADIUS OF DISK
+
+    const drawDiskRings = () => {
+      ctx.rotate(this.angle * 0.35); 
+
+      // OUTER PINK RING
+      ctx.save();
+      ctx.strokeStyle = '#c71585';
+      ctx.lineWidth   = r * 0.28;
+      ctx.shadowBlur  = 50;
+      ctx.shadowColor = '#c71585';
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(0, 0, DISK_R, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // ── DEEP ORANGE MID RING ──
+      ctx.save();
+      ctx.strokeStyle = '#e25513';
+      ctx.lineWidth   = r * 0.50;
+      ctx.shadowBlur  = 50;
+      ctx.shadowColor = '#e25513';
+      ctx.globalAlpha = 0.72;
+      ctx.beginPath();
+      ctx.arc(0, 0, DISK_R * 0.85, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      //  BRIGHT ORANGE INNER RING ──
+      ctx.save();
+      ctx.strokeStyle = '#ff8a55';
+      ctx.lineWidth   = r * 0.6;
+      ctx.shadowBlur  = 50;
+      ctx.shadowColor = '#ff8a55';
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(0, 0, DISK_R * 0.7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // ── HOTTEST INNER EDGE - NEAR WHITE ORANGE - RIGHT AT EVENT HORIZON ──
+      ctx.save();
+      ctx.strokeStyle = '#ffb48a';
+      ctx.lineWidth   = r * 0.5;
+      ctx.shadowBlur  = 28;
+      ctx.shadowColor = '#ffb48a';
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // ── RELATIVELISTIC HOT SPOT - BRIGHT ARC THAT LAPS DISK
+      ctx.save();
+      ctx.strokeStyle = '#ffb48a';
+      ctx.lineWidth   = r * 0.55;
+      ctx.shadowBlur  = 35;
+      ctx.shadowColor = '#ffffff';
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.arc(0, 0, DISK_R * 0.60, -0.45, 0.45); // SHORT BRIGHT ARC
+      ctx.stroke();
+      // HOT PINK CENTER-SPOT ON OPPOSITE SIDE (180° AWAY)
+      ctx.strokeStyle = '#c71585';
+      ctx.shadowColor = '#c71585';
+      ctx.shadowBlur  = 20;
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.arc(0, 0, DISK_R * 0.60, Math.PI - 0.35, Math.PI + 0.35);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    // ── BACK HALF  ──
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, TILT);
+    ctx.save();
+    // CLIP TO Y<0 (TOP HALF DISK SPACE = BACK OF DISK
+    ctx.beginPath();
+    ctx.rect(-DISK_R * 3, -DISK_R * 3, DISK_R * 6, DISK_R * 3);
+    ctx.clip();
+    drawDiskRings();
+    ctx.restore();
+    ctx.restore();
+
+    // ── 4. EVENT HORIZON — SOLID BLACK DISC───────────────────────────────────
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── 5. PHOTON RING — THE BRIGHT RING RIGHT AT THE EVENT HORIZON - IN REAL BH IMAGES, THIS IS THE SHARPEST BRIGHTEST FEATURE - TWO STROKES - A WIDE SOFT GLOW + A THIN HARD BRIGHT LINE ON TOP
+    ctx.save();
+    //  WIDE ORANGE GLOW
+    ctx.strokeStyle = '#ff8a55';
+    ctx.lineWidth   = 4;
+    ctx.shadowBlur  = 28;
+    ctx.shadowColor = '#e25513';
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // THIN BRIGHT HOT-WHITE CORE LINE
+    ctx.strokeStyle = '#ffb48a';
+    ctx.lineWidth   = 1.5;
+    ctx.shadowBlur  = 8;
+    ctx.shadowColor = '#ffffff';
+    ctx.globalAlpha = 1.0;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── 6. FRONT HALF OF DISK (DRAWN AFTER BH — OVERLAP EVENT HORIZON ───────
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, TILT);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-DISK_R * 3, 0, DISK_R * 6, DISK_R * 3);
+    ctx.clip();
+    drawDiskRings();
+    ctx.restore();
+    ctx.restore();
+
+    ctx.restore(); 
+  }
+}
+
+//  SINGULARITY BOMB MANAGER
+export class SingularityBombManager {
+  constructor() {
+    this._active     = false;
+    this._spawnTimer = 0;
+    this._items      = [];     
+    this.blackHole   = null;   
+
+    this.inventory   = 0;      
+
+    this.audio       = null;
+    this.isBossBattle = false;  // SET BY bossBattle.js — CHANGES SPAWN + MOVEMENT BEHAVIOR
+
+    // CALLBACKS
+    this.onInventoryChange = null;  
+    this.onEnemyKilledByBH = null;  
+  }
+
+  // ── LIFECYCLE ────────────────────────────────────────────────────────────────
+  start() {
+    const C        = CONFIG.SINGULARITY_BOMB;
+    this._active   = true;
+    this._spawnTimer = C.FIRST_SPAWN_DELAY;
+    this._items    = [];
+    this.blackHole = null;
+  }
+
+  stop() {
+    this._active = false;
+    this._items  = [];
+  }
+
+  reset() {
+    this._active   = false;
+    this._spawnTimer = 0;
+    this._items    = [];
+    this.blackHole = null;
+    this.inventory = 0;
+    this.onInventoryChange?.(0);
+  }
+
+  deploy(shipX, shipY) {
+    if (this.inventory <= 0) return;
+    if (this.blackHole && !this.blackHole.isDead()) return; 
+    this.inventory--;
+    this.onInventoryChange?.(this.inventory);
+    this.audio?.playBabyBlackhole();
+    const spawnX = this.isBossBattle ? window.innerWidth  / 2 : shipX;
+    const spawnY = this.isBossBattle ? window.innerHeight / 2 : shipY;
+    this.blackHole = new BabyBlackHole(spawnX, spawnY, this.isBossBattle);
+    console.log(`💣 Singularity Bomb deployed | remaining: ${this.inventory} | boss: ${this.isBossBattle}`);
+  }
+
+  // ── UPDATE ───────────────────────────────────────────────────────────────────
+  update(dt, shipX, shipY) {
+    const C = CONFIG.SINGULARITY_BOMB;
+
+    // SPAWN NEW SPINOR ITEMS
+    if (this._active) {
+      this._spawnTimer -= dt;
+      if (this._spawnTimer <= 0 && this._items.length < C.MAX_COUNT) {
+        this._spawnItem();
+        this._spawnTimer = C.SPAWN_INTERVAL;
+      }
+    }
+
+    // UPDATE ITEMS + CHECK COLLECTION
+    for (let i = this._items.length - 1; i >= 0; i--) {
+      const item = this._items[i];
+      item.update(dt);
+
+      if (!item.collected) {
+        const dx = shipX - item.x;
+        const dy = shipY - item.y;
+        if (dx * dx + dy * dy < C.COLLECT_RADIUS * C.COLLECT_RADIUS) {
+          item.collected = true;
+          this._collect();
+        }
+      }
+
+      if (item.isDead()) this._items.splice(i, 1);
+    }
+
+    if (this.blackHole) {
+      this.blackHole.update(dt);
+      if (this.blackHole.isDead()) {
+        this.blackHole = null;
+      }
+    }
+  }
+
+  applyGravityAndBossEffect(dt, enemies, wormBoss) {
+    if (!this.blackHole || this.blackHole.isDead()) return;
+    this.blackHole.applyGravity(dt, enemies);
+    this.blackHole.applyBossEffect(wormBoss, dt);
+  }
+
+  // ── DRAW — SPLIT SO BH CAN BE DRAWN BEHIN ENEMIES, ITEMS ABOVE ─────────────
+  drawBlackHole(ctx) {
+    this.blackHole?.draw(ctx);
+  }
+
+  drawItems(ctx) {
+    for (const item of this._items) item.draw(ctx);
+  }
+
+  // ── INTERNAL ─────────────────────────────────────────────────────────────────
+  _spawnItem() { // SPAWN IN SHIP'S REACHABLE ZONE
+    const SHIP   = CONFIG.SHIP;
+    const cx     = window.innerWidth  / 2;
+    const cy     = window.innerHeight / 2;
+    const rangeX = SHIP.MAX_OFFSET_X - 50;
+    const rangeY = SHIP.MAX_OFFSET_Y - 50;
+    const x      = cx + (Math.random() * 2 - 1) * rangeX;
+    const y      = cy + (Math.random() * 2 - 1) * rangeY;
+    this._items.push(new SpinorItem(x, y));
+  }
+
+  _collect() {
+    const C = CONFIG.SINGULARITY_BOMB;
+    if (this.inventory >= C.MAX_INVENTORY) return; // FULL INVENTORY
+    this.inventory++;
+    this.onInventoryChange?.(this.inventory);
+    this.audio?.playPowerUp3();
+    console.log(`💜 Singularity Bomb collected | inventory: ${this.inventory}`);
+  }
+}
