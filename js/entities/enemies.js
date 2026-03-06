@@ -1,10 +1,14 @@
-// enemies.js
+// Updated 3/6/26 @ 6AM
+// enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 import { ImageLoader, ENEMY_SPRITE } from '../utils/imageLoader.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ======================= ENEMY LASER =======================
+//  SINGULARITY BOMB HOOK - FOR SPAGHETTIFICATION 
+let _activeSingularityBH = null;
+export function setActiveSingularityBH(bh) { _activeSingularityBH = bh; }
+
 class EnemyLaser {
   constructor(x, y, targetX, targetY, color) {
     this.x      = x;
@@ -140,6 +144,12 @@ export class Enemy {
     this.isDead = false;
     this.hasDealtCollisionDamage = false;
 
+    // ─── BLACK HOLE SUCTION ───
+    this._bhSucked         = false;  
+    this._bhOriginalScale  = 1;      
+    this._bhOrbitAngle     = 0;      
+    this._bhOrbitRadius    = 0;      
+
     // ─── LASERS ───
     const lcfg = CONFIG.ENEMY_LASER;
     this.laserTimer    = lcfg.FIRST_SHOT_MIN
@@ -170,6 +180,8 @@ export class Enemy {
       this.animFrame  = (this.animFrame + this.animSpeed * dt) % this.animCount;
       this.frameIndex = Math.floor(this.animFrame);
     }
+
+    if (this._bhSucked) return;
 
     //  PHASE: APPROACH
     if (this.phase === 'APPROACH') {
@@ -356,6 +368,23 @@ export class Enemy {
 
     ctx.save();
 
+    // ── SPAGHETTIFICATION ──
+    if (_activeSingularityBH && !_activeSingularityBH.isDead()) {
+      const C    = CONFIG.SINGULARITY_BOMB;
+      const bdx  = _activeSingularityBH.x - this.x;
+      const bdy  = _activeSingularityBH.y - this.y;
+      const dist = Math.hypot(bdx, bdy);
+      if (dist < C.STRETCH_RANGE && dist > 1) {
+        const t       = 1 - dist / C.STRETCH_RANGE;
+        const stretch = 1 + (C.STRETCH_MAX - 1) * t * t;
+        const angle   = Math.atan2(bdy, bdx);
+        ctx.translate( this.x,  this.y);
+        ctx.rotate(angle);
+        ctx.scale(stretch, 1 / stretch);
+        ctx.translate(-this.x, -this.y);
+      }
+    }
+
     if (this.type === 'FLIMFLAM' && sprite) {
       ctx.globalAlpha = spriteAlpha;
       const fw  = sprite.width / this.config.SPRITE_FRAMES; 
@@ -401,7 +430,6 @@ export class Enemy {
     }
 
     ctx.restore();
-    // ─── HEALTH BAR ───
     if (fadeProgress > 0.15) {
       const halfSprite = renderSize * 0.5;
       const barW    = Math.max(55, renderSize * 0.72);
