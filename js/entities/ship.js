@@ -1,3 +1,6 @@
+// Updated 3/5/26 @ 7:15PM
+
+
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -70,6 +73,10 @@ export class Ship {
     this._slimeHeaviness = 0;          
     this._trailPositions = [];          
     this._trailCaptureTimer = 0;
+
+    // ========== COSMIC PRISM HEAL GLOW ==========
+    this._healGlow         = 0;     // 1 → 0 over _healGlowDuration
+    this._healGlowDuration = 0.65;  // seconds
 
     console.log('✔ Ship initialized');
   }
@@ -219,6 +226,11 @@ export class Ship {
     }
     this.particles.update(dt);
 
+    // ========= HEAL GLOW DECAY =========
+    if (this._healGlow > 0) {
+      this._healGlow = Math.max(0, this._healGlow - dt / this._healGlowDuration);
+    }
+
     // ========= SLIME TRAIL CAPTURE =========
     if (this._slimeHeaviness > 0.05) {
       this._trailCaptureTimer -= dt;
@@ -355,6 +367,13 @@ export class Ship {
     if (this.hp <= 0) this._triggerDeath();
   }
 
+  heal(amount) {
+    if (!this.isAlive) return;
+    this.hp = Math.min(this.maxHP, this.hp + amount);
+    if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
+    this._healGlow = 1;
+  }
+
   takeDamage(amount) {
     if (this.isInvincible || !this.isAlive) return false;
     this.hp = Math.max(0, this.hp - amount);
@@ -476,6 +495,20 @@ export class Ship {
       grad.addColorStop(0, `rgba(0, 80, 0, 0)`);
       grad.addColorStop(0.6, `rgba(0, 120, 10, 0)`);
       grad.addColorStop(1, `rgba(0, 200, 30, ${t * pulse})`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    // COSMIC PRISM HEAL GLOW 
+    if (this._healGlow > 0) {
+      const g     = this._healGlow;
+      const eased = g * g * (3 - 2 * g); // SMOOTHSTEP
+      const glowR = 140 * (1 - g * 0.3);
+      const grad  = this.ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
+      grad.addColorStop(0,    `rgba(255, 255, 255, ${eased * 0.9})`);
+      grad.addColorStop(0.25, `rgba(180, 255, 220, ${eased * 0.6})`);
+      grad.addColorStop(0.55, `hsla(${(1 - g) * 180}, 100%, 80%, ${eased * 0.3})`);
+      grad.addColorStop(1,    'rgba(0, 0, 0, 0)');
       this.ctx.fillStyle = grad;
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }

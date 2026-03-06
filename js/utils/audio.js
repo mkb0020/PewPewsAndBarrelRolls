@@ -1,3 +1,6 @@
+
+// Updated 3/5/26 @ 7:15PM
+
 // audio.js
 export class AudioManager {
   constructor() {
@@ -118,6 +121,10 @@ export class AudioManager {
         bossTransition2:  './audio/bossTransition2.m4a',
         static:           './audio/static.m4a',
         waveStart:        './audio/waveStart.m4a',
+        // ====== POWER-UPS ======
+        powerUp1:    './audio/powerUp1.m4a',  // COSMIC PRISM HP HEAL COLLECT
+        powerUp2:    './audio/powerUp2.m4a',  // RESERVED — FUTURE POWER-UP
+        powerUp3:    './audio/powerUp3.m4a',  // RESERVED — FUTURE POWER-UP
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -414,6 +421,11 @@ export class AudioManager {
   playBossTransition1() { this._playSfx('bossTransition1', 0.9); }
   playBossTransition2() { this._playSfx('bossTransition2', 0.9); }
   playWaveStart()       { this._playSfx('waveStart',       0.55); }
+
+  // ====== POWER-UP SFX ======
+  playPowerUp1() { this._playSfx('powerUp1', 0.5); }  // COSMIC PRISM HP HEAL COLLECT
+  playPowerUp2() { this._playSfx('powerUp2', 0.5); }  // LASER BOOST
+  playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // RESERVED — FUTURE POWER-UP
 
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;

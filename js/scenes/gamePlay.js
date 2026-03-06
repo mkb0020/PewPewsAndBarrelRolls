@@ -1,3 +1,6 @@
+// Updated 3/5/26 @ 8:00PM
+
+
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -11,22 +14,22 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 2 — + ZIP ZAP
     types:      ['BASIC', 'FAST'],
-    weights:    [0.60,    0.40],
+    weights:    [0.50,    0.5],
     maxEnemies: 5,
   },
   { // WAVE 3 — + PHIL
     types:      ['BASIC', 'FAST',  'ZIGZAG'],
-    weights:    [0.45,    0.30,     0.25],
+    weights:    [0.33,    0.33,     0.34],
     maxEnemies: 5,
   },
   { // WAVE 4 — + GLORK (TANK — SLIME ATTACK, FEWER SPAWNS )
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK'],
-    weights:    [0.38,    0.27,     0.20,     0.15],
+    weights:    [0.25,    0.25,     0.25,     0.25],
     maxEnemies: 4,
   },
   { // WAVE 5 — + FLIM FLAM
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK',  'FLIMFLAM'],
-    weights:    [0.30,    0.22,     0.20,     0.17,    0.11],
+    weights:    [0.2,    0.2,     0.20,     0.2,    0.2],
     maxEnemies: 4,
   },
 ];
@@ -106,8 +109,8 @@ export class GameplayScene {
     this.waveWormManager.drawAboveEnemies(ctx);
   }
 
-  checkWormHit(seg) {
-    return this.waveWormManager.checkProjectileHit(seg);
+  checkWormHit(seg, damage = 1) {
+    return this.waveWormManager.checkProjectileHit(seg, damage);  // DAMAGE THREADED FROM COLLISION LOOP (boost-aware)
   }
 
   //  RESET / RESTART 

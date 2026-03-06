@@ -1,3 +1,5 @@
+// Updated 3/5/26 @ 8:00PM
+
 // config.js
 export const CONFIG = {
   TUNNEL: {
@@ -11,14 +13,14 @@ export const CONFIG = {
     COLOR_BASE_HUE: 0.7, 
     COLOR_PULSE_RANGE: 0.07, 
     VERTICAL_WAVE_SPEED: 0.5,
-    VERTICAL_WAVE_AMPLITUDE: 0, // 0 DURING NNORMAL GAME PLAY
+    VERTICAL_WAVE_AMPLITUDE: 0, // 0 DURING NORMAL GAME PLAY
   },
 
   SHIP: {
     WIDTH: 150,
     HEIGHT: 130,
     SPEED: 5,             
-    ACCELERATION: 2400,   // px/sÃ‚Â² 
+    ACCELERATION: 2400,   // px/s² 
     DAMPING: 0.85,        // HIGHER = SPACE ICE
     MAX_OFFSET_X: 400,
     MAX_OFFSET_Y: 250,
@@ -50,6 +52,34 @@ export const CONFIG = {
     OPACITY: 0, // SETTING TO 0 WHILE I WORK ON MECHANICS
     COLOR_PRIMARY: '#00ffff',
     COLOR_SECONDARY: '#8C92AC',
+  },
+
+
+
+
+  COSMIC_PRISM: {
+    RADIUS:            25,    
+    COLLECT_RADIUS:    48,    
+    ROTATION_SPEED:    0.75,  
+    PULSE_SPEED:       1.8,   
+    BOB_SPEED:         1.1,   
+    BOB_AMPLITUDE:     9,     
+    LIFETIME:          14,    
+    FIRST_SPAWN_DELAY: 15,     //FOR TESTING
+    SPAWN_INTERVAL:    15,    //FOR TESTING
+    MAX_COUNT:         1,    
+    HEAL_AMOUNT:       30,    
+  },
+
+  TESSERACT_FRAGMENT: {
+    RADIUS:            22,    
+    COLLECT_RADIUS:    52,    
+    ROTATION_SPEED:    0.9,   
+    LIFETIME:          15,    
+    FIRST_SPAWN_DELAY: 7,    //FOR TESTING
+    SPAWN_INTERVAL:    20,     //FOR TESTING
+    MAX_COUNT:         1,     
+    BOOST_DURATION:    8.0,   
   },
 
   SCENE: {
@@ -101,7 +131,7 @@ export const CONFIG = {
         GLOW_COLOR: '#ff3366',
         HEALTH: 5, // FOR TESTING
         SCORE: 20,
-        SPRITE_FRAMES: 6,
+        SPRITE_FRAMES: 5,
         ANIM_SPEED: 12,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
@@ -197,7 +227,7 @@ export const CONFIG = {
     MAX_PROJECTILES: 50,
     
     CROSSHAIR_SIZE: 60,
-    CROSSHAIR_AIM_DEFLECT_PX: 500,    // MAX px FROM CENTER Ã¢â‚¬â€ CROSSHAIR RANGE OF MOTION
+    CROSSHAIR_AIM_DEFLECT_PX: 500,    // MAX px FROM CENTER — CROSSHAIR RANGE OF MOTION
     CROSSHAIR_OFFSET_MULTIPLIER: 0.55,
     CROSSHAIR_CENTER_PULL: 0.35,       // 0=NONE, 1=LOCKED TO CENTER
     CROSSHAIR_INNER_LAG: 0.22,         // LOWER = MORE LAG
@@ -252,7 +282,7 @@ export const CONFIG = {
     FIRST_SHOT_MAX: 2.5,
   },
 
-EXPLOSIONS: {
+  EXPLOSIONS: {
     BAM_FRAMES:     8,
     BAM_SIZE:       160,
     BOOM_FRAMES:    6,
@@ -356,7 +386,7 @@ EXPLOSIONS: {
     SPAWN_GAP_MIN:         7,   // FOR TESTING
     SPAWN_GAP_MAX:         10, // FOR TESTING
 
-    KILLS_PER_WAVE: [3, 3, 3, 3, 3],   
+    KILLS_PER_WAVE: [1, 1, 1, 1, 1], // FOR TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,

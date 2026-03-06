@@ -1,3 +1,6 @@
+// Updated 3/5/26 @ 7:45PM
+
+
 // ocularPrism.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -24,6 +27,16 @@ export class OcularPrism {
     this.totalDur   = 0;
     this.defeated   = false;    
 
+    // ── TELEGRAPH PHASE ──
+    this._telegraphing     = false;  
+    this._telegraphTimer   = 0;
+    this._telegraphDur     = 2.8;  // CREEPY EYE DURATION
+    this._tFrame           = 0;     
+    this._tFrameTimer      = 0;
+    this._tFrameRate       = 0.09;  
+    this._tFlashTimer      = 0;     
+    this._TELEGRAPH_FRAMES = 8;
+
     this.pupil = {
       x: 0, y: 0,
       r: 0, pulsePhase: 0,
@@ -33,17 +46,34 @@ export class OcularPrism {
     this.offscreen = document.createElement('canvas');
     this.offCtx    = this.offscreen.getContext('2d');
 
-    this.onDefeated = null; 
-    this.onExpired  = null; 
+    this.onDefeated   = null; 
+    this.onExpired    = null;
+    this.cooldownUntil = 0;   
   }
 
   // ─── ACTIVATION ──────────────────────────────────────────────────────────
   activate(w, h) {
+    if (this.active || Date.now() < this.cooldownUntil) return;
+    this.active          = true;
+    this.fadingOut       = false;
+    this.fadeAlpha       = 1;
+    this.defeated        = false;
+    this._telegraphing   = true;
+    this._telegraphTimer = 0;
+    this._tFrame         = 0;
+    this._tFrameTimer    = 0;
+    this._tFlashTimer    = 0;
+    this._pendingW       = w;
+    this._pendingH       = h;
+
+    ImageLoader.load('prePrismEyes');
+    ImageLoader.load('prismEye');
+  }
+
+  _activateShards(w, h) {
     const cfg         = CONFIG.OCULAR_PRISM;
-    this.active       = true;
     this.fadingOut    = false;
     this.fadeAlpha    = 1;
-    this.defeated     = false;
     this.duration     = cfg.DURATION;
     this.totalDur     = cfg.DURATION;
 
@@ -61,8 +91,6 @@ export class OcularPrism {
     const num = cfg.SHARD_MIN + Math.floor(Math.random() * (cfg.SHARD_MAX - cfg.SHARD_MIN + 1));
     this.shards = this._buildShards(num, cx, cy, w, h);
     this._seedIchor(w, h);
-
-    ImageLoader.load('prismEye'); 
   }
 
   // ─── SHARD GEOMETRY ──────────────────────────────────────────────────────
@@ -147,6 +175,28 @@ export class OcularPrism {
   // ─── UPDATE ──────────────────────────────────────────────────────────────
   update(dt) {
     if (!this.active) return;
+
+    // ── TELEGRAPH PHASE ─────────────────────────────────────────────────────
+    if (this._telegraphing) {
+      this._telegraphTimer += dt;
+
+      this._tFrameTimer += dt;
+      if (this._tFrameTimer >= this._tFrameRate) {
+        this._tFrameTimer -= this._tFrameRate;
+        this._tFrame = (this._tFrame + 1) % this._TELEGRAPH_FRAMES;
+      }
+
+      if (this._telegraphTimer >= this._telegraphDur - 0.4) {
+        this._tFlashTimer += dt * 18;
+      }
+
+      if (this._telegraphTimer >= this._telegraphDur) {
+        this._telegraphing = false;
+        this._activateShards(this._pendingW, this._pendingH);
+      }
+      return; 
+    }
+
     this.pupil.pulsePhase += dt * 4.5;
 
     for (let i = this.ichor.length - 1; i >= 0; i--) { //  ICHOR DRIP PYSICS
@@ -161,7 +211,10 @@ export class OcularPrism {
     if (this.fadingOut) {
       this.fadeTimer -= dt;
       this.fadeAlpha  = Math.max(0, this.fadeTimer / CONFIG.OCULAR_PRISM.FADE_DURATION);
-      if (this.fadeTimer <= 0) this.active = false;
+      if (this.fadeTimer <= 0) {
+        this.active        = false;
+        this.cooldownUntil = Date.now() + 5000;
+      }
       return;
     }
 
@@ -179,7 +232,7 @@ export class OcularPrism {
 
   // ─── PROJECTILE HIT CHECK ────────────────────────────────────────────────
   checkProjectileHit(px, py) {
-    if (!this.active || this.fadingOut) return false;
+    if (!this.active || this.fadingOut || this._telegraphing) return false;
     const dx = px - this.pupil.x, dy = py - this.pupil.y;
     const r  = this.pupil.r + Math.sin(this.pupil.pulsePhase) * 8;
     if (dx * dx + dy * dy < r * r) {
@@ -199,6 +252,12 @@ export class OcularPrism {
     if (!this.active) return;
     const w = ctx.canvas.width, h = ctx.canvas.height;
     const cx = w / 2, cy = h / 2;
+
+    // ── TELEGRAPH PHASE: full-screen blinking eyes ───────────────────────────
+    if (this._telegraphing) {
+      this._renderTelegraph(ctx, w, h);
+      return;
+    }
 
     ctx.save();
     ctx.globalAlpha = this.fadeAlpha;
@@ -251,6 +310,70 @@ export class OcularPrism {
     this._drawPupil(ctx, cx, cy);
 
     ctx.restore(); 
+  }
+
+  // ─── TELEGRAPH RENDER ────────────────────────────────────────────────────
+
+  _renderTelegraph(ctx, w, h) {
+    const progress = this._telegraphTimer / this._telegraphDur; // 0 → 1
+
+    // ── DARK VIGNETTE —  ──────────────────────
+    const darkness = 0.55 + progress * 0.35;
+    ctx.save();
+    ctx.globalAlpha = darkness;
+    ctx.fillStyle   = '#000000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+
+    // ── SPRITE SHEET  ──────
+    const sprite = ImageLoader.isLoaded('prePrismEyes')
+      ? ImageLoader.get('prePrismEyes') : null;
+
+    if (sprite) {
+      const frameW = sprite.width / this._TELEGRAPH_FRAMES;
+      const frameH = sprite.height;
+
+      const pulse  = 0.78 + Math.sin(this._telegraphTimer * 8) * 0.22;
+
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.drawImage(
+        sprite,
+        this._tFrame * frameW, 0, frameW, frameH, 
+        0, 0, w, h                                  
+      );
+      ctx.restore();
+    } else {
+      // ── FALLBACK:  ──────────
+      ctx.save();
+      ctx.globalAlpha = 0.7 + Math.sin(this._telegraphTimer * 9) * 0.3;
+      ctx.fillStyle   = '#cc0000';
+      ctx.shadowColor = '#ff0000';
+      ctx.shadowBlur  = 30;
+      const cols = 4, rows = 3;
+      const cw = w / cols, ch = h / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const ex = cw * c + cw / 2, ey = ch * r + ch / 2;
+          ctx.beginPath();
+          ctx.ellipse(ex, ey, cw * 0.18, ch * 0.12, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+
+    // ── WHITE FLASH on the final beat before the screen splits ───────────
+    if (this._tFlashTimer > 0) {
+      const flashAlpha = Math.max(0, Math.sin(this._tFlashTimer) * 0.6);
+      if (flashAlpha > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = flashAlpha;
+        ctx.fillStyle   = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+      }
+    }
   }
 
   // ─── PUPIL ───────────────────────────────────────────────────────────────

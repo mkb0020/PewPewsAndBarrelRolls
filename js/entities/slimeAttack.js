@@ -1,3 +1,4 @@
+// Updated 3.5.26 @ 7:45 PM
 // slimeAttack.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { ImageLoader } from '../utils/imageLoader.js';
@@ -43,12 +44,13 @@ export class SlimeAttack {
     this.DRIP_FRAME_DUR = 0.1;     
 
     // ========= CALLBACKS =========
-    this.onSplat = null;            // () => audio.playSplat()
+    this.onSplat = null;            
+    this.cooldownUntil = 0;         
   }
 
   // ========= PUBLIC: TRIGGER FROM ENEMY MANAGER =========
   trigger(glorkX, glorkY) {
-    if (this.phase !== 'idle') return;
+    if (this.phase !== 'idle' || Date.now() < this.cooldownUntil) return;
     this.phase      = 'spitting';
     this.glorkX     = glorkX;
     this.glorkY     = glorkY;
@@ -136,8 +138,9 @@ export class SlimeAttack {
       this._animateDrip(dt);
 
       if (this.recoverTimer <= 0) {
-        this.phase      = 'idle';
-        this.dripActive = false;
+        this.phase         = 'idle';
+        this.cooldownUntil = Date.now() + 5000;
+        this.dripActive    = false;
         console.log('[SlimeAttack] Phase: idle (attack complete)');
       }
     }

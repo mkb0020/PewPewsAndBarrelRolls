@@ -1,3 +1,5 @@
+// Updated 3/5/26 @ 8:00PM
+
 // waveWorm.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -464,11 +466,11 @@ export class WaveWormManager {
     this.worm.draw(ctx);
   }
 
-  checkProjectileHit(seg) {  //  PROJECTILE HIT CHECK  
+  checkProjectileHit(seg, damage = 1) {  //  PROJECTILE HIT CHECK  
     if (!this.worm || this.worm.isDead) return { hit: false };
     const hit = this.worm.checkProjectileHit(seg);
     if (hit) {
-      const killed = this.worm.takeDamage(1);
+      const killed = this.worm.takeDamage(damage);  // DAMAGE THREADED FROM COLLISION LOOP (boost-aware)
       return { hit: true, x: this.worm.x, y: this.worm.y, killed };
     }
     return { hit: false };

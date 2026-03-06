@@ -1,3 +1,5 @@
+// Updated 3/5/26 @ 7:15PM
+
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -19,7 +21,8 @@ const MANIFEST = {
   slimeProjectiles: { path: 'slimeProjectiles.png', lazy: true }, // 4 FRAMES
   slimeDrip:        { path: 'slimeDrip.png',        lazy: true }, // 10 FRAMES (5R + 5L)
 
-  prismEye:     { path: 'prismEye.png', lazy: true },  // 3 FRAMES: BASE / PUPIL / EYELID
+  prismEye:     { path: 'prismEye.png',     lazy: true },  // 3 FRAMES: BASE / PUPIL / EYELID
+  prePrismEyes: { path: 'prePrismEyes.png', lazy: true },  // 8 FRAMES: telegraph blink animation
 
   waveWorms:    { path: 'waveWorms.png', lazy: true },  // 10 FRAMES
   gooSizzle:    { path: 'gooSizzle.png', lazy: true },  // 9 FRAMES

@@ -1,3 +1,5 @@
+// Updated 3/5/26 @ 8:00PM
+
 // projectiles.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -7,7 +9,7 @@ import { ImageLoader } from '../utils/imageLoader.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export class Projectile {
-  constructor(x, y, dirX, dirY, targetX, targetY) {
+  constructor(x, y, dirX, dirY, targetX, targetY, boostHue = null) {
     this.x    = x;
     this.y    = y;
     this.dirX = dirX;
@@ -18,6 +20,15 @@ export class Projectile {
     this.color      = CONFIG.SHOOTING.PROJECTILE_COLOR;
     this.glowColor  = CONFIG.SHOOTING.PROJECTILE_GLOW_COLOR;
     this.isDead = false;
+
+    // LASER BOOST — boosted shots are wider, longer, rainbow-colored
+    this.boosted = boostHue !== null;
+    if (this.boosted) {
+      this.color     = `hsl(${boostHue}, 100%, 68%)`;
+      this.glowColor = `hsl(${(boostHue + 50) % 360}, 100%, 80%)`;
+      this.size     *= 1.8;
+      this.length   *= 1.3;
+    }
 
     // 3D PERSPECTIVE — TARGET POS IS THE VANISHING POINT
     this.startX = x;
@@ -296,18 +307,21 @@ export class ProjectileManager {
     this.projectiles = [];
     this.explosions  = [];
     this.explosionSmoke = new ExplosionSmokeSystem();
+    this._boostHue   = 0;  
   }
 
   burstSmoke(x, y) { this.explosionSmoke.burst(x, y); }
 
-  shoot(x, y, targetX, targetY) {
+  shoot(x, y, targetX, targetY, boosted = false) {
     if (this.projectiles.length >= CONFIG.SHOOTING.MAX_PROJECTILES) return;
     const dx       = targetX - x;
     const dy       = targetY - y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     const dirX     = dx / distance;
     const dirY     = dy / distance;
-    this.projectiles.push(new Projectile(x, y, dirX, dirY, targetX, targetY));
+    const boostHue = boosted ? this._boostHue : null;
+    if (boosted) this._boostHue = (this._boostHue + 30) % 360;
+    this.projectiles.push(new Projectile(x, y, dirX, dirY, targetX, targetY, boostHue));
   }
 
   createExplosion(x, y, type = 'bam') {

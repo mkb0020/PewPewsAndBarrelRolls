@@ -1,3 +1,5 @@
+// Updated 3/5/26 @ 8:00PM
+
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -24,6 +26,8 @@ import { StarfieldScene }                            from './visuals/starfieldSc
 import { OpeningScene }                              from './scenes/openingScene.js';
 import { ClosingScene }                              from './scenes/closingScene.js';
 import { BossTransmission }                          from './scenes/bossTransmission.js';
+import { CosmicPrismManager }                        from './entities/cosmicPrism.js';
+import { TesseractFragmentManager }                  from './entities/tesseractFragment.js';
 
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
@@ -52,6 +56,10 @@ const menu              = new Menu();
 const slimeAttack       = new SlimeAttack();
 const ocularPrism       = new OcularPrism();
 const waveWormManager   = new WaveWormManager();
+const cosmicPrismManager = new CosmicPrismManager();
+cosmicPrismManager.audio = audio; 
+const tesseractManager   = new TesseractFragmentManager();
+tesseractManager.audio   = audio;
 const gameplayScene     = new GameplayScene({
   enemyManager,
   waveWormManager,
@@ -106,6 +114,16 @@ ocularPrism.onExpired = () => {
 // ==================== SLIME ATTACK CALLBACKS ====================
 slimeAttack.onSplat = () => audio.playSplat();
 
+// ==================== COSMIC PRISM CALLBACKS ====================
+cosmicPrismManager.onCollect = (healAmt) => {
+  ship.heal(healAmt);
+};
+
+// ==================== TESSERACT FRAGMENT CALLBACKS ====================
+tesseractManager.onCollect = () => {
+  // Boost is managed internally by the manager — no ship.heal needed
+};
+
 // ==================== GAMEPLAY SCENE CALLBACKS ====================
 gameplayScene.onCheckpoint = () => {
   const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
@@ -121,6 +139,10 @@ gameplayScene.onWaveStart = (waveIndex) => {
   showWaveHUD(true);
   audio.playWaveStart();
   if (waveIndex > 0) audio.startWaveMusic(waveIndex); // 🎵 WAVE 1 MUSIC FIRED BY openingScene
+  if (waveIndex === 0) {
+    cosmicPrismManager.start();        // 🔮 BEGIN PRISM SPAWNING FROM WAVE 1
+    tesseractManager.start();          // ◈ BEGIN TESSERACT SPAWNING FROM WAVE 1
+  }
 };
 
 gameplayScene.onWaveCleared = (waveIndex) => {
@@ -136,6 +158,8 @@ gameplayScene.onWaveCleared = (waveIndex) => {
 
   // ══════ AFTER KILLING FINAL WAVE WORM - DRAMATIC TRANSITION TO BOSS BATTLE ══════
   showWaveHUD(false);
+  cosmicPrismManager.stop(); // 🔮 NO PRISMS DURING BOSS SEQUENCE
+  tesseractManager.stop();   // ◈ NO TESSERACT FRAGMENTS DURING BOSS SEQUENCE
   tunnel.setBossTransitionSurge(1); // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON
   _bossTracerTarget = 1;
   audio.playBossTransition1(); // PHASE 1 SFX — TUNNEL SURGE
@@ -276,7 +300,11 @@ function doShoot() {
   const crosshairPos = crosshair.getPosition();
   const shootData    = ship.shoot(crosshairPos.x, crosshairPos.y);
   if (shootData) {
-    projectileManager.shoot(shootData.x, shootData.y, shootData.targetX, shootData.targetY);
+    projectileManager.shoot(
+      shootData.x, shootData.y,
+      shootData.targetX, shootData.targetY,
+      tesseractManager.isBoostActive()   // BOOSTED = RAINBOW, WIDER BEAM
+    );
     muzzleFlash.trigger(shootData.x, shootData.y);
     audio.playLaser();
   }
@@ -294,6 +322,8 @@ transitionScene.onRestart = () => {
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
   gameplayScene.reset();
+  cosmicPrismManager.reset();
+  tesseractManager.reset();
 
   bossBattleScene.reset();
   tunnel.resetBossTransition();
@@ -330,6 +360,8 @@ bossBattleScene.onWormholeGameOver = () => {
 
   currentMode = 'gameplay'; // ALWAYS RETURN TO WAVE 1 — NEVER BACK TO BOSS DIRECTLY
   CONFIG.ENEMIES.MAX_COUNT = currentEnemyCount;
+  cosmicPrismManager.reset();
+  tesseractManager.reset();
   gameplayScene.start();
   bossBattleScene.updateHUD();
   showWaveHUD(true);
@@ -479,6 +511,8 @@ function gameLoop() {
     muzzleFlash.update(dt);
     scoreManager.update(dt);
     ocularPrism.update(dt);
+    cosmicPrismManager.update(dt, ship.x, ship.y);
+    tesseractManager.update(dt, ship.x, ship.y);
 
     // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
     if (ship.isBarrelRolling && !_prevBarrelRolling) {
@@ -504,9 +538,10 @@ function gameLoop() {
         );
         if (hit) {
           projectileManager.removeProjectile(projectile);
-          const destroyed = enemy.takeDamage(1);
+          const boostActive = tesseractManager.isBoostActive();
+          const destroyed   = enemy.takeDamage(boostActive ? 2 : 1);
           if (destroyed) {
-            projectileManager.createExplosion(pos.x, pos.y);
+            projectileManager.createExplosion(pos.x, pos.y, boostActive ? 'boom' : 'bam');
             scoreManager.addScore(enemy.score, pos.x, pos.y);
           }
           audio.playImpact();
@@ -531,7 +566,10 @@ function gameLoop() {
 
       // PROJECTILE vs WAVE WORM
       if (!projectile.isDead && gameplayScene.isActive()) {
-        const wormHit = gameplayScene.checkWormHit(projectile.getSegment());
+        const wormHit = gameplayScene.checkWormHit(
+          projectile.getSegment(),
+          tesseractManager.isBoostActive() ? 2 : 1
+        );
         if (wormHit.hit) {
           projectileManager.removeProjectile(projectile);
           audio.playImpact();
@@ -569,6 +607,8 @@ function gameLoop() {
       gameplayScene.drawBehindEnemies(ctx);
       enemyManager.draw(ctx);
       gameplayScene.drawAboveEnemies(ctx);
+      if (gameplayScene.isActive()) cosmicPrismManager.draw(ctx); // 🔮 PRISMS ABOVE ENEMIES, BELOW SHIP
+      if (gameplayScene.isActive()) tesseractManager.drawItems(ctx); // ◈ TESSERACT FRAGMENTS
   }
 
   slimeAttack.draw(ctx);
@@ -652,6 +692,8 @@ function gameLoop() {
 
   muzzleFlash.draw(ctx);
   ship.draw();
+
+  tesseractManager.drawAuraAndHUD(ctx, ship.x, ship.y); // ◈ LASER BOOST AURA + HUD TIMER
 
   slimeAttack.drawWingDrip(
     ctx,
