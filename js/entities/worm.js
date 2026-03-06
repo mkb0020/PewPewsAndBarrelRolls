@@ -1,4 +1,5 @@
-/// WORM.JS
+// Updated 3/6/26 @ 6:30PM
+// WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -21,7 +22,7 @@ const WORM = {
   START_Z:          1400,  // STARTS FAR AWAY (TINY)
   IDLE_Z:           320,   // HOVERS AT THIS DEPTH WHEN ACTIVE
   APPROACH_SPEED:   0.006, // LERP FACTOR TOWARD IDLE Z
-  SPRITE_FRAMES:    14, // CHANGED TO 14
+  SPRITE_FRAMES:    14,
   FRAME_HEAD:       0,
   FRAME_SEGMENT:    1,
   FRAME_TAIL:       1,     
@@ -244,6 +245,7 @@ export class WormBoss {
 
     // ATTACK ANIMATION STATE
     this.attackTimer     = WORM.ATTACK_INTERVAL;
+    this.stunTimer       = 0;   // SINGULARITY BOMB stun — disables attacks while > 0
     this.isAttacking     = false;
     this.attackPhase     = 'idle';
     this.attackType      = 'suction';  // ALTERNATES: 'suction' | 'babyworm'
@@ -260,6 +262,10 @@ export class WormBoss {
     this.onDeath          = null;
     this.onSpawnBabyWorms = null;  // CALLBACK(mouthX, mouthY) — FIRES ONCE AT BABY ATTACK LOOP START
     this._introFired      = false;
+
+    // BLACK HOLE ORBIT STATE — SET EACH FRAME BY singularityBomb.js WHILE ACTIVE
+    this._orbitScreenX    = null;
+    this._orbitScreenY    = null;
 
     // DEATH SEQUENCE STATE
     this.isDying       = false;
@@ -322,6 +328,7 @@ export class WormBoss {
     this.attackType      = 'suction';
     this._attackIndex    = 0;
     this.attackTimer     = WORM.ATTACK_INTERVAL;
+    this.stunTimer       = 0;
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
@@ -340,6 +347,24 @@ export class WormBoss {
 
     this.suctionParticles.clear();
     this._introFired = false;
+  }
+
+  applyBlackHoleStun(duration) {
+    this.stunTimer = Math.max(this.stunTimer, duration); 
+    console.log(`💜 Worm stunned for ${duration}s by Singularity Bomb`);
+    if (this.onStunned) this.onStunned(duration);
+  }
+
+  // ======================= BLACK HOLE ORBIT API - CALLED EACH FRAME WHILE BLACK HOLE IS ACTIVE =======================
+  setOrbitPosition(sx, sy) {
+    this._orbitScreenX = sx;
+    this._orbitScreenY = sy;
+    this.stunTimer = Math.max(this.stunTimer, 0.35); // DISABLE ATTACKS WHILE ORBITING BLACK HOLE
+  }
+
+  clearOrbit() {  // WHEN BLACK HOLE COLLAPSES 
+    this._orbitScreenX = null;
+    this._orbitScreenY = null;
   }
 
   // ======================= UPDATE =======================
@@ -448,11 +473,9 @@ export class WormBoss {
         this.dyingSegIndex++;
       }
 
-      // DRAIN REMAINING SUCTION PARTICLES (NO NEW SPAWNS)
-      this.suctionParticles.update(dt, false, this.segments[0].screenX, this.segments[0].screenY);
+      this.suctionParticles.update(dt, false, this.segments[0].screenX, this.segments[0].screenY); // DRAIN REMAINING SUCTION PARTICLES (NO NEW SPAWNS)
 
-      // ALL SEGMENTS GONE — FULLY DEAD
-      if (this.dyingSegIndex >= WORM.NUM_SEGMENTS) {
+      if (this.dyingSegIndex >= WORM.NUM_SEGMENTS) { // ALL SEGMENTS GONE — FULLY DEAD
         this.isDead   = true;
         this.isActive = false;
         if (this.onDeath) this.onDeath();
@@ -462,7 +485,6 @@ export class WormBoss {
 
     // ============= FADE IN =============
     this.alpha += (WORM.ALPHA_FULL - this.alpha) * WORM.ALPHA_SPEED;
-
     // FIRE INTRO SOUND ONCE WORM IS CLEARLY VISIBLE
     if (!this._introFired && this.alpha >= 0.15) {
       this._introFired = true;
@@ -470,7 +492,17 @@ export class WormBoss {
     }
 
     // ============= ATTACK CYCLE =============
-    if (this.isAttacking) {
+    // SINGULARITY BOMB STUN — 
+    if (this.stunTimer > 0) {
+      this.stunTimer -= dt;
+      if (this.stunTimer < 0) this.stunTimer = 0;
+      if (this.isAttacking) {
+        this.isAttacking = false;
+        this.attackPhase = 'idle';
+        this.attackTimer = WORM.ATTACK_INTERVAL * 0.5; 
+        this._babySpawnFired = false;
+      }
+    } else if (this.isAttacking) {
       this.attackProgress += dt;
 
       if (this.attackPhase === 'transIn') {
@@ -536,15 +568,26 @@ export class WormBoss {
     }
 
     // ============= ORGANIC HEAD MOVEMENT =============
-    const t = this.time + this.phaseOffset;
-    const approachFrac = 1.0 - Math.max(0, (this.z - WORM.IDLE_Z) / (WORM.START_Z - WORM.IDLE_Z));
-    const spawnBlendX  = WORM.SPAWN_OFFSET_X * (1.0 - approachFrac);
-    const spawnBlendY  = WORM.SPAWN_OFFSET_Y * (1.0 - approachFrac);
-    const targetX = spawnBlendX + organicNoise(t, WORM.WIGGLE_X);
-    const targetY = spawnBlendY + organicNoise(t, WORM.WIGGLE_Y);
-
-    this.headX += (targetX - this.headX) * WORM.HEAD_SMOOTH;
-    this.headY += (targetY - this.headY) * WORM.HEAD_SMOOTH;
+    if (this._orbitScreenX !== null) {
+      // ── BLACK HOLE ORBIT ──
+      const cx = window.innerWidth  / 2;
+      const cy = window.innerHeight / 2;
+      const bs = this.baseScale || 0.001;
+      const worldTargetX = (this._orbitScreenX - cx) / bs;
+      const worldTargetY = (this._orbitScreenY - cy) / bs;
+      this.headX += (worldTargetX - this.headX) * Math.min(1, 9 * dt);
+      this.headY += (worldTargetY - this.headY) * Math.min(1, 9 * dt);
+    } else {
+      // ── NORMAL WIGGLE ──
+      const t = this.time + this.phaseOffset;
+      const approachFrac = 1.0 - Math.max(0, (this.z - WORM.IDLE_Z) / (WORM.START_Z - WORM.IDLE_Z));
+      const spawnBlendX  = WORM.SPAWN_OFFSET_X * (1.0 - approachFrac);
+      const spawnBlendY  = WORM.SPAWN_OFFSET_Y * (1.0 - approachFrac);
+      const targetX = spawnBlendX + organicNoise(t, WORM.WIGGLE_X);
+      const targetY = spawnBlendY + organicNoise(t, WORM.WIGGLE_Y);
+      this.headX += (targetX - this.headX) * WORM.HEAD_SMOOTH;
+      this.headY += (targetY - this.headY) * WORM.HEAD_SMOOTH;
+    }
 
     this.segments[0].x = this.headX;
     this.segments[0].y = this.headY;
@@ -667,6 +710,23 @@ export class WormBoss {
         ctx.restore();
       }
     }
+
+    // ── SINGULARITY BOMB STUN RING ──
+    if (this.stunTimer > 0 && !this.isDying) { // REMOVE THIS
+      const head = this.segments[0];
+      const pulse = 0.5 + 0.5 * Math.sin(this.time * 8.0);
+      ctx.save();
+      ctx.globalAlpha  = 0.55 + pulse * 0.35;
+      ctx.strokeStyle  = '#cc44ff';
+      ctx.lineWidth    = 3 + pulse * 3;
+      ctx.shadowBlur   = 22 + pulse * 18;
+      ctx.shadowColor  = '#9900ff';
+      ctx.beginPath();
+      ctx.arc(head.screenX, head.screenY, (head.drawSize || 80) * 0.62 + pulse * 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 
