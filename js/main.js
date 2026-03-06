@@ -1,4 +1,4 @@
-// Updated 3/5/26 @ 8:00PM
+// Updated 3/6/26 @ 12:00AM
 
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
@@ -745,7 +745,9 @@ async function startup() {
   initKeyboard();
   initMobileControls(
     (direction) => { ship.startBarrelRoll(direction); audio.playBarrelRoll(); },
-    () => doShoot()
+    () => doShoot(),
+    () => audio.playPowerUp1(),   // ← X button
+    () => audio.playPowerUp2()    // ← Y button
   );
 
 

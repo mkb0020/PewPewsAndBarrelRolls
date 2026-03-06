@@ -66,7 +66,7 @@ export const CONFIG = {
     BOB_AMPLITUDE:     9,     
     LIFETIME:          14,    
     FIRST_SPAWN_DELAY: 15,     //FOR TESTING
-    SPAWN_INTERVAL:    15,    //FOR TESTING
+    SPAWN_INTERVAL:    20,    //FOR TESTING
     MAX_COUNT:         1,    
     HEAL_AMOUNT:       30,    
   },
@@ -77,7 +77,7 @@ export const CONFIG = {
     ROTATION_SPEED:    0.9,   
     LIFETIME:          15,    
     FIRST_SPAWN_DELAY: 7,    //FOR TESTING
-    SPAWN_INTERVAL:    20,     //FOR TESTING
+    SPAWN_INTERVAL:    25,     //FOR TESTING
     MAX_COUNT:         1,     
     BOOST_DURATION:    8.0,   
   },
@@ -386,7 +386,7 @@ export const CONFIG = {
     SPAWN_GAP_MIN:         7,   // FOR TESTING
     SPAWN_GAP_MAX:         10, // FOR TESTING
 
-    KILLS_PER_WAVE: [1, 1, 1, 1, 1], // FOR TESTING   
+    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // FOR TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,

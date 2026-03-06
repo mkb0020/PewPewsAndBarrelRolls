@@ -1,3 +1,5 @@
+/* Updated 3/6/26 @ 12:00AM */
+
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -45,7 +47,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
     }
 
 
-    /* ========================= MOBILE CONTROLS ========================= */
+/* ========================= MOBILE CONTROLS ========================= */
     #mobile-controls {
       position: fixed;
       display: none;
@@ -95,77 +97,107 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
       box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
     }
 
+    /* ── ACTION BUTTON CLUSTER ── */
     .action-buttons {
       position: absolute;
-      bottom: 20px;
-      right: 25px;
-      width: 160px;
-      height: 120px;
+      bottom: 25px;
+      right: 20px;
+      width: 170px;
+      height: 170px;
       pointer-events: none;
     }
 
-    .btn-a {
+    /* ── SHARED BUTTON BASE ── */
+    .btn-a, .btn-b, .btn-x, .btn-y {
       position: absolute;
-      bottom: 0;
-      right: 85px;
-      width: 95px;
-      height: 95px;
       border-radius: 50%;
-      background: radial-gradient(circle at 38% 35%, #b070ff, #5600c2);
-      border: 3px solid #5600c2;
-      box-shadow: 0 0 14px rgba(66,0,148, 0.85), inset 0 2px 6px rgba(255,255,255,0.25);
-      color: #1f0145;
-      text-shadow: 
-        2px 1px 0 #c195f8;
-      font-family: 'GothNerd';
-      font-size: 3rem;
-      font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-family: 'GothNerd';
+      font-weight: bold;
       pointer-events: auto;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
       cursor: pointer;
       transition: transform 0.08s, box-shadow 0.08s;
+    }
+
+    /* ── A — SHOOT (green) — large anchor, bottom-right ── */
+    .btn-a {
+      top: 95px;
+      left: 95px;
+      width: 75px;
+      height: 75px;
+      background: radial-gradient(circle at 38% 35%, #a0ff8a, #58e84c);
+      border: 3px solid #3ab832;
+      box-shadow: 0 0 14px rgba(88, 232, 76, 0.85), inset 0 2px 6px rgba(255,255,255,0.25);
+      color: #0a3707;
+      text-shadow: 2px 1px 0 #c8ffc0;
+      font-size: 2.4rem;
     }
 
     .btn-a:active, .btn-a.pressed {
       transform: scale(0.91);
-      box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+      box-shadow: 0 0 6px rgba(88, 232, 76, 0.4);
     }
 
+    /* ── B — BARREL ROLL (orange-red) — above A ── */
     .btn-b {
-      position: absolute;
-      bottom: 95px;
-      right: 0px;
-      width: 65px;
-      height: 65px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 38% 35%, #67FEBD, #58E84C);
-      border: 3px solid #58E84C;
-      box-shadow: 0 0 10px rgba(88,232,76, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
-      color: #0a3707;
-      text-shadow: 
-        2px 1px 0 #a1fad3;
-      font-family: 'GothNerd';
-      font-size: 1.8rem;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: auto;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-      cursor: pointer;
-      transition: transform 0.08s, box-shadow 0.08s;
+      top: 10px;
+      left: 105px;
+      width: 55px;
+      height: 55px;
+      background: radial-gradient(circle at 38% 35%, #ff8a55, #e25513);
+      border: 3px solid #b83e0a;
+      box-shadow: 0 0 10px rgba(226, 85, 19, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
+      color: #3d0e00;
+      text-shadow: 2px 1px 0 #ffb48a;
+      font-size: 1.5rem;
     }
 
     .btn-b:active, .btn-b.pressed {
       transform: scale(0.91);
-      box-shadow: 0 0 5px rgba(103, 254, 189, 0.4);
+      box-shadow: 0 0 5px rgba(226, 85, 19, 0.4);
+    }
+
+    /* ── X — POWER-UP 1 (purple) — left of A ── */
+    .btn-x {
+      top: 105px;
+      left: 5px;
+      width: 55px;
+      height: 55px;
+      background: radial-gradient(circle at 38% 35%, #c070ff, #8a2be2);
+      border: 3px solid #6200b8;
+      box-shadow: 0 0 10px rgba(138, 43, 226, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
+      color: #1a0040;
+      text-shadow: 2px 1px 0 #d8a8ff;
+      font-size: 1.5rem;
+    }
+
+    .btn-x:active, .btn-x.pressed {
+      transform: scale(0.91);
+      box-shadow: 0 0 5px rgba(138, 43, 226, 0.4);
+    }
+
+    /* ── Y — POWER-UP 2 (deep pink) — diagonal between B and X ── */
+    .btn-y {
+      top: 35px;
+      left: 35px;
+      width: 55px;
+      height: 55px;
+      background: radial-gradient(circle at 38% 35%, #ff60b0, #c71585);
+      border: 3px solid #960060;
+      box-shadow: 0 0 10px rgba(199, 21, 133, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
+      color: #3d0020;
+      text-shadow: 2px 1px 0 #ffaad8;
+      font-size: 1.5rem;
+    }
+
+    .btn-y:active, .btn-y.pressed {
+      transform: scale(0.91);
+      box-shadow: 0 0 5px rgba(199, 21, 133, 0.4);
     }
 
     #mobile-controls.landscape {
@@ -189,8 +221,8 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
     @media (max-width: 700px) {
       .joystick {
-        width: 100px;
-        height: 100px;
+        width: 95px;
+        height: 95px;
       }
 
       .joystick-knob {
@@ -198,18 +230,44 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
         height: 40px;
       }
 
+      /* Scale container down proportionally */
+      .action-buttons {
+        width: 140px;
+        height: 140px;
+        bottom: 14px;
+        right: 18px;
+      }
+
       .btn-a {
-        width: 80px;
-        height: 80px;
-        font-size: 1.4rem;
+        top: 75px;
+        left: 75px;
+        width: 65px;
+        height: 65px;
+        font-size: 2rem;
       }
 
       .btn-b {
-        width: 52px;
-        height: 52px;
-        font-size: 1rem;
-        bottom: 60px;
-        right: 78px;
+        top: 8px;
+        left: 82px;
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+      }
+
+      .btn-x {
+        top: 82px;
+        left: 8px;
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+      }
+
+      .btn-y {
+        top: 30px;
+        left: 30px;
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
       }
     }
 
@@ -1946,6 +2004,19 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 #boss-terminal{
   height: 250px;
 }
+
+#victory-headline {
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+#victory-sub {
+  font-size: clamp(0.55rem, 1vw, 0.8rem);
+}
+
+#victory-score {
+  font-size: 1rem;
+}
+
 }
 
 .gold-star {

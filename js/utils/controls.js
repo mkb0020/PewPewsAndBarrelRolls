@@ -1,4 +1,5 @@
 // controls.js
+// Updated 3/6/26 @ 12:00AM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from './config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,19 +51,19 @@ export function initKeyboard() {
 let joystickActive = false;
 let joystickCenter = { x: 0, y: 0 };
 
-export function initMobileControls(onBarrelRoll, onShoot) {
+export function initMobileControls(onBarrelRoll, onShoot, onPowerUp1, onPowerUp2) {
   const mobileControls = document.getElementById('mobile-controls');
   const joystick       = document.querySelector('.joystick');
   const joystickKnob   = document.querySelector('.joystick-knob');
   const btnA           = document.getElementById('btn-a');
   const btnB           = document.getElementById('btn-b');
+  const btnX           = document.getElementById('btn-x');
+  const btnY           = document.getElementById('btn-y');
 
   if (!mobileControls || !joystick || !btnA || !btnB) {
     console.warn('Mobile controls elements not found');
     return;
   }
-
-
 
   // ======================= JOYSTICK =======================
   joystick.addEventListener('touchstart', (e) => {
@@ -122,6 +123,44 @@ export function initMobileControls(onBarrelRoll, onShoot) {
     btnB.classList.remove('pressed');
   }, { passive: false });
 
+  // ======================= X BUTTON — POWER-UP 1 =======================
+  if (btnX) {
+    btnX.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      btnX.classList.add('pressed');
+      if (onPowerUp1) onPowerUp1();
+    }, { passive: false });
+
+    btnX.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      btnX.classList.remove('pressed');
+    }, { passive: false });
+
+    btnX.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      btnX.classList.remove('pressed');
+    }, { passive: false });
+  }
+
+  // ======================= Y BUTTON — POWER-UP 2 =======================
+  if (btnY) {
+    btnY.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      btnY.classList.add('pressed');
+      if (onPowerUp2) onPowerUp2();
+    }, { passive: false });
+
+    btnY.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      btnY.classList.remove('pressed');
+    }, { passive: false });
+
+    btnY.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      btnY.classList.remove('pressed');
+    }, { passive: false });
+  }
+
   // ======================= H KEY — TOGGLE MOBILE UI ON DESKTOP (DEV) =======================
   window.addEventListener('keydown', (e) => {
     if (e.key === 'h' || e.key === 'H') {
@@ -130,7 +169,7 @@ export function initMobileControls(onBarrelRoll, onShoot) {
     }
   });
 
-  console.log('✔ Mobile controls initialized (A=shoot, B=barrel roll)');
+  console.log('✔ Mobile controls initialized (A=shoot, B=barrel roll, X=powerUp1, Y=powerUp2)');
 }
 
 function updateJoystick(touch, joystick, joystickKnob) {
