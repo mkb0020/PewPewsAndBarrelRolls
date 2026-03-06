@@ -1,5 +1,4 @@
-// Updated 3/5/26 @ 8:00PM
-
+// Updated 3/6/26 @ 6:30PM
 // tesseractFragment.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -332,7 +331,6 @@ class TesseractCollectEffect {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 export class TesseractFragmentManager {
   constructor() {
     this.fragments   = [];
@@ -462,18 +460,17 @@ export class TesseractFragmentManager {
 
     ctx.restore();
 
-    // ── BOOST TIMER HUD — bottom-center ──────────────────────────
+    // ── BOOST TIMER HUD  ──────────────────────────
     const barW  = 160;
     const barH  = 5;
     const barX  = window.innerWidth  / 2 - barW / 2;
-    // const barY  = window.innerHeight - 36;
     const barY  = 40;
     const fillW = barW * pct;
     const barHue = (t * 120) % 360;
 
     ctx.save();
 
-    // Label
+    // LABEL
     ctx.globalAlpha = isLow ? (0.7 + 0.3 * Math.abs(Math.sin(t * 7))) : 0.9;
     ctx.fillStyle   = `hsl(${isLow ? (t * 600 % 360) : barHue}, 100%, 75%)`;
     ctx.shadowBlur  = 8;
@@ -502,10 +499,14 @@ export class TesseractFragmentManager {
     ctx.restore();
   }
 
-  _spawnFragment() {
-    const margin = 160;
-    const x = margin + Math.random() * (window.innerWidth  - margin * 2);
-    const y = margin + Math.random() * (window.innerHeight - margin * 2);
+  _spawnFragment() { // SPAWN IN SHIP'S REACHABLE ZONE
+    const SHIP   = CONFIG.SHIP;
+    const cx     = window.innerWidth  / 2;
+    const cy     = window.innerHeight / 2;
+    const rangeX = SHIP.MAX_OFFSET_X - 50;
+    const rangeY = SHIP.MAX_OFFSET_Y - 50;
+    const x      = cx + (Math.random() * 2 - 1) * rangeX;
+    const y      = cy + (Math.random() * 2 - 1) * rangeY;
     this.fragments.push(new TesseractFragment(x, y));
     console.log('◈ Tesseract Fragment spawned');
   }
