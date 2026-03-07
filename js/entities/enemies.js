@@ -1,8 +1,9 @@
-// Updated 3/7/26 @12:30AM
+// Updated 3/7/26 @ 4:15am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 import { ImageLoader, ENEMY_SPRITE } from '../utils/imageLoader.js';
+import { GlitchFleshAssembly } from '../visuals/glitchFleshAssembly.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //  SINGULARITY BOMB HOOK - FOR SPAGHETTIFICATION 
@@ -144,6 +145,9 @@ export class Enemy {
     this.isDead = false;
     this.hasDealtCollisionDamage = false;
 
+    // ─── SPAWN VFX ───
+    this.spawnVFX = new GlitchFleshAssembly(this);
+
     // ─── BLACK HOLE SUCTION ───
     this._bhSucked         = false;  
     this._bhOriginalScale  = 1;      
@@ -168,6 +172,9 @@ export class Enemy {
   }
 
   update(dt, time, curve, playerProgress) {
+    // ─── SPAWN VFX ───
+    if (!this.spawnVFX.isDone) this.spawnVFX.update(dt);
+
     // ─── ANIMATION  ───
     this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
 
@@ -360,6 +367,12 @@ export class Enemy {
   }
 
   draw(ctx) {
+    // ─── SPAWN VFX — takes over rendering until assembly completes ───
+    if (!this.spawnVFX.isDone) {
+      this.spawnVFX.draw(ctx);
+      return;
+    }
+
     const fadeProgress = Math.min(1, Math.max(0, (this.scale - 0.2) / 0.6));
     const spriteAlpha  = 0.1 + fadeProgress * 0.9;
     const tintAlpha    = (1 - Math.min(1, fadeProgress / 0.2)) * 0.3;
