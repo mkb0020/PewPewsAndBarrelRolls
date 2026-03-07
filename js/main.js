@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 12:30AM
+// Updated 3/7/26 @ 1:15AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -172,9 +172,18 @@ gameplayScene.onWaveCleared = (waveIndex) => {
 
   // ══════ AFTER KILLING FINAL WAVE WORM - DRAMATIC TRANSITION TO BOSS BATTLE ══════
   showWaveHUD(false);
+
+  // 🧹 CLEAR ALL IN-PROGRESS GAMEPLAY EFFECTS BEFORE THE BOSS SEQUENCE
+  enemyManager.clear();                              // REMOVE ALL ACTIVE ENEMIES FROM SCREEN
+  slimeAttack.reset();                               // CANCEL ANY ACTIVE SLIME ATTACK
+  ocularPrism.active = false;                        // CANCEL ANY ACTIVE OCULAR PRISM
+  ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
+  ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+  singularityBombManager.blackHole = null;           // KILL ANY ACTIVE BLACK HOLE (keep inventory)
+
   cosmicPrismManager.stop(); // 🔮 NO PRISMS DURING BOSS SEQUENCE
   tesseractManager.stop();   // ◈ NO TESSERACT FRAGMENTS DURING BOSS SEQUENCE
-  singularityBombManager.stop(); // 💣 NO NEW BOMBS DURING BOSS SEQUENCE (keep inventory)
+  singularityBombManager.stop(); // 💣 NO NEW BOMB PICKUPS DURING BOSS SEQUENCE (keep inventory)
   tunnel.setBossTransitionSurge(1); // PHASE 1 (t=0s): SURGE — TUNNEL SPEEDS AND TURNS RED - TRACERS ON
   _bossTracerTarget = 1;
   audio.playBossTransition1(); // PHASE 1 SFX — TUNNEL SURGE
