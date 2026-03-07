@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 8pm
+// Updated 3/7/26 @ 12:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -62,6 +62,7 @@ const tesseractManager   = new TesseractFragmentManager();
 tesseractManager.audio   = audio;
 const singularityBombManager = new SingularityBombManager();
 singularityBombManager.audio = audio;
+singularityBombManager.onSpinorCollect = () => tunnel.triggerSpinor(); // 💠 SPINOR PICKUP → 720° TUNNEL ROLL
 const gameplayScene     = new GameplayScene({
   enemyManager,
   waveWormManager,

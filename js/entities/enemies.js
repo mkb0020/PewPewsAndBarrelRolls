@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 8PM
+// Updated 3/7/26 @12:30AM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -382,6 +382,22 @@ export class Enemy {
         ctx.rotate(angle);
         ctx.scale(stretch, 1 / stretch);
         ctx.translate(-this.x, -this.y);
+      }
+    }
+
+    // ── GRAVITATIONAL LENS DISTORTION — DISPLACES DRAW POSITION OUTWARD FROM BH ──
+    // PURELY VISUAL— REUSES _activeSingularityBH HOOK
+    if (_activeSingularityBH && !_activeSingularityBH.isDead()) {
+      const lensStr = _activeSingularityBH.getLensStrength?.() ?? 0;
+      if (lensStr > 0.005) {
+        const ldx  = this.x - _activeSingularityBH.x;   // OUTWARD VECTOR
+        const ldy  = this.y - _activeSingularityBH.y;
+        const dist = Math.hypot(ldx, ldy);
+        const maxR = 300;
+        if (dist > 0 && dist < maxR) {
+          const factor = lensStr * (1 - dist / maxR);   // FADES WITH DISTANCE
+          ctx.translate(ldx * factor, ldy * factor);    // PUSH OUTWARD
+        }
       }
     }
 

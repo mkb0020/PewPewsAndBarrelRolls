@@ -1,3 +1,4 @@
+// Updated 3/7/26 @ 12:30AM
 // tunnel.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import * as THREE from 'three';
@@ -22,6 +23,10 @@ export class Tunnel {
     // WAVE CLEAR PULSE — TRIPPY PINK/ORANGE DISTORTION STING BETWEEN WAVES
     this._wavePulseIntensity = 0;
     this._wavePulseTarget    = 0;
+
+    // SPINOR PICKUP — 720° ROLL + PINK HUE SHIFT (~0.8s)
+    this._spinorRollAccum = 0;   // RADIANS ACCUMULATED (0 → 4π)
+    this._spinorActive    = false;
 
     // BOSS TRANSITION — THREE PHASES: SURGE → FLASH → EMERGENCE
     this._bossTransitionSurge       = 0;  // PHASE 1: SPEED x7, CRIMSON BLEED, ROLL RAMP
@@ -167,6 +172,12 @@ export class Tunnel {
     this._wavePulseIntensity  = 0; this._wavePulseTarget           = 0;
   }
 
+  // SPINOR PICKUP — TRIGGERS 720° CAMERA ROLL + PINK/MAGENTA HUE SHIFT (~0.85s)
+  triggerSpinor() {
+    this._spinorRollAccum = 0;
+    this._spinorActive    = true;
+  }
+
   update(dt) {
     // FIXED TIMESTAMP FOR SMOOTH TUNNEL
     this.time += 0.016;
@@ -203,6 +214,16 @@ export class Tunnel {
     this._wavePulseIntensity += (this._wavePulseTarget - this._wavePulseIntensity) * wpLerp;
     const wpi = this._wavePulseIntensity;                          // WAVE PULSE: 0→1
 
+    // ── SPINOR 720° ROLL — ADVANCE AT FIXED TUNNEL TIMESTEP ──────────────────
+    if (this._spinorActive) {
+      this._spinorRollAccum += (Math.PI * 4 / 0.78) * 0.016;     // 720° over ~0.78s
+      if (this._spinorRollAccum >= Math.PI * 4) {
+        this._spinorRollAccum = Math.PI * 4;
+        this._spinorActive    = false;
+      }
+    }
+    const spinorT = this._spinorRollAccum / (Math.PI * 4);        // 0→1 progress
+
     // ── SPEED — CONSUMED CRANKS IT UP, SUCTION ADDS MILD RAMP, SLIME CRAWLS, BOSS SURGE ROCKETS, WAVE PULSE JOLTS ──
     const speedMult = (1 - sli * (1 - CONFIG.SLIME_ATTACK.TUNNEL_SPEED_MULT))
                     * (1 + si * 0.4 + ci * 3.5)
@@ -220,9 +241,9 @@ export class Tunnel {
     const lookTarget = pos.clone().add(tangent);
     this.camera.lookAt(lookTarget);
 
-    // ROLL — CONSUMED SPINS HARD, SURGE RAMPS UP THE CHAOS, WAVE PULSE ADDS A WOBBLE
+    // ROLL — CONSUMED SPINS HARD, SURGE RAMPS UP THE CHAOS, WAVE PULSE ADDS A WOBBLE, SPINOR DOES THE FULL 720°
     const rollAmt = CONFIG.TUNNEL.ROLL_AMOUNT + ci * 2.2 + bts * 1.8 + wpi * 0.9;
-    this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * rollAmt);
+    this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * rollAmt - this._spinorRollAccum);
 
     // ── BACKGROUND COLOR — DEEP PURPLE → PURE BLACK → SLIME GREEN ────────────
     const bgColor = new THREE.Color();
@@ -282,6 +303,14 @@ export class Tunnel {
       // BRIGHTNESS RIDES THE SHIMMER SO IT FEELS ELECTRIC
       pulseColor.multiplyScalar(0.85 + shimmer * 0.4);
       col.lerp(pulseColor, wpi * 0.95);
+    }
+
+    // SPINOR — TUNNEL BLEEDS TO PINK/MAGENTA DURING THE 720° ROTATION
+    // BELL CURVE (sin(t*π)) PEAKS MID-WAY AND RETURNS TO NORMAL BY END
+    if (spinorT > 0 && spinorT < 1) {
+      const spinorBell  = Math.sin(spinorT * Math.PI);             // 0→1→0 envelope
+      const spinorColor = new THREE.Color().setHSL(0.88, 1.0, 0.50); // HOT PINK
+      col.lerp(spinorColor, spinorBell * 0.72);
     }
 
     // PUSH COLOR TO ALL FOUR MATERIALS

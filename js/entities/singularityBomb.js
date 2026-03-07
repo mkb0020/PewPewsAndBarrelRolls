@@ -1,6 +1,129 @@
-// Updated 3/6/26 @ 8PM
+// Updated 3/7/26 @ 12:30AM
 // js/entities/singularityBomb.js
 import { CONFIG } from '../utils/config.js';
+
+// ======================= SPINOR COLLECT EFFECT =======================
+// DOUBLE HELIX RIBBON + COLLECTION FLASH — PLAYS ON PICKUP, ~1 SECOND DURATION
+const SPINOR_FX = {
+  DURATION:       1.0,
+  HELIX_SEGMENTS: 32,     // DOTS PER STRAND — BALANCED PERF/DENSITY
+  HELIX_TURNS:    3.5,    // SPIRAL TURNS VISIBLE AT ANY TIME
+  RADIUS_START:   26,     // PX FROM SHIP CENTER
+  RADIUS_END:     52,     // EXPANDS OUTWARD OVER DURATION
+  DOT_SIZE:       2.6,    // BASE DOT RADIUS
+  FADE_IN:        0.08,   // SECONDS
+  FADE_OUT:       0.22,   // SECONDS
+  STRAND_COLORS:  ['#00ffff', '#c71585'],   // CYAN, MAGENTA
+  STRAND_GLOWS:   ['#00cccc', '#8a0050'],   // SHADOW COLORS
+};
+
+class SpinorCollectEffect {
+  constructor(collectX, collectY) {
+    this.cx    = collectX;   // FLASH RING ORIGIN (WHERE ITEM WAS)
+    this.cy    = collectY;
+    this.timer = 0;
+  }
+
+  isDead()     { return this.timer >= SPINOR_FX.DURATION; }
+  update(dt)   { this.timer += dt; }
+
+  draw(ctx, shipX, shipY) {
+    if (this.isDead()) return;
+    const t       = this.timer / SPINOR_FX.DURATION;
+    const fadeIn  = Math.min(1, this.timer / SPINOR_FX.FADE_IN);
+    const fadeOut = Math.min(1, (SPINOR_FX.DURATION - this.timer) / SPINOR_FX.FADE_OUT);
+    const env     = fadeIn * fadeOut;
+    if (env <= 0.01) return;
+
+    const radius = SPINOR_FX.RADIUS_START + (SPINOR_FX.RADIUS_END - SPINOR_FX.RADIUS_START) * t;
+    const speed  = this.timer * 9;   // RADIANS OF ROTATION ACCUMULATED
+
+    // ── COLLECTION FLASH RING (FIRST 0.35s — AT ITEM ORIGIN) ──────────────────
+    if (t < 0.35) {
+      const rt = t / 0.35;
+      ctx.save();
+      ctx.globalAlpha = (1 - rt) * 0.9;
+      ctx.strokeStyle = '#c71585';
+      ctx.shadowBlur  = 22;
+      ctx.shadowColor = '#ff69b4';
+      ctx.lineWidth   = 2.5;
+      ctx.beginPath();
+      ctx.arc(this.cx, this.cy, rt * 85, 0, Math.PI * 2);
+      ctx.stroke();
+      // SECOND RING — SMALLER, WHITE CORE
+      if (rt > 0.12) {
+        const rt2 = (rt - 0.12) / 0.88;
+        ctx.globalAlpha = (1 - rt2) * 0.5;
+        ctx.strokeStyle = '#ffffff';
+        ctx.shadowBlur  = 8;
+        ctx.lineWidth   = 1.5;
+        ctx.beginPath();
+        ctx.arc(this.cx, this.cy, rt2 * 60, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ── DOUBLE HELIX RIBBON (ORBITS SHIP) ─────────────────────────────────────
+    // DRAWN BACK-STRAND FIRST (depth < 0), THEN FRONT STRAND — CHEAP PAINTER'S ORDER
+    const S  = SPINOR_FX.HELIX_SEGMENTS;
+    const tw = SPINOR_FX.HELIX_TURNS;
+
+    for (let backFront = 0; backFront < 2; backFront++) {
+      // backFront=0 → DRAW ONLY BACK-DEPTH DOTS; backFront=1 → FRONT DEPTH DOTS
+      for (let strand = 0; strand < 2; strand++) {
+        ctx.save();
+        ctx.shadowBlur  = 9;
+        ctx.shadowColor = SPINOR_FX.STRAND_GLOWS[strand];
+
+        const phaseOff = strand * Math.PI;   // STRANDS ARE π APART = DNA
+
+        for (let i = 0; i < S; i++) {
+          const u     = i / (S - 1);
+          const theta = u * tw * Math.PI * 2 + phaseOff + speed;
+
+          const cosT  = Math.cos(theta);
+          const sinT  = Math.sin(theta);   // sinT DRIVES DEPTH ILLUSION
+
+          // SKIP IF WRONG DEPTH PASS
+          if (backFront === 0 && sinT >= 0) continue;
+          if (backFront === 1 && sinT < 0)  continue;
+
+          // PERSPECTIVE-SQUASHED ORBIT AROUND SHIP
+          const px = shipX + cosT * radius;
+          const py = shipY + sinT * radius * 0.38;   // SQUASH Y FOR 3/4 PERSPECTIVE
+
+          // DEPTH MODULATION — FRONT DOTS BRIGHTER + LARGER
+          const depthNorm = (sinT + 1) * 0.5;        // 0 (back) → 1 (front)
+          const dotA      = env * (0.3 + 0.7 * depthNorm);
+          const dotR      = SPINOR_FX.DOT_SIZE * (0.45 + 0.55 * depthNorm);
+
+          ctx.globalAlpha = dotA;
+          ctx.fillStyle   = SPINOR_FX.STRAND_COLORS[strand];
+          ctx.beginPath();
+          ctx.arc(px, py, dotR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    // ── WHITE CORE FLASH AT SHIP CENTER (FIRST 0.15s) ─────────────────────────
+    if (t < 0.15) {
+      const ft = t / 0.15;
+      ctx.save();
+      ctx.globalAlpha = (1 - ft) * 0.7;
+      ctx.fillStyle   = '#ffffff';
+      ctx.shadowBlur  = 18;
+      ctx.shadowColor = '#c0a0ff';
+      ctx.beginPath();
+      ctx.arc(shipX, shipY, (1 - ft) * 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
 
 class SpinorItem {
   constructor(x, y) {
@@ -275,6 +398,14 @@ export class BabyBlackHole {
   }
 
   isDead() { return this._dead; }
+
+  // RETURNS 0-1 LENS DISTORTION STRENGTH — USED BY enemies.js FOR GRAVITATIONAL LENSING
+  getLensStrength() {
+    if (this.phase === 'growing')    return (this.phaseTimer / CONFIG.SINGULARITY_BOMB.BH_GROW_TIME) * 0.25;
+    if (this.phase === 'active')     return 0.28 + Math.sin(this.phaseTimer * 2.1) * 0.13; // PULSING 0.15→0.41
+    if (this.phase === 'collapsing') return (1 - this.phaseTimer / CONFIG.SINGULARITY_BOMB.BH_COLLAPSE_TIME) * 0.25;
+    return 0;
+  }
 
   // ── MAIN UPDATE ──────────────────────────────────────────────────────────────
   update(dt) {
@@ -737,9 +868,14 @@ export class SingularityBombManager {
     this.isBossBattle  = false;  // SET BY bossBattle.js — CHANGES SPAWN + MOVEMENT BEHAVIOR
     this.deployEnabled = false;  // GATED EXTERNALLY — ONLY TRUE DURING ACTIVE WAVE / BOSS BATTLE
 
+    this._collectEffects = [];   // SPINOR COLLECT VISUAL EFFECTS
+    this._lastShipX      = 0;   // CACHED FOR drawItems() — SET EACH update()
+    this._lastShipY      = 0;
+
     // CALLBACKS
     this.onInventoryChange = null;  
     this.onEnemyKilledByBH = null;  
+    this.onSpinorCollect   = null;  // FIRES ON PICKUP — USE TO TRIGGER TUNNEL SPINOR EFFECT
   }
 
   // ── LIFECYCLE ────────────────────────────────────────────────────────────────
@@ -752,8 +888,9 @@ export class SingularityBombManager {
   }
 
   stop() {
-    this._active = false;
-    this._items  = [];
+    this._active     = false;
+    this._items      = [];
+    this._collectEffects = [];
   }
 
   reset() {
@@ -763,6 +900,7 @@ export class SingularityBombManager {
     this.blackHole    = null;
     this.inventory    = 0;
     this.deployEnabled = false;
+    this._collectEffects = [];
     this.onInventoryChange?.(0);
   }
 
@@ -783,6 +921,9 @@ export class SingularityBombManager {
   update(dt, shipX, shipY) {
     const C = CONFIG.SINGULARITY_BOMB;
 
+    this._lastShipX = shipX;
+    this._lastShipY = shipY;
+
     // SPAWN NEW SPINOR ITEMS
     if (this._active) {
       this._spawnTimer -= dt;
@@ -802,11 +943,17 @@ export class SingularityBombManager {
         const dy = shipY - item.y;
         if (dx * dx + dy * dy < C.COLLECT_RADIUS * C.COLLECT_RADIUS) {
           item.collected = true;
-          this._collect();
+          this._collect(item.x, item.y);  // PASS ITEM POSITION FOR FLASH RING
         }
       }
 
       if (item.isDead()) this._items.splice(i, 1);
+    }
+
+    // UPDATE SPINOR COLLECT EFFECTS
+    for (let i = this._collectEffects.length - 1; i >= 0; i--) {
+      this._collectEffects[i].update(dt);
+      if (this._collectEffects[i].isDead()) this._collectEffects.splice(i, 1);
     }
 
     if (this.blackHole) {
@@ -830,6 +977,8 @@ export class SingularityBombManager {
 
   drawItems(ctx) {
     for (const item of this._items) item.draw(ctx);
+    // COLLECT EFFECTS USE CACHED SHIP POSITION FROM LAST UPDATE
+    for (const e of this._collectEffects) e.draw(ctx, this._lastShipX, this._lastShipY);
   }
 
   // ── INTERNAL ─────────────────────────────────────────────────────────────────
@@ -844,12 +993,14 @@ export class SingularityBombManager {
     this._items.push(new SpinorItem(x, y));
   }
 
-  _collect() {
+  _collect(collectX = 0, collectY = 0) {
     const C = CONFIG.SINGULARITY_BOMB;
     if (this.inventory >= C.MAX_INVENTORY) return; // FULL INVENTORY
     this.inventory++;
     this.onInventoryChange?.(this.inventory);
     this.audio?.playPowerUp3();
+    this._collectEffects.push(new SpinorCollectEffect(collectX, collectY));
+    this.onSpinorCollect?.();   // → tunnel.triggerSpinor()
     console.log(`💜 Singularity Bomb collected | inventory: ${this.inventory}`);
   }
 }

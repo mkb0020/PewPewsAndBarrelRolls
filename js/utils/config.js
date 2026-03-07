@@ -63,7 +63,7 @@ export const CONFIG = {
     LIFETIME:          14,    
     FIRST_SPAWN_DELAY: 15,     //FOR TESTING
     SPAWN_INTERVAL:    20,    //FOR TESTING
-    MAX_COUNT:         0,    //FOR TESTING
+    MAX_COUNT:         1,    //FOR TESTING
     HEAL_AMOUNT:       30,    
   },
 
@@ -74,7 +74,7 @@ export const CONFIG = {
     LIFETIME:          15,    
     FIRST_SPAWN_DELAY: 7,    //FOR TESTING
     SPAWN_INTERVAL:    25,     //FOR TESTING
-    MAX_COUNT:         0,     //FOR TESTING
+    MAX_COUNT:         1,     //FOR TESTING
     BOOST_DURATION:    8.0,   
   },
 
