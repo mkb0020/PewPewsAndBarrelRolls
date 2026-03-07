@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 9:30AM
+// Updated 3/7/26 @ 12:00PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -126,10 +126,6 @@ cosmicPrismManager.onCollect = (healAmt) => {
   ship.heal(healAmt);
 };
 
-// ==================== TESSERACT FRAGMENT CALLBACKS ====================
-tesseractManager.onCollect = () => {
-};
-
 // ==================== SINGULARITY BOMB CALLBACKS ====================
 singularityBombManager.onInventoryChange = (count) => {
   updateBombDisplay(count);
@@ -213,9 +209,6 @@ gameplayScene.onWaveCleared = (waveIndex) => {
     audio.stopMusic();
   }, 16000); // PHASE 4 (t=16s): WORM ACTIVATES — EMERGES FROM FOG
 
-};
-
-gameplayScene.onAllWavesComplete = () => {
 };
 
 gameplayScene.onGooHit = () => {
@@ -534,6 +527,7 @@ function gameLoop() {
   lastTime  = now;
 
   if (!isPaused && !transitionScene.isBlocking) {
+    const enemies = enemyManager.getEnemies(); // SINGLE CALL PER FRAME — REUSED THROUGHOUT LOOP
 
     //  THREE.JS BACKGROUND 
     if (closingScene.isActive()) {
@@ -549,8 +543,7 @@ function gameLoop() {
       tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
 
       //  SLIME ATTACK UPDATE
-      const glorks      = enemyManager.getEnemies().filter(e => e.type === 'TANK');
-      const activeGlork = glorks.find(g => g.scale > CONFIG.SLIME_ATTACK.MIN_SCALE);
+      const activeGlork = enemies.find(e => e.type === 'TANK' && e.scale > CONFIG.SLIME_ATTACK.MIN_SCALE);
       const gx = activeGlork ? activeGlork.x : window.innerWidth  / 2;
       const gy = activeGlork ? activeGlork.y : window.innerHeight / 2;
       slimeAttack.update(dt, gx, gy, ship.x, ship.y);
@@ -559,14 +552,14 @@ function gameLoop() {
       ship.setSlimeHeaviness(slimeAttack.getSlimeIntensity());
 
       ship.update(dt);
-      crosshair.update(shipOffset.x, shipOffset.y, dt, enemyManager.getEnemies());
+      crosshair.update(shipOffset.x, shipOffset.y, dt, enemies);
       enemyManager.update(dt, ship.x, ship.y);
       gameplayScene.update(dt, ship.x, ship.y);
       bossBattleScene.update(dt, ship);
 
       // SINGULARITY BOMB —
       singularityBombManager.update(dt, ship.x, ship.y);
-      singularityBombManager.applyGravityAndBossEffect(dt, enemyManager.getEnemies(), wormBoss);
+      singularityBombManager.applyGravityAndBossEffect(dt, enemies, wormBoss);
       setActiveSingularityBH(
         singularityBombManager.blackHole && !singularityBombManager.blackHole.isDead()
           ? singularityBombManager.blackHole
@@ -596,7 +589,6 @@ function gameLoop() {
 
     // ========================= COLLISION  =========================
     const projectiles = projectileManager.getProjectiles();
-    const enemies     = enemyManager.getEnemies();
 
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const projectile = projectiles[i];

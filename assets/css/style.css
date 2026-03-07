@@ -1,4 +1,4 @@
-/* Updated 3/7/26 @ 9:30AM */
+/* Updated 3/7/26 @ 12:00PM */
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -13,38 +13,6 @@ body { margin:0; overflow:hidden; background:#000; }
 canvas { display:block; position: fixed; top: 0; left: 0; }
     #three-canvas { z-index: 1; }
     #game-canvas { z-index: 9995; pointer-events: none; }
-    #keyboard-hint {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #0ff;
-      font-family: system-ui, sans-serif;
-      font-size: 1rem;
-      text-shadow: 0 0 10px #0ff;
-      text-align: center;
-      z-index: 100;
-      opacity: 0.7;
-      pointer-events: none;
-    }
-
-.background-gradient {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(to bottom, #000000 25%, #37025A 55%, #8a2be2 70%, #c71585 80%, #c71585 97%, #c71585 100%);
-  opacity: 1;
-  z-index: -20;
-}
-
-.dreamy-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.1);
-      backdrop-filter: blur(30px);
-      pointer-events: none;
-      z-index: -10;
-    }
-
 
 /* ========================= MOBILE CONTROLS ========================= */
     #mobile-controls {

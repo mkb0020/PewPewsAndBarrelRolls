@@ -1,4 +1,4 @@
-// Updated 3/5/26 @ 7:15PM
+// Updated 3/7/26 @ 12:00PM
 
 // imageLoader.js
 
@@ -10,9 +10,9 @@ const MANIFEST = {
   babyWorm:     { path: 'babyWorm.png' },
   glork:        { path: 'glork.png' },       // 5 FRAMES
   glipGlop:     { path: 'glipGlop.png' },    // 5 FRAMES
-  zipZap:       { path: 'zipZap.png' },      // 6 FRAMES
+  zipZap:       { path: 'zipZap.png' },      // 5 FRAMES
   phil:         { path: 'phil.png' },        // 8 FRAMES
-  flimFlam:     { path: 'flimFlam.png' },   // 7 FRAMES: 0-2 wings, 3-6 body
+  flimFlam:     { path: 'flimFlam.png' },   // 8 FRAMES: 0-2 wings, 3 red-eye, 4-7 body
   boom:         { path: 'boom.png' },        // 6 FRAMES 
   zap:          { path: 'zap.png',     lazy: true },   // 6 FRAMES
   bam:          { path: 'bam.png' },         // 8 FRAMES

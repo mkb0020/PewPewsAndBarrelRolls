@@ -1,3 +1,4 @@
+// Updated 3/7/26 @ 12:00PM
 // score.js
 const COMBO_WINDOW = 2.5;
 const COMBO_MAX    = 8;
@@ -42,7 +43,7 @@ export class ScoreManager {
         this.combo = 1; this.comboTimer = 0; this.isComboActive = false;
         this._hideCombo();
       }
-      this._updateComboBar();
+      if (this.elComboBar) this._updateComboBar();
     }
 
     // SMOOTH SCORE ROLL
@@ -50,9 +51,8 @@ export class ScoreManager {
       const diff = this.score - this.displayScore;
       this.displayScore = Math.min(this.score, this.displayScore + Math.max(1, Math.ceil(diff / SCORE_LERP_FRAMES)));
       if (this.elScore) this.elScore.textContent = this._fmt(this.displayScore);
+      if (this.elHiScore) this.elHiScore.textContent = this._fmt(this.highScore);
     }
-
-    if (this.elHiScore) this.elHiScore.textContent = this._fmt(this.highScore);
   }
 
   reset() {

@@ -11,17 +11,17 @@ const CREDITS = [
 ];
 
 const BURST_FLASH_DELAY    = 0.7;
-const BURST_FLASH_DURATION = 13;
+const BURST_FLASH_DURATION = 15;
 const WARP_SPEED_START     = 2;
 const WARP_SPEED_END       = 7;
 const WARP_DECEL_DURATION  = 3.5;
-const VICTORY_FADE_START   = 14;
-const VICTORY_FADE_END = 22; 
-const CREDITS_FADE_START   = 23; 
-const CREDITS_FADE_OUT     = 33;   // CREDITS CONTAINER FADES OUT 
-const CREDITS_LINE_INTERVAL = 1.5; // 7 LINES × 1.5s = LAST LINE AT t=32
+const VICTORY_FADE_START   = 18;
+const VICTORY_FADE_END = 25; 
+const CREDITS_FADE_START   = 27; 
+const CREDITS_FADE_OUT     = 47;   // CREDITS CONTAINER FADES OUT 
+const CREDITS_LINE_INTERVAL = 2.5; // 7 LINES × 2.5s = 
 const CREDITS_FADE_EACH    = 2;    
-const BACK_TO_MENU_DELAY   = 35;   
+const BACK_TO_MENU_DELAY   = 50;   
 
 export class ClosingScene {
 
