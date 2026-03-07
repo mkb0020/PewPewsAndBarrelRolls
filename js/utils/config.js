@@ -60,9 +60,9 @@ export const CONFIG = {
     PULSE_SPEED:       1.8,   
     BOB_SPEED:         1.1,   
     BOB_AMPLITUDE:     9,     
-    LIFETIME:          14,    
+    LIFETIME:          7,    
     FIRST_SPAWN_DELAY: 15,     //FOR TESTING
-    SPAWN_INTERVAL:    20,    //FOR TESTING
+    SPAWN_INTERVAL:    30,    //FOR TESTING
     MAX_COUNT:         1,    //FOR TESTING
     HEAL_AMOUNT:       30,    
   },
@@ -71,8 +71,8 @@ export const CONFIG = {
     RADIUS:            15,    
     COLLECT_RADIUS:    52,    
     ROTATION_SPEED:    0.9,   
-    LIFETIME:          15,    
-    FIRST_SPAWN_DELAY: 7,    //FOR TESTING
+    LIFETIME:          5,    
+    FIRST_SPAWN_DELAY: 12,    //FOR TESTING
     SPAWN_INTERVAL:    25,     //FOR TESTING
     MAX_COUNT:         1,     //FOR TESTING
     BOOST_DURATION:    8.0,   
@@ -95,8 +95,8 @@ export const CONFIG = {
 
   ENEMIES: {
     MAX_COUNT: 1, // FOR TESTING
-    SPAWN_INTERVAL_MIN: 2.0, 
-    SPAWN_INTERVAL_MAX: 5.5,
+    SPAWN_INTERVAL_MIN: 3.0, 
+    SPAWN_INTERVAL_MAX: 6,
     SPAWN_DISTANCE: 400, 
     SPRITE_SIZE: 150,
     COMBAT_SCALE:      0.82,  // SCALE THRESHOLD — APPROACH → COMBAT TRANSITION
@@ -107,7 +107,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, // FOR TESTING
+        HEALTH: 4, // FOR TESTING
         SCORE: 10,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 9,
@@ -141,7 +141,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, // FOR TESTING
+        HEALTH: 7, // FOR TESTING
         SCORE: 50,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 7,
@@ -158,7 +158,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, // FOR TESTING
+        HEALTH: 7, // FOR TESTING
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
@@ -177,7 +177,7 @@ export const CONFIG = {
         SPEED: 260,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, // FOR TESTING
+        HEALTH: 7, // FOR TESTING
         SCORE: 40,
         SPRITE_FRAMES: 8,       // TOTAL: 3 WINGS + 1RED EYE TELEGRAPH + 4 NORMAL BODY
         WING_FRAMES: 3,         // FRAMES 0-2
@@ -366,12 +366,12 @@ export const CONFIG = {
 
     HEALTH:            5, // FOR TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 1.0, // FOR TESTING
-    FIRST_SPAWN_DELAY_MAX: 2.5,// FOR TESTING
-    SPAWN_GAP_MIN:         7,   // FOR TESTING
-    SPAWN_GAP_MAX:         10, // FOR TESTING
+    FIRST_SPAWN_DELAY_MIN: 10.0, // FOR TESTING
+    FIRST_SPAWN_DELAY_MAX: 15,// FOR TESTING
+    SPAWN_GAP_MIN:         10,   // FOR TESTING
+    SPAWN_GAP_MAX:         15, // FOR TESTING
 
-    KILLS_PER_WAVE: [1, 1, 1, 1, 1], // FOR TESTING   
+    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // FOR TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,
@@ -394,10 +394,10 @@ export const CONFIG = {
     RADIUS:               20,    // SPINOR ITEM
     COLLECT_RADIUS:       50,    
     LIFETIME:             10,    
-    FIRST_SPAWN_DELAY:    5,    // FOR TESTING
-    SPAWN_INTERVAL:       5,   // FOR TESTING
+    FIRST_SPAWN_DELAY:    30,    // FOR TESTING
+    SPAWN_INTERVAL:       30,   // FOR TESTING
     MAX_COUNT:             1,   
-    MAX_INVENTORY:         5,    
+    MAX_INVENTORY:         3,    // FOR TESTING
     ROTATION_SPEED:        1.4,  // radians/s — INTERNAL SPINOR ANGLE
 
     BH_LIFETIME:           7,  // SECONDS AT FULL SIZE (CURRENT SFX IS 4 BARS = 10.67 SECONDS / COLLAPSE SOUND IS AT BAR 3 = 8 SECONDS)

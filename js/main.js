@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 5:30AM
+// Updated 3/7/26 @ 9:00AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -613,6 +613,7 @@ function gameLoop() {
             projectileManager.createExplosion(pos.x, pos.y, boostActive ? 'boom' : 'bam');
             scoreManager.addScore(enemy.score, pos.x, pos.y);
             enemyDeathManager.spawn(enemy); // 💀 BIOLOGICAL MELT COLLAPSE
+            audio.playEnemyDeath();         // 💀 MELT SFX
           }
           audio.playImpact();
           break;

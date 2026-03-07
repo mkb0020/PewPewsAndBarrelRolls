@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 4:30AM
+// Updated 3/7/26 @ 9:00AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -13,7 +13,7 @@ export class AudioManager {
     this.LASER_VOLUME        = 0.5;
     this.ENEMY_LASER_VOLUME  = 0.5;
     this.IMPACT_VOLUME       = 0.2;
-    this.SPAWN_VOLUME        = 0.15;
+    this.SPAWN_VOLUME        = 0.9;
     this.BARREL_ROLL_VOLUME  = 0.15;
 
     // ====== ACTIVE LOOP REGISTRY — ALL LOOPING SFX TRACKED HERE FOR EMERGENCY KILL ======
@@ -103,7 +103,7 @@ export class AudioManager {
         laser:       './audio/laser.m4a',
         enemyLasers: './audio/enemyLasers.m4a',
         impact:      './audio/impact.m4a',
-        spawn:       './audio/spawn.m4a',
+        spawn:       './audio/enemySpawn.m4a',
         barrelRoll:  './audio/barrelRoll.m4a',
         wormDeath1:  './audio/wormDeath1.m4a',
         wormDeath2:  './audio/wormDeath2.m4a',
@@ -127,6 +127,7 @@ export class AudioManager {
         powerUp2:       './audio/powerUp2.m4a',      // LASER BOOST
         powerUp3:       './audio/powerUp3.m4a',      // SINGULARITY BOMB COLLECT
         babyBlackhole:  './audio/babyBlackhole.m4a', // SINGULARITY BOMB DEPLOY
+        enemyDeath:     './audio/enemyDeath.m4a',    // BIOLOGICAL MELT COLLAPSE
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -454,6 +455,7 @@ export class AudioManager {
   playPowerUp2() { this._playSfx('powerUp2', 0.5); }  // LASER BOOST
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.8); } // SINGULARITY BOMB DEPLOY
+  playEnemyDeath()    { this._playSfx('enemyDeath',    0.6); } // BIOLOGICAL MELT COLLAPSE
 
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;

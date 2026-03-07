@@ -17,17 +17,17 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 3 — + PHIL
     types:      ['BASIC', 'FAST',  'ZIGZAG'],
-    weights:    [0.33,    0.33,     0.34],
+    weights:    [0.3,    0.3,     0.4],
     maxEnemies: 5,
   },
   { // WAVE 4 — + GLORK (TANK — SLIME ATTACK, FEWER SPAWNS )
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK'],
-    weights:    [0.25,    0.25,     0.25,     0.25],
+    weights:    [0.2,    0.2,     0.3,     0.3],
     maxEnemies: 4,
   },
   { // WAVE 5 — + FLIM FLAM
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK',  'FLIMFLAM'],
-    weights:    [0.2,    0.2,     0.20,     0.2,    0.2],
+    weights:    [0.2,    0.2,     0.15,     0.2,    0.25],
     maxEnemies: 4,
   },
 ];
