@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 12:00PM
+// Updated 3/6/26 @ 8PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -102,6 +102,7 @@ export class BossBattleScene {
         this.scoreManager.addScore(500, wormHit.x, wormHit.y);
         this.audio.stopMusic();
         this.audio.playWormDeath1();
+        if (this.singularityBombManager) this.singularityBombManager.deployEnabled = false;
         this.onCinematicStart?.();
       } else {
         const segScore = wormHit.segIndex === 0 ? 25 : 10;
@@ -135,6 +136,7 @@ export class BossBattleScene {
   /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
   readyForBattle() {
     this._battleReady = true;
+    if (this.singularityBombManager) this.singularityBombManager.deployEnabled = true;
     console.log('⚔ Battle ready — boss damage unlocked');
   }
 
@@ -150,6 +152,7 @@ export class BossBattleScene {
 
     this.audio.stopMusic();
     this.audio.playGameOver2();
+    if (this.singularityBombManager) this.singularityBombManager.deployEnabled = false;
 
     // FORCE WORM INTO SUCTION VISUALS
     this.wormBoss.forceSuction();

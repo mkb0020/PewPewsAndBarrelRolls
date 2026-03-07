@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 7:30am
+// Updated 3/6/26 @ 8pm
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -67,6 +67,7 @@ const gameplayScene     = new GameplayScene({
   waveWormManager,
   scoreManager,
   audio,
+  singularityBombManager,
 });
 const transitionScene   = new TransitionScene();
 const starfield         = new StarfieldScene(tunnel.renderer);

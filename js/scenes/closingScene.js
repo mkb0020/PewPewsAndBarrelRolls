@@ -1,3 +1,4 @@
+// Updated 3/6/26 @ 8PM
 // scenes/closingScene.js
 const CREDITS = [
   { role: null,   name: 'WORMHOLES'               },  
@@ -26,11 +27,13 @@ export class ClosingScene {
    * @param {import('../visuals/starfieldScene.js').StarfieldScene} starfield
    * @param {import('../visuals/tunnel.js').Tunnel}                 tunnel
    * @param {import('../utils/audio.js').AudioManager}              audio
+   * @param {object|null} singularityBombManager                    optional — disabled on close
    */
-  constructor(starfield, tunnel, audio) {
-    this._starfield = starfield;
-    this._tunnel    = tunnel;
-    this._audio     = audio;
+  constructor(starfield, tunnel, audio, singularityBombManager = null) {
+    this._starfield             = starfield;
+    this._tunnel                = tunnel;
+    this._audio                 = audio;
+    this._singularityBombManager = singularityBombManager;
 
     this._active    = false;
     this._elapsed   = 0;
@@ -70,6 +73,8 @@ export class ClosingScene {
 
     this._audio?.stopMusic();
     setTimeout(() => this._audio?.startCreditsMusic(), 6800);
+
+    if (this._singularityBombManager) this._singularityBombManager.deployEnabled = false;
 
     console.log('★ ClosingScene started');
 }

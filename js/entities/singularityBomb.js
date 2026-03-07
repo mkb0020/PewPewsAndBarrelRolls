@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 6:30PM
+// Updated 3/6/26 @ 8PM
 // js/entities/singularityBomb.js
 import { CONFIG } from '../utils/config.js';
 
@@ -100,6 +100,153 @@ class SpinorItem {
 }
 
 
+// ======================= BLACK HOLE SMOKE CONFIG =======================
+const BH_SMOKE = {
+  MAX_PARTICLES:    22,    // LOW CAP — ALWAYS-ON EFFECT, MUST BE LIGHT ON PERF
+  SPAWN_RATE:       3.5,   // PARTICLES PER SECOND
+  SMOKE_FRAMES:     9,
+  SMOKE_SPRITE:     './images/smoke.png',
+  SPAWN_RADIUS_MIN: 180,   // INNER SPAWN RING (PX FROM BH CENTER)
+  SPAWN_RADIUS_MAX: 340,   // OUTER SPAWN RING
+  SIZE_MIN:         80,
+  SIZE_MAX:         140,
+  BASE_SPEED:       260,
+  SPEED_VARIANCE:   80,
+  SPIN_STRENGTH:    1.8,   // TANGENTIAL FORCE — DRIVES THE SPIRAL
+  PULL_STRENGTH:    0.7,   // RADIAL INWARD FORCE
+  VORTEX_ACCEL:     2.8,   // SPEED RAMP-UP AS PARTICLE CLOSES IN
+  VORTEX_RADIUS:    200,   // DISTANCE WHERE VORTEX KICKS IN
+  KILL_RADIUS:      28,    // ABSORBED AT EDGE OF EVENT HORIZON
+  FADE_IN_FRAC:     0.18,
+  FADE_OUT_FRAC:    0.22,
+  OPACITY_MIN:      0.28,
+  OPACITY_MAX:      0.42,
+  LIFE_MIN:         1.8,
+  LIFE_VARIANCE:    1.4,
+  SELF_ROTATE_SPEED: 0.7,
+};
+
+// ======================= BLACK HOLE SMOKE PARTICLE =======================
+class BHSmokeParticle {
+  constructor(bhX, bhY, smokeSprite, smokeFrameWidth) {
+    // SPAWN AT RANDOM ANGLE, RANDOM RADIUS IN THE SPAWN RING AROUND THE BH
+    const angle  = Math.random() * Math.PI * 2;
+    const radius = BH_SMOKE.SPAWN_RADIUS_MIN + Math.random() * (BH_SMOKE.SPAWN_RADIUS_MAX - BH_SMOKE.SPAWN_RADIUS_MIN);
+    this.x = bhX + Math.cos(angle) * radius;
+    this.y = bhY + Math.sin(angle) * radius;
+
+    this.frame     = Math.floor(Math.random() * BH_SMOKE.SMOKE_FRAMES);
+    this.size      = BH_SMOKE.SIZE_MIN + Math.random() * (BH_SMOKE.SIZE_MAX - BH_SMOKE.SIZE_MIN);
+    this.peakAlpha = BH_SMOKE.OPACITY_MIN + Math.random() * (BH_SMOKE.OPACITY_MAX - BH_SMOKE.OPACITY_MIN);
+    this.maxLife   = BH_SMOKE.LIFE_MIN + Math.random() * BH_SMOKE.LIFE_VARIANCE;
+    this.life      = this.maxLife;
+    this.speed     = BH_SMOKE.BASE_SPEED + Math.random() * BH_SMOKE.SPEED_VARIANCE;
+    this.rotation  = Math.random() * Math.PI * 2;
+    this.rotSpeed  = (Math.random() < 0.5 ? -1 : 1) * (BH_SMOKE.SELF_ROTATE_SPEED + Math.random() * 0.5);
+
+    this.smokeSprite     = smokeSprite;
+    this.smokeFrameWidth = smokeFrameWidth;
+    this.isDead          = false;
+    this.distToCenter    = radius;
+  }
+
+  update(dt, targetX, targetY) {
+    const dx   = targetX - this.x;
+    const dy   = targetY - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    this.distToCenter = dist;
+
+    if (dist < BH_SMOKE.KILL_RADIUS) { this.isDead = true; return; }
+
+    const nx = dx / dist;
+    const ny = dy / dist;
+    // CW SPIRAL INTO THE BLACK HOLE (CLOCKWISE = FLIP TANGENTIAL SIGN VS WORM)
+    const tx = ny;
+    const ty = -nx;
+
+    const closeness  = Math.max(0, 1 - dist / BH_SMOKE.VORTEX_RADIUS);
+    const speedScale = 1 + closeness * closeness * BH_SMOKE.VORTEX_ACCEL;
+
+    this.x += (tx * BH_SMOKE.SPIN_STRENGTH + nx * BH_SMOKE.PULL_STRENGTH) * this.speed * speedScale * dt;
+    this.y += (ty * BH_SMOKE.SPIN_STRENGTH + ny * BH_SMOKE.PULL_STRENGTH) * this.speed * speedScale * dt;
+
+    this.rotation += this.rotSpeed * dt;
+    this.life -= dt;
+    if (this.life <= 0) this.isDead = true;
+  }
+
+  draw(ctx) {
+    if (!this.smokeSprite || this.smokeFrameWidth <= 0) return;
+
+    const progress = 1 - (this.life / this.maxLife);
+    let envelope;
+    if (progress < BH_SMOKE.FADE_IN_FRAC) {
+      envelope = progress / BH_SMOKE.FADE_IN_FRAC;
+    } else if (progress > (1 - BH_SMOKE.FADE_OUT_FRAC)) {
+      envelope = (1 - progress) / BH_SMOKE.FADE_OUT_FRAC;
+    } else {
+      envelope = 1.0;
+    }
+
+    const dist      = this.distToCenter;
+    const shrinkFrac = Math.max(0, Math.min(1, 1 - (dist - BH_SMOKE.KILL_RADIUS) / (BH_SMOKE.VORTEX_RADIUS - BH_SMOKE.KILL_RADIUS)));
+    const drawSize  = this.size * (1 - shrinkFrac * 0.90);
+
+    ctx.save();
+    ctx.globalAlpha = this.peakAlpha * Math.max(0, envelope);
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    const sx = this.frame * this.smokeFrameWidth;
+    ctx.drawImage(
+      this.smokeSprite,
+      sx, 0, this.smokeFrameWidth, this.smokeSprite.height,
+      -drawSize / 2, -drawSize / 2, drawSize, drawSize
+    );
+    ctx.restore();
+  }
+}
+
+// ======================= BLACK HOLE SMOKE SYSTEM =======================
+class BHSmokeSystem {
+  constructor() {
+    this.particles       = [];
+    this.spawnAccum      = 0;
+    this.smokeSprite     = new Image();
+    this.smokeFrameWidth = 0;
+    this.spriteLoaded    = false;
+
+    this.smokeSprite.src = BH_SMOKE.SMOKE_SPRITE;
+    this.smokeSprite.onload = () => {
+      this.spriteLoaded    = true;
+      this.smokeFrameWidth = this.smokeSprite.width / BH_SMOKE.SMOKE_FRAMES;
+    };
+  }
+
+  update(dt, bhX, bhY, isActive) {
+    // SPAWN ONLY WHILE BLACK HOLE IS ACTIVE OR COLLAPSING
+    if (isActive && this.spriteLoaded && this.particles.length < BH_SMOKE.MAX_PARTICLES) {
+      this.spawnAccum += BH_SMOKE.SPAWN_RATE * dt;
+      while (this.spawnAccum >= 1 && this.particles.length < BH_SMOKE.MAX_PARTICLES) {
+        this.particles.push(new BHSmokeParticle(bhX, bhY, this.smokeSprite, this.smokeFrameWidth));
+        this.spawnAccum -= 1;
+      }
+    } else if (!isActive) {
+      this.spawnAccum = 0;
+    }
+
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      this.particles[i].update(dt, bhX, bhY);
+      if (this.particles[i].isDead) this.particles.splice(i, 1);
+    }
+  }
+
+  draw(ctx) {
+    for (const p of this.particles) p.draw(ctx);
+  }
+
+  clear() { this.particles = []; this.spawnAccum = 0; }
+}
+
 export class BabyBlackHole {
   constructor(x, y, isBossBattle = false) {
     this.x      = x;
@@ -123,6 +270,8 @@ export class BabyBlackHole {
     this._wanderTargetX = x; // ORGANIC WANDER - SKIP FOR BOSS BATTLE
     this._wanderTargetY = y;
     if (!isBossBattle) this._pickWanderTarget();
+
+    this._smokeSystem = new BHSmokeSystem(); // SPIRAL SMOKE INTO THE BLACK HOLE
   }
 
   isDead() { return this._dead; }
@@ -186,6 +335,10 @@ export class BabyBlackHole {
         this._dead = true;
       }
     }
+
+    // SMOKE SPIRALING INTO THE BLACK HOLE — ACTIVE + COLLAPSING PHASES
+    const smokeActive = (this.phase === 'active' || this.phase === 'collapsing');
+    this._smokeSystem.update(dt, this.x, this.y, smokeActive);
   }
 
   applyGravity(dt, enemies) {
@@ -401,6 +554,9 @@ export class BabyBlackHole {
       ctx.restore();
     }
 
+    // ── SMOKE SPIRALING IN — DRAW BEHIND BH VISUALS ──
+    this._smokeSystem.draw(ctx);
+
     if (r < 1) return;
 
     ctx.save();
@@ -578,7 +734,8 @@ export class SingularityBombManager {
     this.inventory   = 0;      
 
     this.audio       = null;
-    this.isBossBattle = false;  // SET BY bossBattle.js — CHANGES SPAWN + MOVEMENT BEHAVIOR
+    this.isBossBattle  = false;  // SET BY bossBattle.js — CHANGES SPAWN + MOVEMENT BEHAVIOR
+    this.deployEnabled = false;  // GATED EXTERNALLY — ONLY TRUE DURING ACTIVE WAVE / BOSS BATTLE
 
     // CALLBACKS
     this.onInventoryChange = null;  
@@ -600,15 +757,17 @@ export class SingularityBombManager {
   }
 
   reset() {
-    this._active   = false;
-    this._spawnTimer = 0;
-    this._items    = [];
-    this.blackHole = null;
-    this.inventory = 0;
+    this._active      = false;
+    this._spawnTimer  = 0;
+    this._items       = [];
+    this.blackHole    = null;
+    this.inventory    = 0;
+    this.deployEnabled = false;
     this.onInventoryChange?.(0);
   }
 
   deploy(shipX, shipY) {
+    if (!this.deployEnabled) return;         // BLOCKED OUTSIDE ACTIVE GAMEPLAY / BOSS BATTLE
     if (this.inventory <= 0) return;
     if (this.blackHole && !this.blackHole.isDead()) return; 
     this.inventory--;

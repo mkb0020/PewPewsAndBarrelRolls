@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 6:30PM
+// Updated 3/6/26 @ 8PM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -709,22 +709,6 @@ export class WormBoss {
         ctx.fill();
         ctx.restore();
       }
-    }
-
-    // ── SINGULARITY BOMB STUN RING ──
-    if (this.stunTimer > 0 && !this.isDying) { // REMOVE THIS
-      const head = this.segments[0];
-      const pulse = 0.5 + 0.5 * Math.sin(this.time * 8.0);
-      ctx.save();
-      ctx.globalAlpha  = 0.55 + pulse * 0.35;
-      ctx.strokeStyle  = '#cc44ff';
-      ctx.lineWidth    = 3 + pulse * 3;
-      ctx.shadowBlur   = 22 + pulse * 18;
-      ctx.shadowColor  = '#9900ff';
-      ctx.beginPath();
-      ctx.arc(head.screenX, head.screenY, (head.drawSize || 80) * 0.62 + pulse * 8, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
     }
 
     ctx.restore();

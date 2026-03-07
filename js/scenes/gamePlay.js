@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 6AM
+// Updated 3/6/26 @ 8PM
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -40,11 +40,12 @@ const STATE = {
 };
 
 export class GameplayScene {
-  constructor({ enemyManager, waveWormManager, scoreManager, audio }) {
-    this.enemyManager    = enemyManager;
-    this.waveWormManager = waveWormManager;
-    this.scoreManager    = scoreManager;
-    this.audio           = audio;
+  constructor({ enemyManager, waveWormManager, scoreManager, audio, singularityBombManager = null }) {
+    this.enemyManager           = enemyManager;
+    this.waveWormManager        = waveWormManager;
+    this.scoreManager           = scoreManager;
+    this.audio                  = audio;
+    this.singularityBombManager = singularityBombManager;
 
     this.state            = STATE.IDLE;
     this.waveIndex        = 0;        // 0–4, CURRENT WAVE
@@ -140,6 +141,8 @@ export class GameplayScene {
 
     this.waveWormManager.startWave(waveIndex);
 
+    if (this.singularityBombManager) this.singularityBombManager.deployEnabled = true;
+
     this.onCheckpoint?.();
 
     this.onWaveStart?.(waveIndex);
@@ -155,6 +158,8 @@ export class GameplayScene {
     this.transitionTimer = CONFIG.GAMEPLAY.WAVE_TRANSITION_DURATION;
 
     this.enemyManager.setSpawningEnabled(false);
+
+    if (this.singularityBombManager) this.singularityBombManager.deployEnabled = false;
 
     this.onWaveCleared?.(this.waveIndex);
 

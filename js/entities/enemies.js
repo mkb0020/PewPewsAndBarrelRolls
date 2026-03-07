@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 6AM
+// Updated 3/6/26 @ 8PM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -430,7 +430,7 @@ export class Enemy {
     }
 
     ctx.restore();
-    if (fadeProgress > 0.15) {
+    if (fadeProgress > 0.15 && !this._bhSucked) {
       const halfSprite = renderSize * 0.5;
       const barW    = Math.max(55, renderSize * 0.72);
       const barH    = 5;
