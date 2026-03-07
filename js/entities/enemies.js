@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 4:15am
+// Updated 3/7/26 @ 5:30AM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -367,6 +367,9 @@ export class Enemy {
   }
 
   draw(ctx) {
+    // ─── SKIP DRAW IF DEAD — EnemyDeathManager takes over rendering ───
+    if (this.isDead) return;
+
     // ─── SPAWN VFX — takes over rendering until assembly completes ───
     if (!this.spawnVFX.isDone) {
       this.spawnVFX.draw(ctx);

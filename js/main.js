@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 4:30AM
+// Updated 3/7/26 @ 5:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -28,6 +28,7 @@ import { BossTransmission }                          from './scenes/bossTransmis
 import { CosmicPrismManager }                        from './entities/cosmicPrism.js';
 import { TesseractFragmentManager }                  from './entities/tesseractFragment.js';
 import { SingularityBombManager }                    from './entities/singularityBomb.js';
+import { EnemyDeathManager }                         from './visuals/enemyDeath.js';
 
 
 console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
@@ -63,6 +64,7 @@ tesseractManager.audio   = audio;
 const singularityBombManager = new SingularityBombManager();
 singularityBombManager.audio = audio;
 singularityBombManager.onSpinorCollect = () => tunnel.triggerSpinor(); // 💠 SPINOR PICKUP → 720° TUNNEL ROLL
+const enemyDeathManager      = new EnemyDeathManager();
 const gameplayScene     = new GameplayScene({
   enemyManager,
   waveWormManager,
@@ -176,6 +178,7 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   // 🧹 CLEAR ALL IN-PROGRESS GAMEPLAY EFFECTS BEFORE THE BOSS SEQUENCE
   audio.stopAllLoopingSfx();                         // KILL ALL LOOPING SFX — CATCHES ANY LOOP HANDLE LOST TO RACE CONDITIONS
   enemyManager.clear();                              // REMOVE ALL ACTIVE ENEMIES FROM SCREEN
+  enemyDeathManager.clear();                        // 💀 CANCEL ANY IN-PROGRESS MELT EFFECTS
   slimeAttack.reset();                               // CANCEL ANY ACTIVE SLIME ATTACK
   ocularPrism.active = false;                        // CANCEL ANY ACTIVE OCULAR PRISM
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
@@ -390,6 +393,7 @@ bossBattleScene.onWormholeGameOver = () => {
   ocularPrism.active = false;
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+  enemyDeathManager.clear(); // 💀
   gameplayScene.reset();
   bossBattleScene.reset();
   tunnel.resetBossTransition();
@@ -577,6 +581,7 @@ function gameLoop() {
     ocularPrism.update(dt);
     cosmicPrismManager.update(dt, ship.x, ship.y);
     tesseractManager.update(dt, ship.x, ship.y);
+    enemyDeathManager.update(dt); // 💀
 
     // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
     if (ship.isBarrelRolling && !_prevBarrelRolling) {
@@ -607,6 +612,7 @@ function gameLoop() {
           if (destroyed) {
             projectileManager.createExplosion(pos.x, pos.y, boostActive ? 'boom' : 'bam');
             scoreManager.addScore(enemy.score, pos.x, pos.y);
+            enemyDeathManager.spawn(enemy); // 💀 BIOLOGICAL MELT COLLAPSE
           }
           audio.playImpact();
           break;
@@ -671,6 +677,7 @@ function gameLoop() {
       gameplayScene.drawBehindEnemies(ctx);
       singularityBombManager.drawBlackHole(ctx); // 💣 BLACK HOLE BEHIND ENEMIES
       enemyManager.draw(ctx);
+      enemyDeathManager.draw(ctx); // 💀 MELT EFFECTS — DRAWN OVER ENEMY LAYER
       gameplayScene.drawAboveEnemies(ctx);
       if (gameplayScene.isActive()) cosmicPrismManager.draw(ctx); // 🔮 PRISMS ABOVE ENEMIES, BELOW SHIP
       if (gameplayScene.isActive()) tesseractManager.drawItems(ctx); // ◈ TESSERACT FRAGMENTS

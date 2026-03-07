@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 6:30PM
+// Updated 3/7/26 @ 5:30AM
 // config.js
 export const CONFIG = {
   TUNNEL: {
@@ -54,7 +54,7 @@ export const CONFIG = {
   },
 
   COSMIC_PRISM: {
-    RADIUS:            25,    
+    RADIUS:            20,    
     COLLECT_RADIUS:    48,    
     ROTATION_SPEED:    0.75,  
     PULSE_SPEED:       1.8,   
@@ -68,7 +68,7 @@ export const CONFIG = {
   },
 
   TESSERACT_FRAGMENT: {
-    RADIUS:            22,    
+    RADIUS:            15,    
     COLLECT_RADIUS:    52,    
     ROTATION_SPEED:    0.9,   
     LIFETIME:          15,    
