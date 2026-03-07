@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 9:00AM
+// Updated 3/7/26 @ 9:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -252,7 +252,11 @@ wormBoss.onDeath = () => {
   console.log('★ Worm defeated — closing scene triggered');
 };
 
-// ==================== SHIP CALLBACKS ====================
+// ==================== CLOSING SCENE → BACK TO MENU ====================
+closingScene.onBackToMenu = () => {
+  audio.stop();
+  window.location.reload();
+};
 ship.onHPChange    = (hp, max)   => updateHPBar(hp, max);
 ship.onLivesChange = (lives)     => updateLivesDisplay(lives);
 ship.onDeath       = (livesLeft) => {

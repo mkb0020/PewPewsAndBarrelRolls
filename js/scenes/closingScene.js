@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 8PM
+// Updated 3/7/26 @ 3:30AM
 // scenes/closingScene.js
 const CREDITS = [
   { role: null,   name: 'WORMHOLES'               },  
@@ -18,8 +18,10 @@ const WARP_DECEL_DURATION  = 3.5;
 const VICTORY_FADE_START   = 14;
 const VICTORY_FADE_END = 22; 
 const CREDITS_FADE_START   = 23; 
-const CREDITS_LINE_INTERVAL = 2;   
+const CREDITS_FADE_OUT     = 33;   // CREDITS CONTAINER FADES OUT 
+const CREDITS_LINE_INTERVAL = 1.5; // 7 LINES × 1.5s = LAST LINE AT t=32
 const CREDITS_FADE_EACH    = 2;    
+const BACK_TO_MENU_DELAY   = 35;   
 
 export class ClosingScene {
 
@@ -46,7 +48,13 @@ export class ClosingScene {
     this._creditLines  = [];  
     this._victoryStarted  = false;
     this._creditsStarted  = false;
+    this._creditsHidden   = false;
     this._linesRevealed   = 0;
+    this._menuBtnShown    = false;
+    this._menuBtnEl       = null;
+
+    /** @type {Function|null} — called when player clicks "BACK TO MENU" */
+    this.onBackToMenu = null;
 
     console.log('✔ ClosingScene initialized');
   }
@@ -68,7 +76,9 @@ export class ClosingScene {
     this._starfield.start();
 
     this._creditsStarted = false;
+    this._creditsHidden  = false;
     this._linesRevealed  = 0;
+    this._menuBtnShown   = false;
     this._buildCreditLines();
 
     this._audio?.stopMusic();
@@ -121,6 +131,17 @@ export class ClosingScene {
       this._creditsStarted = true;
       this._creditsEl?.classList.add('visible');
       this._revealNextLine();
+    }
+
+    // FADE OUT CREDITS CONTAINER BEFORE BUTTON APPEARS
+    if (!this._creditsHidden && this._elapsed >= CREDITS_FADE_OUT) {
+      this._creditsHidden = true;
+      this._creditsEl?.classList.remove('visible'); 
+    }
+
+    if (!this._menuBtnShown && this._elapsed >= BACK_TO_MENU_DELAY) {
+      this._menuBtnShown = true;
+      this._showMenuButton();
     }
   }
 
@@ -197,6 +218,27 @@ export class ClosingScene {
     if (this._linesRevealed < this._creditLines.length) {
       setTimeout(() => this._revealNextLine(), CREDITS_LINE_INTERVAL * 1000);
     }
+  }
+
+  _showMenuButton() {
+    this._menuBtnEl?.remove();
+
+    const btn = document.createElement('button');
+    btn.id          = 'back-to-menu-btn';
+    btn.textContent = 'BACK TO MENU';
+    btn.classList.add('credit-hidden');
+
+    btn.addEventListener('click', () => {
+      this.onBackToMenu?.();
+    });
+
+    document.body.appendChild(btn);
+    this._menuBtnEl = btn;
+
+    requestAnimationFrame(() => {
+      btn.classList.remove('credit-hidden');
+      btn.classList.add('credit-visible');
+    });
   }
 }
 

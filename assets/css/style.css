@@ -1,4 +1,4 @@
-/* Updated 3/6/26 @ 6AM */
+/* Updated 3/7/26 @ 9:30AM */
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -1622,6 +1622,19 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
     font-size: 0.95rem;
   }
 
+#bomb-container {
+  top: 130px;
+  right: 12px;
+}
+
+#bomb-icon {
+  font-size: 1.1rem;
+}
+
+#bomb-count {
+  font-size: 1.1rem;
+}
+
   #boss-health-container {
     top: 10px;
     gap: 8px;
@@ -1663,11 +1676,17 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
   /* ── WAVE HUD — MOBILE ── */
   #wave-hud {
-    bottom: 140px;  
+    bottom: 150px;  
   }
   #wave-counter {
     font-size: 1.1rem;
   }
+
+.wormCount-icon{
+  width: 30px;
+  height:auto;
+}
+
   .wave-badge {
     width: 30px;
     height: 30px;
@@ -2044,6 +2063,99 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 .credit-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ── BACK TO MENU BUTTON ── */
+#back-to-menu-btn {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  transform: translateX(-50%);
+  padding: 0.5em 3em;
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(0.7rem, 1.8vw, 1.4rem);
+  font-weight: bold;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #e8d8ff;
+  text-shadow: 
+    3px 2px 0 #2A3439,
+    -1px -1px 0 #9090C0;
+  background: rgba(10, 0, 30, 0.6);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  pointer-events: auto;
+  overflow: hidden;
+  z-index: 1;
+
+  box-shadow:
+    0 0 0 1.5px rgba(180, 100, 255, 0.6),
+    0 0 12px rgba(120, 60, 220, 0.4),
+    inset 0 0 16px rgba(100, 0, 200, 0.15);
+
+  animation: holoGlow 5s ease-in-out infinite;
+  transition: transform 1s ease, box-shadow 1s ease;
+}
+
+#back-to-menu-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(200, 150, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 60%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: holoShimmer 5s linear infinite;
+  pointer-events: none;
+}
+
+#back-to-menu-btn::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 15px;
+  background: linear-gradient(
+    90deg,
+    #ff6ec7, #a78bfa, #38bdf8, #34d399, #facc15, #fb923c, #ff6ec7
+  );
+  background-size: 300% 100%;
+  animation: holoRainbow 10s linear infinite;
+  z-index: -1;
+  pointer-events: none;
+}
+
+#back-to-menu-btn:hover {
+  transform: translateX(-50%) scale(1.06);
+  box-shadow:
+    0 0 0 1.5px rgba(220, 160, 255, 0.9),
+    0 0 24px rgba(160, 80, 255, 0.7),
+    inset 0 0 20px rgba(140, 0, 255, 0.2);
+}
+
+#back-to-menu-btn:active {
+  transform: translateX(-50%) scale(0.97);
+}
+
+@keyframes holoGlow {
+  0%, 100% { box-shadow: 0 0 0 1.5px rgba(180,100,255,0.6), 0 0 12px rgba(120,60,220,0.4), inset 0 0 16px rgba(100,0,200,0.15); }
+  50%       { box-shadow: 0 0 0 1.5px rgba(100,220,255,0.7), 0 0 20px rgba(60,180,255,0.5), inset 0 0 22px rgba(0,180,255,0.18); }
+}
+
+@keyframes holoShimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes holoRainbow {
+  0%   { background-position: 0% center; }
+  100% { background-position: 300% center; }
 }
 
 

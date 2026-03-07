@@ -60,9 +60,9 @@ export const CONFIG = {
     PULSE_SPEED:       1.8,   
     BOB_SPEED:         1.1,   
     BOB_AMPLITUDE:     9,     
-    LIFETIME:          7,    
+    LIFETIME:          5,    
     FIRST_SPAWN_DELAY: 15,     //FOR TESTING
-    SPAWN_INTERVAL:    30,    //FOR TESTING
+    SPAWN_INTERVAL:    35,    //FOR TESTING
     MAX_COUNT:         1,    //FOR TESTING
     HEAL_AMOUNT:       30,    
   },
@@ -73,7 +73,7 @@ export const CONFIG = {
     ROTATION_SPEED:    0.9,   
     LIFETIME:          5,    
     FIRST_SPAWN_DELAY: 12,    //FOR TESTING
-    SPAWN_INTERVAL:    25,     //FOR TESTING
+    SPAWN_INTERVAL:    30,     //FOR TESTING
     MAX_COUNT:         1,     //FOR TESTING
     BOOST_DURATION:    8.0,   
   },
@@ -393,9 +393,9 @@ export const CONFIG = {
   SINGULARITY_BOMB: {
     RADIUS:               20,    // SPINOR ITEM
     COLLECT_RADIUS:       50,    
-    LIFETIME:             10,    
+    LIFETIME:             5,    
     FIRST_SPAWN_DELAY:    30,    // FOR TESTING
-    SPAWN_INTERVAL:       30,   // FOR TESTING
+    SPAWN_INTERVAL:       45,   // FOR TESTING
     MAX_COUNT:             1,   
     MAX_INVENTORY:         3,    // FOR TESTING
     ROTATION_SPEED:        1.4,  // radians/s — INTERNAL SPINOR ANGLE

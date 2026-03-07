@@ -13,7 +13,7 @@ export class AudioManager {
     this.LASER_VOLUME        = 0.5;
     this.ENEMY_LASER_VOLUME  = 0.5;
     this.IMPACT_VOLUME       = 0.2;
-    this.SPAWN_VOLUME        = 0.9;
+    this.SPAWN_VOLUME        = 0.5;
     this.BARREL_ROLL_VOLUME  = 0.15;
 
     // ====== ACTIVE LOOP REGISTRY — ALL LOOPING SFX TRACKED HERE FOR EMERGENCY KILL ======
@@ -454,8 +454,8 @@ export class AudioManager {
   playPowerUp1() { this._playSfx('powerUp1', 0.5); }  // COSMIC PRISM HP HEAL COLLECT
   playPowerUp2() { this._playSfx('powerUp2', 0.5); }  // LASER BOOST
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
-  playBabyBlackhole() { this._playSfx('babyBlackhole', 0.8); } // SINGULARITY BOMB DEPLOY
-  playEnemyDeath()    { this._playSfx('enemyDeath',    0.6); } // BIOLOGICAL MELT COLLAPSE
+  playBabyBlackhole() { this._playSfx('babyBlackhole', 0.6); } // SINGULARITY BOMB DEPLOY
+  playEnemyDeath()    { this._playSfx('enemyDeath',    0.5); } // BIOLOGICAL MELT COLLAPSE
 
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;
