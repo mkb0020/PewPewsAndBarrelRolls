@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 1:15AM
+// Updated 3/7/26 @ 4:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -174,6 +174,7 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   showWaveHUD(false);
 
   // 🧹 CLEAR ALL IN-PROGRESS GAMEPLAY EFFECTS BEFORE THE BOSS SEQUENCE
+  audio.stopAllLoopingSfx();                         // KILL ALL LOOPING SFX — CATCHES ANY LOOP HANDLE LOST TO RACE CONDITIONS
   enemyManager.clear();                              // REMOVE ALL ACTIVE ENEMIES FROM SCREEN
   slimeAttack.reset();                               // CANCEL ANY ACTIVE SLIME ATTACK
   ocularPrism.active = false;                        // CANCEL ANY ACTIVE OCULAR PRISM

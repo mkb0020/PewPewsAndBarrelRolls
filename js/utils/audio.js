@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 6:00am
+// Updated 3/7/26 @ 4:30AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -15,6 +15,9 @@ export class AudioManager {
     this.IMPACT_VOLUME       = 0.2;
     this.SPAWN_VOLUME        = 0.15;
     this.BARREL_ROLL_VOLUME  = 0.15;
+
+    // ====== ACTIVE LOOP REGISTRY — ALL LOOPING SFX TRACKED HERE FOR EMERGENCY KILL ======
+    this._activeLoops = []; // [{ source, gain }]
 
     // ====== MUSIC — WEB AUDIO API ======
     this._introBuffer        = null;
@@ -366,11 +369,16 @@ export class AudioManager {
     gain.connect(this.sfxGain);
     source.start(0);
 
+    const entry = { source, gain };
+    this._activeLoops.push(entry);
+
     return () => {
       try {
         gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
         setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
       } catch (_) {}
+      const idx = this._activeLoops.indexOf(entry);
+      if (idx !== -1) this._activeLoops.splice(idx, 1);
     };
   }
 
@@ -393,12 +401,32 @@ export class AudioManager {
     gain.connect(this.sfxGain);
     source.start(0);
 
+    const entry = { source, gain };
+    this._activeLoops.push(entry);
+
     return () => {
       try {
         gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
         setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
       } catch (_) {}
+      const idx = this._activeLoops.indexOf(entry);
+      if (idx !== -1) this._activeLoops.splice(idx, 1);
     };
+  }
+
+  // ====== KILL ALL LOOPING SFX — CALLED ON BOSS TRANSITION / FULL RESET ======
+  // CATCHES ANY LOOP WHOSE STOP HANDLE WAS LOST (e.g. TWO FLIM FLAMS TELEGRAPHING SIMULTANEOUSLY)
+  stopAllLoopingSfx() {
+    if (!this.context) return;
+    const loops = this._activeLoops.slice(); // SNAPSHOT — STOP CALLS WILL MUTATE THE ARRAY
+    for (const { source, gain } of loops) {
+      try {
+        gain.gain.setTargetAtTime(0, this.context.currentTime, 0.05);
+        setTimeout(() => { try { source.stop(); } catch (_) {} }, 150);
+      } catch (_) {}
+    }
+    this._activeLoops = [];
+    console.log(`♪ stopAllLoopingSfx: killed ${loops.length} active loop(s)`);
   }
 
   // ==================== PUBLIC PLAY METHODS ====================
