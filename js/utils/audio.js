@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 9:00AM
+// Updated 3/8/26 @ 8am
 // audio.js
 export class AudioManager {
   constructor() {
@@ -128,6 +128,7 @@ export class AudioManager {
         powerUp3:       './audio/powerUp3.m4a',      // SINGULARITY BOMB COLLECT
         babyBlackhole:  './audio/babyBlackhole.m4a', // SINGULARITY BOMB DEPLOY
         enemyDeath:     './audio/enemyDeath.m4a',    // BIOLOGICAL MELT COLLAPSE
+        glitchOut:      './audio/glitchOut.m4a',     // SHIP DEATH GLITCH SEQUENCE
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -456,6 +457,7 @@ export class AudioManager {
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.6); } // SINGULARITY BOMB DEPLOY
   playEnemyDeath()    { this._playSfx('enemyDeath',    0.5); } // BIOLOGICAL MELT COLLAPSE
+  playGlitchOut()     { this._playSfx('glitchOut',     0.85); } // SHIP DEATH GLITCH
 
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;

@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 5:30AM
+// Updated 3/8/26 @ 9AM
 // config.js
 export const CONFIG = {
   TUNNEL: {
@@ -424,5 +424,30 @@ export const CONFIG = {
     BOSS_ORBIT_EASE:     1.6,   
     HAWKING_PARTICLES:    22,
     HAWKING_SPEED:        380,   
+  },
+
+  //  SHIP DEATH SEQUENCE  (NON-BOSS BATTLE)
+  SHIP_DEATH: {
+    FREEZE_DURATION:    0.2,   
+    GLITCH_DURATION:    2.4,   // FOR TESTING
+    GLITCH_SLICES:      9,     
+    GLITCH_OFFSET_MAX:  16,     
+    PIECE_SCALE:        0.47,   
+    PIECE_HOVER_SPREAD: 60,     
+    PIECE_SPREAD:       18,     
+    PIECE_DRIFT_X:      100,     
+    PIECE_DRIFT_Y:      45,     
+    PIECE_SPIN:         2.2,   
+    PIECE_FADE_START:   1.8,   // FOR TESTING
+    KABAM_FRAMES:       5,
+    KABAM_FPS:          13,    
+    KABAM_SIZE:         270,    
+    SMOKE_COUNT:        9,     
+    SMOKE_FRAMES:       9,      
+    SMOKE_FPS:          12,
+    SMOKE_SIZE_MIN:     40,     
+    SMOKE_SIZE_MAX:     75,     
+    SMOKE_SPEED_MIN:    35,     
+    SMOKE_SPEED_MAX:    80,     
   },
 };

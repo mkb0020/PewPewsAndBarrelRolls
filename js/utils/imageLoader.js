@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 12:00PM
+// Updated 3/8/26 @ 8am
 
 // imageLoader.js
 
@@ -26,6 +26,10 @@ const MANIFEST = {
 
   waveWorms:    { path: 'waveWorms.png', lazy: true },  // 10 FRAMES
   gooSizzle:    { path: 'gooSizzle.png', lazy: true },  // 9 FRAMES
+
+  kabam:      { path: 'kabam.png'      },               // 5 FRAMES — SHIP EXPLOSION
+  shipPieces: { path: 'shipPieces.png' },               // 3 FRAMES — L WING / BODY / R WING
+  smoke:      { path: 'smoke.png'      },               // 9 FRAMES — SMOKE BLOBS
 };
 
 

@@ -1,6 +1,4 @@
-// Updated 3/5/26 @ 7:15PM
-
-
+// Updated 3/8/26 @ 9am
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -75,8 +73,23 @@ export class Ship {
     this._trailCaptureTimer = 0;
 
     // ========== COSMIC PRISM HEAL GLOW ==========
-    this._healGlow         = 0;     // 1 → 0 over _healGlowDuration
-    this._healGlowDuration = 0.65;  // seconds
+    this._healGlow         = 0;     
+    this._healGlowDuration = 0.65;  
+
+    // ========== SHIP DEATH SEQUENCE ==========
+    this.deathSequenceEnabled  = true;  // SET FALSE BY main.js WHEN BOSS IS ACTIVE
+    this._dsActive             = false;
+    this._dsTimer              = 0;
+    this._dsPhase              = 'idle'; 
+    this._dsLives              = 0;      
+    this._dsX                  = 0;      
+    this._dsY                  = 0;
+    this._dsFrame              = 0;      
+    this._dsKabamTimer         = 0;
+    this._dsKabamFrame         = 0;
+    this._dsSmoke              = [];     
+    this._dsFrags              = [];     
+    this.onDeathSequenceStart  = null;   
 
     console.log('✔ Ship initialized');
   }
@@ -179,7 +192,10 @@ export class Ship {
   }
 
   update(dt) {
-    if (!this.isAlive) return;
+    if (!this.isAlive) {
+      if (this._dsActive) this._updateDeathSequence(dt);
+      return;
+    }
 
     // CONSUMED — CONTROLS LOCKED, SPIRAL TO MOUTH
     if (this.consumedMode) {
@@ -390,7 +406,12 @@ export class Ship {
     this.isAlive = false;
     this.lives   = Math.max(0, this.lives - 1);
     if (this.onLivesChange) this.onLivesChange(this.lives);
-    if (this.onDeath)       this.onDeath(this.lives);
+
+    if (this.deathSequenceEnabled) {
+      this._startDeathSequence();  
+    } else {
+      if (this.onDeath) this.onDeath(this.lives);
+    }
   }
 
   respawn() {
@@ -412,6 +433,10 @@ export class Ship {
     this._consumedDeathFired = false;
     this._trailPositions     = [];
     this._slimeHeaviness     = 0;
+    this._dsActive = false;
+    this._dsPhase  = 'idle';
+    this._dsSmoke  = [];
+    this._dsFrags  = [];
     if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
     this._startInvincibility(CONFIG.SHIP_HP.RESPAWN_INVINCIBILITY);
   }
@@ -433,6 +458,10 @@ export class Ship {
     this.onConsumedComplete  = null;
     this.cinematicMode  = false;
     this.cinematicScale = 1.0;
+    this._dsActive = false;
+    this._dsPhase  = 'idle';
+    this._dsSmoke  = [];
+    this._dsFrags  = [];
     this.x = window.innerWidth  / 2;
     this.y = window.innerHeight / 2;
     if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);
@@ -442,6 +471,321 @@ export class Ship {
   _startInvincibility(duration) {
     this.isInvincible       = true;
     this.invincibilityTimer = duration;
+  }
+
+  _startDeathSequence() {
+    this._dsActive     = true;
+    this._dsTimer      = 0;
+    this._dsPhase      = 'freeze';
+    this._dsLives      = this.lives;
+    this._dsX          = this.x;
+    this._dsY          = this.y;
+    this._dsFrame      = this.currentFrame;
+    this._dsKabamTimer = 0;
+    this._dsKabamFrame = 0;
+    this._dsSmoke      = [];
+    this._dsFrags      = [];
+    if (this.onDeathSequenceStart) this.onDeathSequenceStart();
+  }
+
+  _updateDeathSequence(dt) {
+    const CFG        = CONFIG.SHIP_DEATH;
+    const freezeEnd  = CFG.FREEZE_DURATION;
+    const glitchEnd  = freezeEnd + CFG.GLITCH_DURATION;
+
+    this._dsTimer += dt;
+
+    if (this._dsPhase === 'freeze' && this._dsTimer >= freezeEnd) {
+      this._dsPhase = 'glitch';
+      this._spawnDeathFragments(); 
+    }
+
+    if (this._dsPhase === 'glitch' && this._dsTimer >= glitchEnd) {
+      this._dsPhase = 'fragments';
+      this._dsKabamTimer = 0;
+      this._dsKabamFrame = 0;
+      this._launchDeathFragments(); 
+      this._spawnDeathSmoke();
+    }
+
+    if (this._dsPhase === 'fragments') {
+      this._dsKabamTimer += dt;
+      this._dsKabamFrame  = Math.floor(this._dsKabamTimer * CFG.KABAM_FPS);
+
+      for (const f of this._dsFrags) {
+        f.x       += f.vx * dt;
+        f.y       += f.vy * dt;
+        f.vy      += 35 * dt; 
+        f.rotation += f.rotSpeed * dt;
+      }
+
+      for (let i = this._dsSmoke.length - 1; i >= 0; i--) {
+        const s = this._dsSmoke[i];
+        s.x          += s.vx * dt;
+        s.y          += s.vy * dt;
+        s.vy         -= 18 * dt; 
+        s.frameTimer += dt;
+        if (s.frameTimer >= 1 / CFG.SMOKE_FPS) {
+          s.frameTimer = 0;
+          s.frame++;
+        }
+        if (s.frame >= CFG.SMOKE_FRAMES) this._dsSmoke.splice(i, 1);
+      }
+
+      if (this._dsKabamFrame >= CFG.KABAM_FRAMES) {
+        this._dsPhase  = 'done';
+        this._dsActive = false;
+        if (this.onDeath) this.onDeath(this._dsLives);
+      }
+    }
+  }
+
+  _spawnDeathFragments() {
+    const CFG  = CONFIG.SHIP_DEATH;
+    const gap  = CFG.PIECE_HOVER_SPREAD;
+    const defs = [
+      { frameIdx: 0, ox: -gap, oy: 0 },
+      { frameIdx: 1, ox:  0,   oy: 0 },
+      { frameIdx: 2, ox:  gap, oy: 0 },
+    ];
+    for (const d of defs) {
+      this._dsFrags.push({
+        frameIdx: d.frameIdx,
+        x:        this._dsX + d.ox,
+        y:        this._dsY + d.oy,
+        vx:       0,
+        vy:       0,
+        rotation: (Math.random() - 0.5) * 0.25,
+        rotSpeed: 0, 
+      });
+    }
+  }
+
+  _launchDeathFragments() {
+    const CFG  = CONFIG.SHIP_DEATH;
+    const extra = CFG.PIECE_SPREAD; 
+    const dirs  = [
+      { ox: -extra, oy: -extra * 0.3, vx: -CFG.PIECE_DRIFT_X, vy: -CFG.PIECE_DRIFT_Y * 0.6, rotDir: -1 },
+      { ox:  0,     oy: -extra,        vx:  0,                 vy: -CFG.PIECE_DRIFT_Y,        rotDir:  1 },
+      { ox:  extra, oy: -extra * 0.3, vx:  CFG.PIECE_DRIFT_X, vy: -CFG.PIECE_DRIFT_Y * 0.6, rotDir:  1 },
+    ];
+    for (let i = 0; i < this._dsFrags.length; i++) {
+      const f = this._dsFrags[i];
+      const d = dirs[i];
+      f.x       += d.ox;
+      f.y       += d.oy;
+      f.vx       = d.vx;
+      f.vy       = d.vy;
+      f.rotSpeed = d.rotDir * CFG.PIECE_SPIN * (0.7 + Math.random() * 0.6);
+    }
+  }
+
+  _spawnDeathSmoke() {
+    const CFG = CONFIG.SHIP_DEATH;
+    for (let i = 0; i < CFG.SMOKE_COUNT; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = CFG.SMOKE_SPEED_MIN + Math.random() * (CFG.SMOKE_SPEED_MAX - CFG.SMOKE_SPEED_MIN);
+      const spread = CONFIG.SHIP.WIDTH * 0.25;
+      this._dsSmoke.push({
+        x:          this._dsX + (Math.random() - 0.5) * spread,
+        y:          this._dsY + (Math.random() - 0.5) * spread,
+        vx:         Math.cos(angle) * speed,
+        vy:         Math.sin(angle) * speed,
+        frameTimer: Math.random() * (1 / CFG.SMOKE_FPS), 
+        frame:      0,
+        scale:      CFG.SMOKE_SIZE_MIN + Math.random() * (CFG.SMOKE_SIZE_MAX - CFG.SMOKE_SIZE_MIN),
+      });
+    }
+  }
+
+  _drawDeathSequence() {
+    const ctx    = this.ctx;
+    const sprite = ImageLoader.get('ship');
+
+    if (this._dsPhase === 'freeze' && sprite) {
+      this._dsDrawShipSprite(ctx, sprite, this._dsX, this._dsY, this._dsFrame, 1.0);
+    }
+
+    if (this._dsPhase === 'glitch' && sprite) {
+      this._drawGlitchEffect(ctx, sprite);
+      this._drawDeathFragments(ctx, true);
+    }
+
+    if (this._dsPhase === 'fragments') {
+      this._drawDeathSmoke(ctx);
+      this._drawDeathFragments(ctx, false);
+      this._drawKabam(ctx);
+    }
+  }
+
+  _dsDrawShipSprite(ctx, sprite, x, y, frame, alpha) {
+    const frameW = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
+    const w      = CONFIG.SHIP.WIDTH;
+    const h      = CONFIG.SHIP.HEIGHT;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(sprite, frame * frameW, 0, frameW, sprite.height, x - w / 2, y - h / 2, w, h);
+    ctx.restore();
+  }
+
+  _drawGlitchEffect(ctx, sprite) {
+    const CFG      = CONFIG.SHIP_DEATH;
+    const w        = CONFIG.SHIP.WIDTH;
+    const h        = CONFIG.SHIP.HEIGHT;
+    const frameW   = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
+    const srcX     = this._dsFrame * frameW;
+    const srcH     = sprite.height;
+    const nSlices  = CFG.GLITCH_SLICES;
+    const sliceSrcH = srcH / nSlices;
+    const sliceDstH = h   / nSlices;
+    const t        = this._dsTimer;
+    const glitchProgress = Math.max(0, (t - CFG.FREEZE_DURATION) / CFG.GLITCH_DURATION);
+
+    ctx.save();
+
+    const shipFade = 1 - glitchProgress * 0.92; // SHIP DISSOLVES AS FRAGMENTS TAKE OVER
+    for (let i = 0; i < nSlices; i++) {
+      const doJitter = Math.random() < (0.25 + glitchProgress * 0.55);
+      const offsetX  = doJitter
+        ? (Math.random() - 0.5) * CFG.GLITCH_OFFSET_MAX * 2 * glitchProgress
+        : 0;
+      const alpha    = (0.75 + 0.25 * Math.random()) * shipFade;
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.drawImage(
+        sprite,
+        srcX, i * sliceSrcH, frameW, sliceSrcH,
+        this._dsX - w / 2 + offsetX, this._dsY - h / 2 + i * sliceDstH, w, sliceDstH
+      );
+    }
+
+    ctx.globalAlpha = 0.22 * glitchProgress * shipFade;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(sprite, srcX, 0, frameW, srcH, this._dsX - w / 2 - 7, this._dsY - h / 2, w, h);
+
+    ctx.globalAlpha = 0.18 * glitchProgress * shipFade;
+    ctx.drawImage(sprite, srcX, 0, frameW, srcH, this._dsX - w / 2 + 7, this._dsY - h / 2, w, h);
+
+    if (Math.random() < 0.2 + glitchProgress * 0.25) {
+      ctx.globalAlpha      = Math.random() * 0.35 * glitchProgress + 0.05;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle        = Math.random() < 0.5 ? `rgba(0,255,255,1)` : `rgba(255,60,180,1)`;
+      const bh = sliceDstH * (1 + Math.floor(Math.random() * 2));
+      const by = this._dsY - h / 2 + Math.random() * (h - bh);
+      ctx.fillRect(this._dsX - w / 2, by, w, bh);
+    }
+
+    ctx.restore();
+  }
+
+  _drawDeathFragments(ctx, isHovering = false) {
+    const CFG      = CONFIG.SHIP_DEATH;
+    const pieces   = ImageLoader.get('shipPieces');
+    if (!pieces || this._dsFrags.length === 0) return;
+
+    const PIECE_FRAMES = 3;
+    const frameW       = pieces.width  / PIECE_FRAMES;
+    const frameH       = pieces.height;
+    const renderW      = CONFIG.SHIP.WIDTH  * CFG.PIECE_SCALE;
+    const renderH      = CONFIG.SHIP.HEIGHT * CFG.PIECE_SCALE;
+
+
+    let baseAlpha;
+    if (isHovering) {
+      const CFG2 = CONFIG.SHIP_DEATH;
+      const glitchProgress = Math.max(0, (this._dsTimer - CFG2.FREEZE_DURATION) / CFG2.GLITCH_DURATION);
+      baseAlpha = glitchProgress; // RAMP IN AS SHIP RAMPS OUT
+      ctx.save();
+      for (const f of this._dsFrags) {
+        const fragAlpha = baseAlpha * (0.75 + 0.25 * Math.random());
+        this._drawGlitchFragment(ctx, pieces, f, frameW, frameH, renderW, renderH, fragAlpha, glitchProgress);
+      }
+      ctx.restore();
+      return;
+    } else {
+      const fragProgress = Math.min(1, this._dsKabamTimer / (CFG.KABAM_FRAMES / CFG.KABAM_FPS));
+      baseAlpha = fragProgress < CFG.PIECE_FADE_START
+        ? 1
+        : 1 - (fragProgress - CFG.PIECE_FADE_START) / (1 - CFG.PIECE_FADE_START);
+    }
+
+    ctx.save();
+    for (const f of this._dsFrags) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, baseAlpha);
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.rotation);
+      ctx.drawImage(
+        pieces,
+        f.frameIdx * frameW, 0, frameW, frameH,
+        -renderW / 2, -renderH / 2, renderW, renderH
+      );
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // GLITCH-IN EFFECT FOR HOVERING PIECES DURING GLITCH PHASE
+  _drawGlitchFragment(ctx, sprite, f, frameW, frameH, renderW, renderH, baseAlpha, glitchProgress) {
+    const CFG     = CONFIG.SHIP_DEATH;
+    const nSlices = 5;
+    const sliceSrcH = frameH / nSlices;
+    const sliceDstH = renderH / nSlices;
+
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rotation);
+    for (let i = 0; i < nSlices; i++) {
+      const doJitter = Math.random() < (0.3 + glitchProgress * 0.5);
+      const offsetX  = doJitter
+        ? (Math.random() - 0.5) * CFG.GLITCH_OFFSET_MAX * 0.65 * glitchProgress
+        : 0;
+      ctx.globalAlpha = Math.max(0, baseAlpha * (0.85 + 0.15 * Math.random()));
+      ctx.drawImage(
+        sprite,
+        f.frameIdx * frameW, i * sliceSrcH, frameW, sliceSrcH,
+        -renderW / 2 + offsetX, -renderH / 2 + i * sliceDstH, renderW, sliceDstH
+      );
+    }
+    ctx.restore();
+  }
+
+  _drawDeathSmoke(ctx) {
+    const CFG   = CONFIG.SHIP_DEATH;
+    const smoke = ImageLoader.get('smoke');
+    if (!smoke || this._dsSmoke.length === 0) return;
+
+    const frameW = smoke.width / CFG.SMOKE_FRAMES;
+    const frameH = smoke.height;
+
+    ctx.save();
+    for (const s of this._dsSmoke) {
+      if (s.frame >= CFG.SMOKE_FRAMES) continue;
+      const lifeAlpha = 0.65;
+      ctx.globalAlpha = lifeAlpha;
+      ctx.drawImage(
+        smoke,
+        s.frame * frameW, 0, frameW, frameH,
+        s.x - s.scale / 2, s.y - s.scale / 2, s.scale, s.scale
+      );
+    }
+    ctx.restore();
+  }
+
+  _drawKabam(ctx) {
+    const CFG  = CONFIG.SHIP_DEATH;
+    const kabam = ImageLoader.get('kabam');
+    if (!kabam || this._dsKabamFrame >= CFG.KABAM_FRAMES) return;
+
+    const frameW = kabam.width / CFG.KABAM_FRAMES;
+    ctx.save();
+    ctx.drawImage(
+      kabam,
+      this._dsKabamFrame * frameW, 0, frameW, kabam.height,
+      this._dsX - CFG.KABAM_SIZE / 2,
+      this._dsY - CFG.KABAM_SIZE / 2,
+      CFG.KABAM_SIZE, CFG.KABAM_SIZE
+    );
+    ctx.restore();
   }
 
   getHP()    { return this.hp; }
@@ -455,7 +799,10 @@ export class Ship {
   }
 
   draw() {
-    if (!this.isAlive && !this.consumedMode) return;
+    if (!this.isAlive && !this.consumedMode) {
+      if (this._dsActive) this._drawDeathSequence();
+      return;
+    }
 
     // INVINCIBILITY BLINK
     if (this.isInvincible && !this.consumedMode) {
@@ -499,10 +846,10 @@ export class Ship {
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    // COSMIC PRISM HEAL GLOW 
+    // COSMIC PRISM HEAL GLOW
     if (this._healGlow > 0) {
       const g     = this._healGlow;
-      const eased = g * g * (3 - 2 * g); // SMOOTHSTEP
+      const eased = g * g * (3 - 2 * g); 
       const glowR = 140 * (1 - g * 0.3);
       const grad  = this.ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
       grad.addColorStop(0,    `rgba(255, 255, 255, ${eased * 0.9})`);

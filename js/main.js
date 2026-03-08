@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 12:00PM
+// Updated 3/8/26 @ 8am
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -206,6 +206,7 @@ gameplayScene.onWaveCleared = (waveIndex) => {
     transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
     bossTransmission.hide();
     wormBoss.activate();
+    ship.deathSequenceEnabled = false; // BOSS BATTLE HAS ITS OWN DEATH HANDLING
     audio.stopMusic();
   }, 16000); // PHASE 4 (t=16s): WORM ACTIVATES — EMERGES FROM FOG
 
@@ -252,6 +253,12 @@ closingScene.onBackToMenu = () => {
 };
 ship.onHPChange    = (hp, max)   => updateHPBar(hp, max);
 ship.onLivesChange = (lives)     => updateLivesDisplay(lives);
+
+// ==================== SHIP DEATH SEQUENCE CALLBACK ====================
+ship.onDeathSequenceStart = () => {
+  audio.playGlitchOut();
+};
+
 ship.onDeath       = (livesLeft) => {
   audio.stopMusic();
   const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
@@ -350,6 +357,7 @@ function doShoot() {
 // ==================== TRANSITION CALLBACKS ====================
 transitionScene.onRestart = () => {
   ship.resetForNewGame();
+  ship.deathSequenceEnabled = true; // RESTORE FOR GAMEPLAY
   scoreManager.reset();
   enemyManager.clear();
   projectileManager.clear();
@@ -382,6 +390,7 @@ transitionScene.onRestart = () => {
 bossBattleScene.onWormholeGameOver = () => {
   wormBoss.isActive = false;  // HIDE WORM IMMEDIATELY — WILL RE-ACTIVATE WHEN PLAYER REACHES BOSS BATTLE AGAIN
   ship.resetForNewGame();
+  ship.deathSequenceEnabled = true; // RESTORE — BACK TO GAMEPLAY
   scoreManager.reset();
   enemyManager.clear();
   projectileManager.clear();
@@ -423,6 +432,7 @@ transitionScene.onContinue = () => {
 
   if (inWormBattle) {
     wormBoss.activate();
+    ship.deathSequenceEnabled = false; // BOSS BATTLE HAS ITS OWN DEATH HANDLING
     babyWormManager.clear();
     bossBattleScene.reset();
     bossBattleScene.updateHUD();
@@ -803,6 +813,7 @@ async function startup() {
   if (mode === 'bossBattle') {
     CONFIG.ENEMIES.MAX_COUNT = 0;
     wormBoss.activate();
+    ship.deathSequenceEnabled = false; // BOSS BATTLE HAS ITS OWN DEATH HANDLING
   } else {
     CONFIG.ENEMIES.MAX_COUNT = 0;  
     gameplayScene.start();
