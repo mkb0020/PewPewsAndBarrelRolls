@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 4:15am
+// Updated 3/9/26 12PM
 // glitchFleshAssembly.js
 
 import { ImageLoader, ENEMY_SPRITE } from '../utils/imageLoader.js';
@@ -153,7 +153,7 @@ export class GlitchFleshAssembly {
     const e         = this.enemy;
     this._cx        = e.x;
     this._cy        = e.y;
-    this._vfxSize   = Math.max(48, CONFIG.ENEMIES.SPRITE_SIZE * e.scale);
+    this._vfxSize   = Math.max(48, e.config.SIZE * e.scale);
 
     const glowColor = e.glowColor;
 
@@ -283,7 +283,6 @@ export class GlitchFleshAssembly {
         ctx.shadowBlur  = 5;
         ctx.lineWidth   = 0.75;
         ctx.beginPath();
-        // Flat pair array: [i0, j0, i1, j1, …]
         for (let k = 0; k < this._wfPairs.length; k += 2) {
           const pi = this.particles[this._wfPairs[k]];
           const pj = this.particles[this._wfPairs[k + 1]];
@@ -324,7 +323,7 @@ export class GlitchFleshAssembly {
       if (sprite) {
         const ghostT      = Math.min(1, (this.t - T.WIRE_END) / (T.FLESH_END - T.WIRE_END));
         const ghostAlpha  = ghostT * 0.45;
-        const renderSize  = CONFIG.ENEMIES.SPRITE_SIZE * e.scale;
+        const renderSize  = e.config.SIZE * e.scale;
         const fw          = sprite.width / e.animCount;
         const frame       = this._getFrameIndex();
 
@@ -346,7 +345,7 @@ export class GlitchFleshAssembly {
       const sprite = ImageLoader.get(ENEMY_SPRITE[e.type]);
       if (sprite) {
         const expand     = 1 + (1 - this.pulseAlpha) * 0.38;
-        const renderSize = CONFIG.ENEMIES.SPRITE_SIZE * e.scale;
+        const renderSize = e.config.SIZE * e.scale;
         const pulseSize  = renderSize * expand;
         const fw         = sprite.width / e.animCount;
         const frame      = this._getFrameIndex();

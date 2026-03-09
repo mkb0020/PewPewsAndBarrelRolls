@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 5:30am
+// Updated 3/9/26 12PM
 // enemyDeath.js  —
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -62,7 +62,7 @@ function _getColorSamples(type, sprite, frameIndex, animCount) {
 
 // ── SINGLE DEATH EFFECT ───────────────────────────────────────────────────────
 class EnemyDeathEffect {
-  constructor(x, y, scale, type, spriteKey, frameIndex, animCount) {
+  constructor(x, y, scale, type, spriteKey, frameIndex, animCount, spriteSize) {
     this.x          = x;
     this.y          = y;
     this.scale      = scale;
@@ -70,6 +70,7 @@ class EnemyDeathEffect {
     this.spriteKey  = spriteKey;
     this.frameIndex = frameIndex;
     this.animCount  = animCount;
+    this.spriteSize = spriteSize;
     this.timer      = 0;
     this.duration   = type === 'TANK' ? 1.0 : 0.8; // TANK MELTS SLOWER  
     this.isDone     = false;
@@ -81,7 +82,7 @@ class EnemyDeathEffect {
     const count     = Math.min(MAX_DRIPS_EFFECT, available);
     if (count <= 0 || colorSamples.length === 0) return;
 
-    const renderSize = CONFIG.ENEMIES.SPRITE_SIZE * this.scale;
+    const renderSize = this.spriteSize * this.scale;
     const step       = Math.max(1, Math.floor(colorSamples.length / count));
 
     for (let i = 0; i < colorSamples.length && this.drips.length < count; i += step) {
@@ -129,7 +130,7 @@ class EnemyDeathEffect {
     if (!sprite) return;
 
     const progress   = this.timer / this.duration;
-    const renderSize = CONFIG.ENEMIES.SPRITE_SIZE * this.scale;
+    const renderSize = this.spriteSize * this.scale;
     const fw         = sprite.width  / this.animCount;
     const fh         = sprite.height;
     const sx         = this.frameIndex * fw;
@@ -215,6 +216,7 @@ export class EnemyDeathManager {
       enemy.spriteKey,
       frameIndex,
       animCount,
+      enemy.config.SIZE,
     );
 
     const sprite = ImageLoader.get(enemy.spriteKey);
