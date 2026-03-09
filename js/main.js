@@ -1,4 +1,4 @@
-// Updated 3/8/26 @ 8am
+// Updated 3/9/26 12PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -500,6 +500,11 @@ window.addEventListener('keydown', (e) => {
     deployBomb();
     return;
   }
+  if (e.code === 'ShiftRight') {
+    e.preventDefault();
+    ship.activateBoost();
+    return;
+  }
 });
 
 
@@ -824,11 +829,12 @@ async function startup() {
   updateLivesDisplay(ship.getLives());
 
   initKeyboard();
+  ship.onBoost = () => audio.playBoost(); // ⚡ BOOST DRIVE SFX
   initMobileControls(
     (direction) => { ship.startBarrelRoll(direction); audio.playBarrelRoll(); },
     () => doShoot(),
-    () => audio.playPowerUp1(),   
-    () => deployBomb()           
+    () => ship.activateBoost(),   // X BUTTON — BOOST (was: playPowerUp1 placeholder)
+    () => deployBomb()            // Y BUTTON — SINGULARITY BOMB
   );
 
 
