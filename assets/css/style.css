@@ -1,4 +1,4 @@
-/* Updated 3/7/26 @ 12:00PM */
+/* Updated 3/9/26 @ 11:AM */
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -884,6 +884,115 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   text-transform: uppercase;
   margin-bottom: 4px;
   font-family: 'SpaceLetters';
+}
+
+/* ══════════════════════  PHOTON OVERDRIVE BAR  ══════════════════════ */
+#photon-overdrive-bar {
+  position: fixed;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 20;
+}
+#photon-overdrive-bar.visible { display: flex; }
+
+#photon-overdrive-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: #fff;
+  opacity: 0.9;
+  text-shadow: 0 0 8px currentColor;
+  animation: photon-hue-cycle 3s linear infinite;
+}
+
+#photon-overdrive-bar-track {
+  width: 160px;
+  height: 5px;
+  background: rgba(255,255,255,0.22);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#photon-overdrive-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg,
+    hsl(0,   100%, 60%),
+    hsl(60,  100%, 65%),
+    hsl(120, 100%, 60%),
+    hsl(180, 100%, 65%),
+    hsl(240, 100%, 60%),
+    hsl(300, 100%, 65%),
+    hsl(360, 100%, 60%)
+  );
+  background-size: 200% 100%;
+  box-shadow: 0 0 6px rgba(180, 130, 255, 0.7);
+  animation: photon-hue-cycle 3s linear infinite;
+  transition: width 0.05s linear;
+}
+
+#photon-overdrive-bar-fill.photon-low {
+  animation: photon-hue-cycle 0.4s linear infinite, photon-low-pulse 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes photon-hue-cycle {
+  from { filter: hue-rotate(0deg);   }
+  to   { filter: hue-rotate(360deg); }
+}
+
+@keyframes photon-low-pulse {
+  from { opacity: 0.6; }
+  to   { opacity: 1.0; }
+}
+
+/* ══════════════════════  BOOST COOLDOWN BAR  ══════════════════════ */
+#boost-cooldown-bar {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 20;
+}
+#boost-cooldown-bar.visible { display: flex; }
+
+#boost-cooldown-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: hsl(200, 100%, 72%);
+  opacity: 0.85;
+  text-shadow: 0 0 7px hsl(200, 100%, 72%);
+}
+
+#boost-cooldown-bar-track {
+  width: 160px;
+  height: 5px;
+  background: rgba(255,255,255,0.22);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#boost-cooldown-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg,
+    hsl(var(--hue, 190), 100%, 50%),
+    hsl(calc(var(--hue, 190) + 15), 100%, 65%),
+    hsl(calc(var(--hue, 190) + 30), 100%, 75%)
+  );
+  box-shadow: 0 0 6px hsl(var(--hue, 205), 100%, 65%);
+  transition: width 0.05s linear;
 }
 
 /* ════════════════════════════  HP BAR  ════════════════════════════ */
