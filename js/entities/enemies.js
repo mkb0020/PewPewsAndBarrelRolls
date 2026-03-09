@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 5:30AM
+// Updated 3/9/26 12PM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -379,7 +379,7 @@ export class Enemy {
     const fadeProgress = Math.min(1, Math.max(0, (this.scale - 0.2) / 0.6));
     const spriteAlpha  = 0.1 + fadeProgress * 0.9;
     const tintAlpha    = (1 - Math.min(1, fadeProgress / 0.2)) * 0.3;
-    const renderSize   = CONFIG.ENEMIES.SPRITE_SIZE * this.scale;
+    const renderSize   = this.config.SIZE * this.scale;
     const sprite       = ImageLoader.get(this.spriteKey);
 
     ctx.save();
@@ -495,7 +495,7 @@ export class Enemy {
   getPosition() { return { x: this.x, y: this.y }; }
 
   getSize() {
-    return (CONFIG.ENEMIES.SPRITE_SIZE / 2) * this.scale;
+    return (this.config.SIZE / 2) * this.scale;
   }
 }
 

@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 6:30PM
+// Updated 3/9/26 @ 11am
 // tesseractFragment.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -385,6 +385,7 @@ export class TesseractFragmentManager {
       this._boostTimer = Math.max(0, this._boostTimer - dt);
       this._boostTime  += dt;
     }
+    this._updatePhotonBarDOM();
 
     // ── FRAGMENTS + COLLECTION CHECK ──────────────────────────────
     for (let i = this.fragments.length - 1; i >= 0; i--) {
@@ -459,44 +460,19 @@ export class TesseractFragmentManager {
     ctx.stroke();
 
     ctx.restore();
+  }
 
-    // ── BOOST TIMER HUD  ──────────────────────────
-    const barW  = 160;
-    const barH  = 5;
-    const barX  = window.innerWidth  / 2 - barW / 2;
-    const barY  = 40;
-    const fillW = barW * pct;
-    const barHue = (t * 120) % 360;
-
-    ctx.save();
-
-    // LABEL
-    ctx.globalAlpha = isLow ? (0.7 + 0.3 * Math.abs(Math.sin(t * 7))) : 0.9;
-    ctx.fillStyle   = `hsl(${isLow ? (t * 600 % 360) : barHue}, 100%, 75%)`;
-    ctx.shadowBlur  = 8;
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.font        = '11px Orbitron, monospace';
-    ctx.textAlign   = 'center';
-    ctx.fillText('◈ PHOTON OVERDRIVE', window.innerWidth / 2, barY - 9);
-
-    // BAR TRACK
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle   = '#ffffff';
-    ctx.shadowBlur  = 0;
-    ctx.fillRect(barX, barY, barW, barH);
-
-    // BAR FILL
-    ctx.globalAlpha = isLow ? (0.6 + 0.4 * Math.abs(Math.sin(t * 8))) : 0.9;
-    const barGrad = ctx.createLinearGradient(barX, 0, barX + fillW, 0);
-    barGrad.addColorStop(0,    `hsl(${barHue},            100%, 55%)`);
-    barGrad.addColorStop(0.5,  `hsl(${(barHue + 60)  % 360}, 100%, 70%)`);
-    barGrad.addColorStop(1,    `hsl(${(barHue + 120) % 360}, 100%, 65%)`);
-    ctx.fillStyle   = barGrad;
-    ctx.shadowBlur  = 6;
-    ctx.shadowColor = `hsl(${barHue}, 100%, 65%)`;
-    if (fillW > 0) ctx.fillRect(barX, barY, fillW, barH);
-
-    ctx.restore();
+  // ========== PHOTON OVERDRIVE BAR (HTML/CSS) ==========
+  _updatePhotonBarDOM() {
+    const wrap = document.getElementById('photon-overdrive-bar');
+    const fill = document.getElementById('photon-overdrive-bar-fill');
+    if (!wrap || !fill) return;
+    if (this._boostTimer <= 0) { wrap.classList.remove('visible'); return; }
+    const C   = CONFIG.TESSERACT_FRAGMENT;
+    const pct = Math.max(0, this._boostTimer / C.BOOST_DURATION);
+    wrap.classList.add('visible');
+    fill.style.width = (pct * 100) + '%';
+    fill.classList.toggle('photon-low', pct < 0.25);
   }
 
   _spawnFragment() { // SPAWN IN SHIP'S REACHABLE ZONE

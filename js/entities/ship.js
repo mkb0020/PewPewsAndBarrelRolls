@@ -1,4 +1,4 @@
-// Updated 3/8/26 @ 9am
+// Updated 3/9/26 @ 12PM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -52,6 +52,13 @@ export class Ship {
     this.suctionShakeY = 0;
     this._rollBurstFired = false;
 
+    // ========== BOOST ==========
+    this._boostCooldown = 0;   
+    this._boostActive   = false; 
+    this._boostTimer    = 0;    
+    this._boostGhost    = null; 
+    this.onBoost        = null;
+
     this.consumedMode        = false;
     this.consumedTimer       = 0;
     this.consumedDuration    = 1.1;
@@ -104,6 +111,58 @@ export class Ship {
     }
   }
 
+  // ========== BOOST ==========
+  activateBoost() {
+    if (this._boostCooldown > 0)                          return false;
+    if (!this.isAlive || this.consumedMode || this.cinematicMode) return false;
+
+    const movingUp    = isKeyPressed('w')    || isKeyPressed('arrowup');
+    const movingDown  = isKeyPressed('s')    || isKeyPressed('arrowdown');
+    const movingLeft  = isKeyPressed('a')    || isKeyPressed('arrowleft');
+    const movingRight = isKeyPressed('d')    || isKeyPressed('arrowright');
+
+    let dx = 0, dy = 0;
+    if (movingRight) dx += 1;
+    if (movingLeft)  dx -= 1;
+    if (movingUp)    dy += 1;   
+    if (movingDown)  dy -= 1;
+
+    const inputMag = Math.sqrt(dx * dx + dy * dy);
+    if (inputMag > 0) {
+      dx /= inputMag;
+      dy /= inputMag;
+    } else {
+      const vMag = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+      if (vMag > 10) {
+        dx =  this.velocity.x / vMag;
+        dy = -this.velocity.y / vMag; 
+      }
+    }
+
+    const impulse = CONFIG.BOOST.IMPULSE;
+    this.velocity.x += dx * impulse;
+    this.velocity.y -= dy * impulse; 
+
+    this._boostActive   = true;
+    this._boostTimer    = CONFIG.BOOST.DURATION;
+    this._boostCooldown = CONFIG.BOOST.COOLDOWN;
+
+    this._boostGhost = {
+      x:        this.x,
+      y:        this.y,
+      rotation: this.rotation,
+      frame:    this.currentFrame,
+      timer:    CONFIG.BOOST.GHOST_DURATION,
+      duration: CONFIG.BOOST.GHOST_DURATION,
+    };
+
+    if (this.onBoost) this.onBoost();
+    return true;
+  }
+
+  getBoostCooldown()      { return this._boostCooldown; }
+  isBoostReady()          { return this._boostCooldown <= 0; }
+
   updateMovement(dt) {
     const movingUp    = isKeyPressed('w') || isKeyPressed('arrowup');
     const movingDown  = isKeyPressed('s') || isKeyPressed('arrowdown');
@@ -154,6 +213,23 @@ export class Ship {
 
     this.x = window.innerWidth  / 2 + this.offset.x + this.suctionShakeX;
     this.y = window.innerHeight / 2 - this.offset.y + this.suctionShakeY;
+
+    // BOOST — COOLDOWN TICK + ACTIVE TIMER + PARTICLE BURST
+    if (this._boostCooldown > 0) this._boostCooldown = Math.max(0, this._boostCooldown - dt);
+    this._updateBoostBarDOM();
+    if (this._boostActive) {
+      this._boostTimer -= dt;
+      if (this._boostTimer <= 0) {
+        this._boostActive = false;
+        this._boostTimer  = 0;
+      } else {
+        for (let i = 0; i < 3; i++) this.particles.spawn(this.x, this.y);
+      }
+    }
+    if (this._boostGhost) {
+      this._boostGhost.timer -= dt;
+      if (this._boostGhost.timer <= 0) this._boostGhost = null;
+    }
 
     // SPRITE FRAME
     let desiredFrame = CONFIG.SHIP.NEUTRAL_FRAME;
@@ -788,6 +864,20 @@ export class Ship {
     ctx.restore();
   }
 
+  // ========== BOOST COOLDOWN BAR (HTML/CSS) ==========
+  _updateBoostBarDOM() {
+    const cd   = this._boostCooldown;
+    const wrap = document.getElementById('boost-cooldown-bar');
+    const fill = document.getElementById('boost-cooldown-bar-fill');
+    if (!wrap || !fill) return;
+    if (cd <= 0) { wrap.classList.remove('visible'); return; }
+    const pct = 1 - cd / CONFIG.BOOST.COOLDOWN;
+    const hue = Math.round(190 + pct * 40);
+    wrap.classList.add('visible');
+    fill.style.width    = (pct * 100) + '%';
+    fill.style.setProperty('--hue', hue);
+  }
+
   getHP()    { return this.hp; }
   getLives() { return this.lives; }
 
@@ -860,9 +950,49 @@ export class Ship {
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
+    // BOOST FLASH 
+    if (this._boostActive) {
+      const t     = this._boostTimer / CONFIG.BOOST.DURATION;
+      const alpha = t * CONFIG.BOOST.FLASH_ALPHA;
+      const grad  = this.ctx.createRadialGradient(
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.2,
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.78
+      );
+      grad.addColorStop(0, `rgba(60, 210, 255, 0)`);
+      grad.addColorStop(1, `rgba(0, 160, 255, ${alpha})`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
     this.ctx.globalAlpha = 1;
 
     const sprite = ImageLoader.get('ship');
+
+    // BOOST GHOST 
+    if (this._boostGhost && sprite) {
+      const g       = this._boostGhost;
+      const t       = 1 - g.timer / g.duration; 
+      const alpha   = (1 - t) * 0.65;
+      const scale   = 1 + t * 0.25;             
+      const frameW  = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
+      this.ctx.save();
+      this.ctx.globalAlpha             = alpha;
+      this.ctx.globalCompositeOperation = 'lighter';
+      this.ctx.translate(g.x, g.y);
+      this.ctx.rotate(g.rotation);
+      this.ctx.scale(scale, scale);
+      this.ctx.drawImage(
+        sprite,
+        g.frame * frameW, 0, frameW, sprite.height,
+        -this.width / 2, -this.height / 2, this.width, this.height
+      );
+      this.ctx.globalCompositeOperation = 'source-atop';
+      this.ctx.globalAlpha = alpha * 0.7;
+      this.ctx.fillStyle   = '#00d4ff';
+      this.ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+      this.ctx.restore();
+    }
+
     if (sprite) {
       this.ctx.save();
       this.ctx.translate(this.x, this.y);
