@@ -1,4 +1,4 @@
-// Updated 3/8/26 @ 8am
+// Updated 3/9/26 @ 12PM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -129,6 +129,7 @@ export class AudioManager {
         babyBlackhole:  './audio/babyBlackhole.m4a', // SINGULARITY BOMB DEPLOY
         enemyDeath:     './audio/enemyDeath.m4a',    // BIOLOGICAL MELT COLLAPSE
         glitchOut:      './audio/glitchOut.m4a',     // SHIP DEATH GLITCH SEQUENCE
+        boost:          './audio/boost.m4a',         // SHIP BOOST DRIVE
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -455,6 +456,7 @@ export class AudioManager {
   playPowerUp1() { this._playSfx('powerUp1', 0.5); }  // COSMIC PRISM HP HEAL COLLECT
   playPowerUp2() { this._playSfx('powerUp2', 0.5); }  // LASER BOOST
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
+  playBoost()    { this._playSfx('boost',    0.7); }  // SHIP BOOST DRIVE
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.6); } // SINGULARITY BOMB DEPLOY
   playEnemyDeath()    { this._playSfx('enemyDeath',    0.5); } // BIOLOGICAL MELT COLLAPSE
   playGlitchOut()     { this._playSfx('glitchOut',     0.85); } // SHIP DEATH GLITCH

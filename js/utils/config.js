@@ -1,4 +1,4 @@
-// Updated 3/8/26 @ 9AM
+// Updated 3/9/26 12PM
 // config.js
 export const CONFIG = {
   TUNNEL: {
@@ -36,6 +36,15 @@ export const CONFIG = {
   BARREL_ROLL: {
     DURATION: 0.6, 
     PARTICLE_SPAWN_MULTIPLIER: 2,
+  },
+
+  BOOST: {
+    IMPULSE:        950,  
+    DURATION:       0.28, 
+    COOLDOWN:       3.5,  
+    FLASH_ALPHA:    0.28, 
+    GHOST_DURATION: 0.40, 
+    BAR_Y:          68,   
   },
 
   PARTICLES: {
@@ -103,13 +112,13 @@ export const CONFIG = {
 
     TYPES: {
       BASIC: { // GLIP GLOP
-        SIZE: 40,
+        SIZE: 120,
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
         HEALTH: 4, // FOR TESTING
         SCORE: 10,
-        SPRITE_FRAMES: 5,
+        SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#ff0000',
@@ -120,7 +129,7 @@ export const CONFIG = {
         WANDER_Y: 120,
       },
       FAST: { // ZIP ZAP
-        SIZE: 30,
+        SIZE: 140,
         SPEED: 300,
         COLOR: '#ff3366',
         GLOW_COLOR: '#ff3366',
@@ -137,7 +146,7 @@ export const CONFIG = {
         WANDER_Y: 170,
       },
       TANK: { // GLORK
-        SIZE: 60,
+        SIZE: 160,
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
@@ -154,7 +163,7 @@ export const CONFIG = {
         WANDER_Y: 60,
       },
       ZIGZAG: { // PHIL
-        SIZE: 35,
+        SIZE: 160,
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
@@ -162,7 +171,7 @@ export const CONFIG = {
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
-        SPRITE_FRAMES: 8,
+        SPRITE_FRAMES: 10,
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
@@ -173,7 +182,7 @@ export const CONFIG = {
         WANDER_Y: 130,
       },
       FLIMFLAM: { // FLIM FLAM — THE BUZZER
-        SIZE: 38,
+        SIZE: 200,
         SPEED: 260,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
@@ -184,7 +193,7 @@ export const CONFIG = {
         RED_EYE_FRAME: 3,       // FRAME 3 — RED EYES
         BODY_FRAMES: 4,         // FRAMES 4-7
         BODY_FRAME_OFFSET: 4,   
-        WING_ANIM_SPEED: 16,
+        WING_ANIM_SPEED: 30,
         ANIM_SPEED: 6,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
@@ -364,14 +373,14 @@ export const CONFIG = {
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
-    HEALTH:            5, // FOR TESTING
+    HEALTH:            1, // FOR TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 10.0, // FOR TESTING
-    FIRST_SPAWN_DELAY_MAX: 15,// FOR TESTING
+    FIRST_SPAWN_DELAY_MIN: 1.0, // FOR TESTING
+    FIRST_SPAWN_DELAY_MAX: 1.5,// FOR TESTING
     SPAWN_GAP_MIN:         10,   // FOR TESTING
     SPAWN_GAP_MAX:         15, // FOR TESTING
 
-    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // FOR TESTING   
+    KILLS_PER_WAVE: [1, 1, 1, 1, 3], // FOR TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,
