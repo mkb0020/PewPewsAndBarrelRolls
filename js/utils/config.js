@@ -1,5 +1,4 @@
-// Updated 3/10/26 5:30AM
-// config.js
+// Updated 3/10/26 @ 11:00 PM
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -321,6 +320,7 @@ export const CONFIG = {
     FIRST_ATTACK_MIN:   1.0,   
     FIRST_ATTACK_MAX:   1.5, 
     REPEAT_INTERVAL:    22.0,  
+    TELEGRAPH_DURATION:  1.6,  // s — Glork green glow warning before attack fires
     MIN_SCALE:           0.50,  // GLORK MUST BE THIS SIZE TO ATTACK
     TUNNEL_SPEED_MULT:   0.28,  // TUNNEL SLOWS TO THIS PERCENT OF NORMAL SPEED 
     TUNNEL_GREEN:       0x22ff44, 
