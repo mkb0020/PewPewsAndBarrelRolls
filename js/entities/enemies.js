@@ -1,4 +1,4 @@
-// Updated 3/10/26 5:30AM
+// Updated 3/10/26 @ 7:30am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -158,9 +158,12 @@ export class Enemy {
     // ─── TANK SLIME ATTACK ───
     if (this.type === 'TANK') {
       const scfg = CONFIG.SLIME_ATTACK;
-      this.slimeTimer   = scfg.FIRST_ATTACK_MIN
-                        + Math.random() * (scfg.FIRST_ATTACK_MAX - scfg.FIRST_ATTACK_MIN);
-      this.pendingSlime = false;
+      this.slimeTimer           = scfg.FIRST_ATTACK_MIN
+                                + Math.random() * (scfg.FIRST_ATTACK_MAX - scfg.FIRST_ATTACK_MIN);
+      this.pendingSlime         = false;
+      this.slimeTelegraphActive = false;   
+      this.slimeTelegraphTimer  = 0;
+      this.slimeGlowPulse       = 0;      
     }
   }
 
@@ -264,12 +267,22 @@ export class Enemy {
       }
     }
 
-    // ─── TANK SLIME ───
     if (this.type === 'TANK') {
-      this.slimeTimer -= dt;
-      if (this.slimeTimer <= 0) {
-        this.slimeTimer   = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
-        this.pendingSlime = true;
+      if (this.slimeTelegraphActive) {
+        this.slimeTelegraphTimer -= dt;
+        this.slimeGlowPulse = (Math.sin(this.pulsePhase * 5.5) + 1) * 0.5;
+        if (this.slimeTelegraphTimer <= 0) {
+          this.slimeTelegraphActive = false;
+          this.slimeGlowPulse       = 0;
+          this.pendingSlime         = true;  
+        }
+      } else {
+        this.slimeTimer -= dt;
+        if (this.slimeTimer <= 0) {
+          this.slimeTimer           = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
+          this.slimeTelegraphActive = true;
+          this.slimeTelegraphTimer  = CONFIG.SLIME_ATTACK.TELEGRAPH_DURATION;
+        }
       }
     }
   }
@@ -352,10 +365,8 @@ export class Enemy {
   }
 
   draw(ctx) {
-    // ─── SKIP DRAW IF DEAD — EnemyDeathManager takes over rendering ───
     if (this.isDead) return;
 
-    // ─── SPAWN VFX — takes over rendering until assembly completes ───
     if (!this.spawnVFX.isDone) {
       this.spawnVFX.draw(ctx);
       return;
@@ -442,6 +453,20 @@ export class Enemy {
       ctx.beginPath();
       ctx.arc(this.x, this.y, renderSize * 0.5, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    // ── TANK SLIME TELEGRAPH GLOW  ──
+    if (this.type === 'TANK' && this.slimeTelegraphActive) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = '#22ff44';
+      ctx.shadowBlur  = 22 + this.slimeGlowPulse * 52;
+      ctx.globalAlpha = 0.22 + this.slimeGlowPulse * 0.42;
+      ctx.fillStyle   = '#22ff44';
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y, renderSize * 0.52, renderSize * 0.44, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
 
     ctx.restore();
