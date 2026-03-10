@@ -889,7 +889,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 /* ══════════════════════  PHOTON OVERDRIVE BAR  ══════════════════════ */
 #photon-overdrive-bar {
   position: fixed;
-  top: 22px;
+  top: 50px;
   left: 50%;
   transform: translateX(-50%);
   width: 160px;
@@ -954,7 +954,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 /* ══════════════════════  BOOST COOLDOWN BAR  ══════════════════════ */
 #boost-cooldown-bar {
   position: fixed;
-  top: 50px;
+  top: 22px;
   left: 50%;
   transform: translateX(-50%);
   width: 160px;
