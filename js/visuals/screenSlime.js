@@ -1,16 +1,16 @@
-// Updated 3/10/26 @ 7:50am
+// Updated 3/10/26 @ 10AM
 // screenSlime.js
 
 // ── DRIP CONSTANTS ────────────────────────────────────────────────────────────
-const POOL_H        = 32;    // px — HEIGHT OF SLIME POOL AT TOP OF SCREEN
-const DRIP_COUNT    = 9;     
-const GROW_MIN      = 42;    // px/s SLOW DRIP SPEED
+const POOL_H        = 40;    // px — HEIGHT OF SLIME POOL AT TOP OF SCREEN
+const DRIP_COUNT    = 7;     
+const GROW_MIN      = 50;    // px/s SLOW DRIP SPEED
 const GROW_MAX      = 85;    
-const LEN_MIN       = 105;   // px — DRIP LENGTH BEFORE DROPS DETACH 
-const LEN_MAX       = 295;  
-const ROOT_W_MIN    = 12;    // px — NARROWEST ROOT WIDTH 
-const ROOT_W_MAX    = 28;    // px — WIDEST ROOT WIDTH 
-const WOBBLE_AMP    = 24;    // px — MAX HORIZONTAL SWAY OF DRIP TIP
+const LEN_MIN       = 150;   // px — DRIP LENGTH BEFORE DROPS DETACH 
+const LEN_MAX       = 350;  
+const ROOT_W_MIN    = 25;    // px — NARROWEST ROOT WIDTH 
+const ROOT_W_MAX    = 40;    // px — WIDEST ROOT WIDTH 
+const WOBBLE_AMP    = 0;    // px — MAX HORIZONTAL SWAY OF DRIP TIP
 const DRIP_GAP_MIN  = 0.25;  // s  — MIN PAUSE BEFORE DRIP RESTARTS 
 const DRIP_GAP_MAX  = 2.2;   // s  — MAX PAUSE
 const DROP_GRAVITY  = 195;   // px/s² — FALLING DROPLET ACCELERATION 
@@ -128,10 +128,10 @@ export class ScreenSlime {
     if (intensity < 0.01) return;
 
     ctx.save();
-    ctx.globalAlpha = Math.min(1, intensity);
+    ctx.globalAlpha = Math.min(0.4, intensity);
 
-    this._drawPool(ctx);
     this._drawDrips(ctx);
+    this._drawPool(ctx);
     this._drawDroplets(ctx);
 
     ctx.restore();
@@ -209,7 +209,7 @@ export class ScreenSlime {
       tipX - halfStalk, poolY + len * 0.65,   
       tipX - tipR,      tipY                 
     );
-    ctx.arc(tipX, tipY, tipR, Math.PI, 0, false);  
+    ctx.arc(tipX, tipY, tipR, Math.PI, 0, true);  
     ctx.bezierCurveTo(
       tipX + halfStalk, poolY + len * 0.65,   
       x    + halfRoot,  poolY + len * 0.35,   
