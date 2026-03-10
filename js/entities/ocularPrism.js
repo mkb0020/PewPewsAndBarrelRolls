@@ -1,6 +1,4 @@
-// Updated 3/5/26 @ 7:45PM
-
-
+// Updated 3/10/26 @ 5:30AM
 // ocularPrism.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -53,7 +51,7 @@ export class OcularPrism {
 
   // ─── ACTIVATION ──────────────────────────────────────────────────────────
   activate(w, h) {
-    if (this.active || Date.now() < this.cooldownUntil) return;
+    if (this.active || Date.now() < this.cooldownUntil) return false;
     this.active          = true;
     this.fadingOut       = false;
     this.fadeAlpha       = 1;
@@ -68,6 +66,7 @@ export class OcularPrism {
 
     ImageLoader.load('prePrismEyes');
     ImageLoader.load('prismEye');
+    return true;
   }
 
   _activateShards(w, h) {
@@ -363,7 +362,7 @@ export class OcularPrism {
       ctx.restore();
     }
 
-    // ── WHITE FLASH on the final beat before the screen splits ───────────
+    // ── WHITE FLASH ───────────
     if (this._tFlashTimer > 0) {
       const flashAlpha = Math.max(0, Math.sin(this._tFlashTimer) * 0.6);
       if (flashAlpha > 0.01) {

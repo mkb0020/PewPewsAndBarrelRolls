@@ -1,4 +1,4 @@
-// Updated 3/9/26 12PM
+// Updated 3/10/26 5:30AM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -122,18 +122,11 @@ export class Enemy {
 
     // ─── FLIM FLAM SPECIFIC ───
     if (this.type === 'FLIMFLAM') {
-      this.wingCycle        = [0, 1, 2, 1];
-      this.wingT            = 0;
-      this.wingIndex        = 0;
-      this.bodyT            = 0;
-      this.bodyIndex        = 0;
       this.ffState          = 'HOVER';
       this.ffTimer          = 0.3 + Math.random() * 0.4;
       this.ffTargetX        = window.innerWidth  / 2;
       this.ffTargetY        = window.innerHeight / 2;
       this.ffBobPhase       = Math.random() * Math.PI * 2;
-      this.pendingBuzzStart = true;
-      this.stopBuzz         = null;
       // OCULAR PRISM ATTACK STATE
       this.ffAttackState      = 'IDLE';       // 'IDLE' | 'TELEGRAPHING'
       this.ffAttackTimer      = this.config.PRISM_FIRST_DELAY_MIN
@@ -177,16 +170,8 @@ export class Enemy {
 
     // ─── ANIMATION  ───
     this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
-
-    if (this.type === 'FLIMFLAM') {
-      this.wingT    += this.config.WING_ANIM_SPEED * dt;
-      this.wingIndex = this.wingCycle[Math.floor(this.wingT) % 4];
-      this.bodyT     = (this.bodyT + this.config.ANIM_SPEED * dt) % this.config.BODY_FRAMES;
-      this.bodyIndex = Math.floor(this.bodyT);
-    } else {
-      this.animFrame  = (this.animFrame + this.animSpeed * dt) % this.animCount;
-      this.frameIndex = Math.floor(this.animFrame);
-    }
+    this.animFrame  = (this.animFrame + this.animSpeed * dt) % this.animCount;
+    this.frameIndex = Math.floor(this.animFrame);
 
     if (this._bhSucked) return;
 
@@ -419,23 +404,21 @@ export class Enemy {
 
     if (this.type === 'FLIMFLAM' && sprite) {
       ctx.globalAlpha = spriteAlpha;
-      const fw  = sprite.width / this.config.SPRITE_FRAMES; 
+      const fw  = sprite.width / this.config.SPRITE_FRAMES;
       const fh  = sprite.height;
       const dx  = this.x - renderSize / 2;
       const dy  = this.y - renderSize / 2;
 
-      ctx.drawImage(sprite, this.wingIndex * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
+      ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
 
       if (this.ffAttackState === 'TELEGRAPHING') {
         const telegraphPulse = (Math.sin(this.pulsePhase * 4) + 1) * 0.5;
         ctx.save();
         ctx.shadowColor = '#ff0000';
         ctx.shadowBlur  = 25 + telegraphPulse * 40;
-        ctx.globalAlpha = spriteAlpha;
-        ctx.drawImage(sprite, this.config.RED_EYE_FRAME * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
+        ctx.globalAlpha = spriteAlpha * 0.7;
+        ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
         ctx.restore();
-      } else {
-        ctx.drawImage(sprite, (this.config.BODY_FRAME_OFFSET + this.bodyIndex) * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
       }
     } else {
       // ─── ALL OTHER ENEMIES ───
@@ -511,7 +494,6 @@ export class EnemyManager {
 
     this.onLaserFired   = null; 
     this.onSlimeAttack  = null; 
-    this.onBuzzStart    = null; 
     this.onOcularPrism  = null; 
     this.onTelegraph    = null;
 
@@ -597,19 +579,13 @@ export class EnemyManager {
         enemy.pendingLaser = null;
       }
 
-      // FLIM FLAM BUZZ — START ON FIRST FRAME
-      if (enemy.pendingBuzzStart && this.onBuzzStart) {
-        enemy.stopBuzz         = this.onBuzzStart();
-        enemy.pendingBuzzStart = false;
-      }
-
       // FLIM FLAM OCULAR PRISM — FIRE WHEN TELEGRAPHING COMPLETES
       if (enemy.pendingOcularPrism) {
         this.onOcularPrism?.(window.innerWidth, window.innerHeight);
         enemy.pendingOcularPrism = false;
       }
 
-      // FLIM FLAM TELEGRAPH — FIRES WHEN RED-EYE BEGINS
+      // FLIM FLAM TELEGRAPH — FIRES WHEN TELEGRAPHING BEGINS
       if (enemy.pendingTelegraph) {
         this.onTelegraph?.();
         enemy.pendingTelegraph = false;
@@ -622,7 +598,6 @@ export class EnemyManager {
       }
 
       if (enemy.isDead) {
-        enemy.stopBuzz?.(); // STOP BUZZ IF THIS IS A FLIM FLAM
         this.enemies.splice(i, 1);
       }
     }
@@ -659,7 +634,6 @@ export class EnemyManager {
 
   getEnemies() { return this.enemies; }
   clear() {
-    for (const enemy of this.enemies) enemy.stopBuzz?.();
     this.enemies = [];
     this.lasers  = [];
   }
