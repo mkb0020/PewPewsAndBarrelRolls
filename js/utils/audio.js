@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 5:30sm
+// Updated 3/10/26 @ 10am
 // audio.js
 export class AudioManager {
   constructor() {
@@ -113,6 +113,7 @@ export class AudioManager {
         babyWorms:   './audio/babyWorms.m4a',
         ouch:        './audio/ouch.m4a',
         splat:       './audio/splat.m4a',
+        buzz:        './audio/buzz.m4a',
         telegraph:   './audio/telegraph.m4a',
         prism:       './audio/prism.m4a',
         pop:         './audio/pop.m4a',
@@ -129,6 +130,7 @@ export class AudioManager {
         enemyDeath:     './audio/enemyDeath.m4a',    // BIOLOGICAL MELT COLLAPSE
         glitchOut:      './audio/glitchOut.m4a',     // SHIP DEATH GLITCH SEQUENCE
         boost:          './audio/boost.m4a',         // SHIP BOOST DRIVE
+        slimeSounds:    './audio/slimeSounds.m4a',   // GLORK SLIME TELEGRAPH
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -356,6 +358,34 @@ export class AudioManager {
     return this.isMuted;
   }
 
+  startLoopBuzz(volume = 0.35) {
+    if (this.isMuted || !this.context) return () => {};
+    const buffer = this._sfxBuffers['buzz'];
+    if (!buffer) return () => {};
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    source.loop   = true;
+
+    const gain = this.context.createGain();
+    gain.gain.value = Math.min(1, volume);
+    source.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
+
+    const entry = { source, gain };
+    this._activeLoops.push(entry);
+
+    return () => {
+      try {
+        gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
+        setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
+      } catch (_) {}
+      const idx = this._activeLoops.indexOf(entry);
+      if (idx !== -1) this._activeLoops.splice(idx, 1);
+    };
+  }
+
   startLoopStatic(volume = 0.55)    { return this._startLoop('static',    volume); }
   startLoopTelegraph(volume = 0.9)  { return this._startLoop('telegraph', volume); }
   startLoopPrism(volume = 0.65)     { return this._startLoop('prism',     volume); }
@@ -407,6 +437,7 @@ export class AudioManager {
   playOuch()        { this._playSfx('ouch',        0.5); }
   playPop()         { this._playSfx('pop',          0.9); }
   playSplat()       { this._playSfx('splat',        0.7); }
+  playSlimeSounds() { this._playSfx('slimeSounds',  0.8); }
   playLaser()       { this._playSfx('laser',        this.LASER_VOLUME);       }
   playEnemyLaser()  { this._playSfx('enemyLasers',  this.ENEMY_LASER_VOLUME); }
   playImpact()      { this._playSfx('impact',       this.IMPACT_VOLUME);      }

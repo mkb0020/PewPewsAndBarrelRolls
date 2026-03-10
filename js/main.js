@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 7:30am
+// Updated 3/10/26 @ 10am
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -97,6 +97,9 @@ enemyManager.onOcularPrism = (w, h) => {
     ocularPrism._stopPrism?.();   // safety: stop any prior orphaned loop
     ocularPrism._stopPrism = audio.startLoopPrism();
   }
+};
+enemyManager.onSlimeTelegraph = () => {
+  audio.playSlimeSounds();
 };
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   ImageLoader.load('slimeDrip');

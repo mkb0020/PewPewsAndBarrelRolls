@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 7:30am
+// Updated 3/10/26 @ 10am
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -317,8 +317,8 @@ export const CONFIG = {
   },
 
   SLIME_ATTACK: {
-    FIRST_ATTACK_MIN:   1.0,   
-    FIRST_ATTACK_MAX:   1.5, 
+    FIRST_ATTACK_MIN:   0.5,   
+    FIRST_ATTACK_MAX:   1, 
     REPEAT_INTERVAL:    22.0,  
     TELEGRAPH_DURATION:  1.6,  // s — Glork green glow warning before attack fires
     MIN_SCALE:           0.50,  // GLORK MUST BE THIS SIZE TO ATTACK
