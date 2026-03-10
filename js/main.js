@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 5:30AM
+// Updated 3/10/26 @ 7:30am
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -99,7 +99,6 @@ enemyManager.onOcularPrism = (w, h) => {
   }
 };
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
-  ImageLoader.load('slimeProjectiles');
   ImageLoader.load('slimeDrip');
   slimeAttack.trigger(glorkX, glorkY);
 };
@@ -118,9 +117,6 @@ ocularPrism.onExpired = () => {
   ocularPrism._stopPrism?.();     
   ocularPrism._stopPrism = null;
 };
-
-// ==================== SLIME ATTACK CALLBACKS ====================
-slimeAttack.onSplat = () => audio.playSplat();
 
 // ==================== COSMIC PRISM CALLBACKS ====================
 cosmicPrismManager.onCollect = (healAmt) => {
@@ -697,7 +693,7 @@ function gameLoop() {
       if (gameplayScene.isActive()) singularityBombManager.drawItems(ctx); // 💣 SPINOR COLLECTIBLES
   }
 
-  slimeAttack.draw(ctx);
+  slimeAttack.drawScreenSlime(ctx);
 
   if (slimeAttack.getSlimeIntensity() > 0.02) {
     const sprite     = ImageLoader.isLoaded('ship') ? ImageLoader.get('ship') : null;
