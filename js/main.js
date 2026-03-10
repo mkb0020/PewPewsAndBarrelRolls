@@ -1,4 +1,4 @@
-// Updated 3/9/26 12PM
+// Updated 3/10/26 @ 5:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -89,13 +89,14 @@ const bossBattleScene   = new BossBattleScene({
 
 // ==================== ENEMY CALLBACKS ====================
 enemyManager.onLaserFired  = () => audio.playEnemyLaser();
-enemyManager.onBuzzStart   = () => audio.startLoopBuzz(0.35);
 enemyManager.onTelegraph   = () => { ocularPrism._stopTelegraph = audio.startLoopTelegraph(); };
 enemyManager.onOcularPrism = (w, h) => {
   ocularPrism._stopTelegraph?.(); 
   ocularPrism._stopTelegraph = null;
-  ocularPrism._stopPrism = audio.startLoopPrism();
-  ocularPrism.activate(w, h);
+  if (ocularPrism.activate(w, h)) {
+    ocularPrism._stopPrism?.();   // safety: stop any prior orphaned loop
+    ocularPrism._stopPrism = audio.startLoopPrism();
+  }
 };
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   ImageLoader.load('slimeProjectiles');
