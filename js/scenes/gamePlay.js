@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 8PM
+// Updated 3/10/26 @ 10:30 AM
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -17,12 +17,12 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 3 — + PHIL
     types:      ['BASIC', 'FAST',  'ZIGZAG'],
-    weights:    [0.3,    0.3,     0.4],
+    weights:    [0.4,    0.3,     0.3],
     maxEnemies: 5,
   },
   { // WAVE 4 — + GLORK (TANK — SLIME ATTACK, FEWER SPAWNS )
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK'],
-    weights:    [0.2,    0.2,     0.3,     0.3],
+    weights:    [0.3,    0.2,     0.2,     0.3],
     maxEnemies: 4,
   },
   { // WAVE 5 — + FLIM FLAM
