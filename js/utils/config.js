@@ -115,7 +115,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 4, // FOR TESTING
+        HEALTH: 5, // FOR TESTING
         SCORE: 10,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
@@ -132,7 +132,7 @@ export const CONFIG = {
         SPEED: 300,
         COLOR: '#ff3366',
         GLOW_COLOR: '#ff3366',
-        HEALTH: 5, // FOR TESTING
+        HEALTH: 7, // FOR TESTING
         SCORE: 20,
         SPRITE_FRAMES: 5,
         ANIM_SPEED: 12,
@@ -149,7 +149,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 7, // FOR TESTING
+        HEALTH: 10, // FOR TESTING
         SCORE: 50,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 7,
@@ -171,7 +171,7 @@ export const CONFIG = {
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
         SPRITE_FRAMES: 5,
-        ANIM_SPEED: 9,
+        ANIM_SPEED: 7,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
         LASER_INTERVAL: 2.8,
@@ -185,7 +185,7 @@ export const CONFIG = {
         SPEED: 260,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 7, // FOR TESTING
+        HEALTH: 10, // FOR TESTING
         SCORE: 40,
         SPRITE_FRAMES: 4,
         ANIM_SPEED: 6,
@@ -200,8 +200,8 @@ export const CONFIG = {
         ROAM_X: 240,
         ROAM_Y: 155,
         COMBAT_DURATION: 11.0,
-        PRISM_FIRST_DELAY_MIN: 1.0, 
-        PRISM_FIRST_DELAY_MAX: 5.5,
+        PRISM_FIRST_DELAY_MIN: 0.5, 
+        PRISM_FIRST_DELAY_MAX: 1,
         PRISM_COOLDOWN_MIN:    8.0,  
         PRISM_COOLDOWN_MAX:   12.0,
         PRISM_TELEGRAPH:       1.8,  
@@ -320,7 +320,7 @@ export const CONFIG = {
     FIRST_ATTACK_MIN:   0.5,   
     FIRST_ATTACK_MAX:   1, 
     REPEAT_INTERVAL:    22.0,  
-    TELEGRAPH_DURATION:  1.6,  // s — Glork green glow warning before attack fires
+    TELEGRAPH_DURATION:  1.6,  
     MIN_SCALE:           0.50,  // GLORK MUST BE THIS SIZE TO ATTACK
     TUNNEL_SPEED_MULT:   0.28,  // TUNNEL SLOWS TO THIS PERCENT OF NORMAL SPEED 
     TUNNEL_GREEN:       0x22ff44, 
@@ -368,14 +368,14 @@ export const CONFIG = {
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
-    HEALTH:            1, // FOR TESTING
+    HEALTH:            5, // FOR TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 1.0, // FOR TESTING
-    FIRST_SPAWN_DELAY_MAX: 1.5,// FOR TESTING
+    FIRST_SPAWN_DELAY_MIN: 15.0, // FOR TESTING
+    FIRST_SPAWN_DELAY_MAX: 20.5,// FOR TESTING
     SPAWN_GAP_MIN:         10,   // FOR TESTING
-    SPAWN_GAP_MAX:         15, // FOR TESTING
+    SPAWN_GAP_MAX:         20, // FOR TESTING
 
-    KILLS_PER_WAVE: [1, 1, 1, 1, 3], // FOR TESTING   
+    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // FOR TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,

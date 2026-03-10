@@ -492,9 +492,9 @@ export class AudioManager {
   playPowerUp1() { this._playSfx('powerUp1', 0.5); }  // COSMIC PRISM HP HEAL COLLECT
   playPowerUp2() { this._playSfx('powerUp2', 0.5); }  // LASER BOOST
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
-  playBoost()    { this._playSfx('boost',    0.7); }  // SHIP BOOST DRIVE
+  playBoost()    { this._playSfx('boost',    0.6); }  // SHIP BOOST DRIVE
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.6); } // SINGULARITY BOMB DEPLOY
-  playEnemyDeath()    { this._playSfx('enemyDeath',    0.5); } // BIOLOGICAL MELT COLLAPSE
+  playEnemyDeath()    { this._playSfx('enemyDeath',    0.4); } // BIOLOGICAL MELT COLLAPSE
   playGlitchOut()     { this._playSfx('glitchOut',     0.85); } // SHIP DEATH GLITCH
 
   startWaveMusic(waveIndex) {

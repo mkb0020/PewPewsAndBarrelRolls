@@ -1,4 +1,4 @@
-// Updated 3/9/26 @ 12PM
+// Updated 3/10/26 @ 11AM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -134,14 +134,14 @@ export class Ship {
     } else {
       const vMag = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
       if (vMag > 10) {
-        dx =  this.velocity.x / vMag;
-        dy = -this.velocity.y / vMag; 
+        dx = this.velocity.x / vMag;
+        dy = this.velocity.y / vMag;   // POSITIVE-UP, matches offset.y convention
       }
     }
 
     const impulse = CONFIG.BOOST.IMPULSE;
     this.velocity.x += dx * impulse;
-    this.velocity.y -= dy * impulse; 
+    this.velocity.y += dy * impulse;   // CONSISTENT WITH velocity.y += inputY * accel in updateMovement
 
     this._boostActive   = true;
     this._boostTimer    = CONFIG.BOOST.DURATION;
