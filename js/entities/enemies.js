@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 7:30am
+// Updated 3/10/26 @ 10am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -160,10 +160,11 @@ export class Enemy {
       const scfg = CONFIG.SLIME_ATTACK;
       this.slimeTimer           = scfg.FIRST_ATTACK_MIN
                                 + Math.random() * (scfg.FIRST_ATTACK_MAX - scfg.FIRST_ATTACK_MIN);
-      this.pendingSlime         = false;
-      this.slimeTelegraphActive = false;   
-      this.slimeTelegraphTimer  = 0;
-      this.slimeGlowPulse       = 0;      
+      this.pendingSlime          = false;
+      this.pendingSlimeTelegraph = false;
+      this.slimeTelegraphActive  = false;   
+      this.slimeTelegraphTimer   = 0;
+      this.slimeGlowPulse        = 0;      
     }
   }
 
@@ -279,9 +280,10 @@ export class Enemy {
       } else {
         this.slimeTimer -= dt;
         if (this.slimeTimer <= 0) {
-          this.slimeTimer           = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
-          this.slimeTelegraphActive = true;
-          this.slimeTelegraphTimer  = CONFIG.SLIME_ATTACK.TELEGRAPH_DURATION;
+          this.slimeTimer            = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
+          this.slimeTelegraphActive  = true;
+          this.slimeTelegraphTimer   = CONFIG.SLIME_ATTACK.TELEGRAPH_DURATION;
+          this.pendingSlimeTelegraph = true;
         }
       }
     }
@@ -461,7 +463,7 @@ export class Enemy {
       ctx.globalCompositeOperation = 'lighter';
       ctx.shadowColor = '#22ff44';
       ctx.shadowBlur  = 22 + this.slimeGlowPulse * 52;
-      ctx.globalAlpha = 0.22 + this.slimeGlowPulse * 0.42;
+      ctx.globalAlpha = 0.05 + this.slimeGlowPulse * 0.1;
       ctx.fillStyle   = '#22ff44';
       ctx.beginPath();
       ctx.ellipse(this.x, this.y, renderSize * 0.52, renderSize * 0.44, 0, 0, Math.PI * 2);
@@ -517,10 +519,11 @@ export class EnemyManager {
     this.nextSpawnDelay = this.randomSpawnDelay();
     this.time       = 0;
 
-    this.onLaserFired   = null; 
-    this.onSlimeAttack  = null; 
-    this.onOcularPrism  = null; 
-    this.onTelegraph    = null;
+    this.onLaserFired      = null; 
+    this.onSlimeAttack     = null; 
+    this.onSlimeTelegraph  = null;
+    this.onOcularPrism     = null; 
+    this.onTelegraph       = null;
 
     //  WAVE CONTROL  
     this._allowedTypes    = null;   
@@ -614,6 +617,12 @@ export class EnemyManager {
       if (enemy.pendingTelegraph) {
         this.onTelegraph?.();
         enemy.pendingTelegraph = false;
+      }
+
+      // SLIME TELEGRAPH START — FIRES WHEN GREEN GLOW BEGINS
+      if (enemy.pendingSlimeTelegraph) {
+        this.onSlimeTelegraph?.();
+        enemy.pendingSlimeTelegraph = false;
       }
 
       // COLLECT SLIME ATTACK (TANK / GLORK ONLY)

@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 7:30am
+// Updated 3/10/26 @ 10AM
 // slimeAttack.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { ImageLoader }  from '../utils/imageLoader.js';
@@ -18,7 +18,7 @@ export class SlimeAttack {
 
     // ── WARP PHASE ────────────────────────────────────────────────
     this.warpTimer        = 0;
-    this.WARP_DURATION    = 7.0;
+    this.WARP_DURATION    = 7.2;
     this.recoverTimer     = 0;
     this.RECOVER_DURATION = 1.8;
 
