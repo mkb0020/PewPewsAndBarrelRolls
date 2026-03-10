@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10am
+// Updated 3/10/26 @ 10:30AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -437,7 +437,41 @@ export class AudioManager {
   playOuch()        { this._playSfx('ouch',        0.5); }
   playPop()         { this._playSfx('pop',          0.9); }
   playSplat()       { this._playSfx('splat',        0.7); }
-  playSlimeSounds() { this._playSfx('slimeSounds',  0.8); }
+  startSlimeSounds(volume = 0.8) {
+    if (this.isMuted || !this.context) return () => {};
+    const buffer = this._sfxBuffers['slimeSounds'];
+    if (!buffer) return () => {};
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    source.loop   = false;
+
+    const gain = this.context.createGain();
+    gain.gain.value = Math.min(1, volume);
+    source.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
+
+    const entry = { source, gain };
+    this._activeLoops.push(entry);
+
+    const stop = () => {
+      try {
+        gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
+        setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
+      } catch (_) {}
+      const idx = this._activeLoops.indexOf(entry);
+      if (idx !== -1) this._activeLoops.splice(idx, 1);
+    };
+
+    // Auto-clean from registry when it finishes naturally
+    source.onended = () => {
+      const idx = this._activeLoops.indexOf(entry);
+      if (idx !== -1) this._activeLoops.splice(idx, 1);
+    };
+
+    return stop;
+  }
   playLaser()       { this._playSfx('laser',        this.LASER_VOLUME);       }
   playEnemyLaser()  { this._playSfx('enemyLasers',  this.ENEMY_LASER_VOLUME); }
   playImpact()      { this._playSfx('impact',       this.IMPACT_VOLUME);      }

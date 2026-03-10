@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10am
+// Updated 3/10/26 @ 10:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -94,12 +94,14 @@ enemyManager.onOcularPrism = (w, h) => {
   ocularPrism._stopTelegraph?.(); 
   ocularPrism._stopTelegraph = null;
   if (ocularPrism.activate(w, h)) {
-    ocularPrism._stopPrism?.();   // safety: stop any prior orphaned loop
+    ocularPrism._stopPrism?.();  
     ocularPrism._stopPrism = audio.startLoopPrism();
   }
 };
 enemyManager.onSlimeTelegraph = () => {
-  audio.playSlimeSounds();
+  if (slimeAttack.isActive()) return;
+  audio._stopSlimeSounds?.();  
+  audio._stopSlimeSounds = audio.startSlimeSounds();
 };
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   ImageLoader.load('slimeDrip');
@@ -279,6 +281,7 @@ ship.onDeath       = (livesLeft) => {
   if (!inWormBattle) {
     enemyManager.clear();
     slimeAttack.reset();
+    audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
     ocularPrism.active = false;
     ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
     ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
@@ -363,6 +366,7 @@ transitionScene.onRestart = () => {
   projectileManager.clear();
   babyWormManager.clear();
   slimeAttack.reset();
+  audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
   ocularPrism.active = false;
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
