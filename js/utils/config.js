@@ -1,4 +1,4 @@
-// Updated 3/9/26 12PM
+// Updated 3/10/26 5:30AM
 // config.js
 export const CONFIG = {
   TUNNEL: {
@@ -152,7 +152,7 @@ export const CONFIG = {
         GLOW_COLOR: '#FF0000',
         HEALTH: 7, // FOR TESTING
         SCORE: 50,
-        SPRITE_FRAMES: 5,
+        SPRITE_FRAMES: 11,
         ANIM_SPEED: 7,
         COLLISION_DAMAGE: 35,
         LASER_COLOR: '#ff0000',
@@ -171,7 +171,7 @@ export const CONFIG = {
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
-        SPRITE_FRAMES: 10,
+        SPRITE_FRAMES: 5,
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
@@ -188,12 +188,7 @@ export const CONFIG = {
         GLOW_COLOR: '#FF0000',
         HEALTH: 7, // FOR TESTING
         SCORE: 40,
-        SPRITE_FRAMES: 8,       // TOTAL: 3 WINGS + 1RED EYE TELEGRAPH + 4 NORMAL BODY
-        WING_FRAMES: 3,         // FRAMES 0-2
-        RED_EYE_FRAME: 3,       // FRAME 3 — RED EYES
-        BODY_FRAMES: 4,         // FRAMES 4-7
-        BODY_FRAME_OFFSET: 4,   
-        WING_ANIM_SPEED: 30,
+        SPRITE_FRAMES: 4,
         ANIM_SPEED: 6,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
