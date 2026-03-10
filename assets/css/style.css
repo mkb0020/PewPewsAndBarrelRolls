@@ -1121,7 +1121,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 /* ════════════════════════════  SINGULARITY BOMB HUD ════════════════════════════ */
 #bomb-container {
   position: fixed;
-  top: 195px;
+  top: 185px;
   right: 30px;
   z-index: 100;
   display: flex;
@@ -1172,6 +1172,11 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 #bomb-container.bomb-flash #bomb-icon,
 #bomb-container.bomb-flash #bomb-count {
   animation: bomb-flash-anim 0.4s ease-out forwards;
+}
+
+.bomb-img {
+  height: 65px;
+  width: 65px;
 }
 
 @keyframes bomb-flash-anim {
@@ -1700,7 +1705,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   }
 
 #bomb-container {
-  top: 130px;
+  top: 120px;
   right: 12px;
 }
 
@@ -1710,6 +1715,11 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
 #bomb-count {
   font-size: 1.1rem;
+}
+
+.bomb-img {
+  height: 50px;
+  width: 50px;
 }
 
   #boss-health-container {
@@ -1753,14 +1763,14 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
   /* ── WAVE HUD — MOBILE ── */
   #wave-hud {
-    bottom: 150px;  
+    bottom: 160px;  
   }
   #wave-counter {
     font-size: 1.1rem;
   }
 
 .wormCount-icon{
-  width: 30px;
+  width: 25px;
   height:auto;
 }
 
