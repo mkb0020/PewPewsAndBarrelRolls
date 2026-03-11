@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10:30 AM
+// Updated 3/11/26 @ 1 AM
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -8,26 +8,26 @@ const WAVE_CONFIGS = [
   { // WAVE 1 — GLIP GLOP ONLY
     types:      ['BASIC'],
     weights:    [1.00],
-    maxEnemies: 4, // FOR TESTING
+    maxEnemies: 4, 
   },
   { // WAVE 2 — + ZIP ZAP
     types:      ['BASIC', 'FAST'],
-    weights:    [0.50,    0.5],
+    weights:    [0.10,    0.9], // FOR TESTING
     maxEnemies: 5,
   },
   { // WAVE 3 — + PHIL
     types:      ['BASIC', 'FAST',  'ZIGZAG'],
-    weights:    [0.4,    0.3,     0.3],
+    weights:    [0.1,    0.1,     0.8], // FOR TESTING
     maxEnemies: 5,
   },
   { // WAVE 4 — + GLORK (TANK — SLIME ATTACK, FEWER SPAWNS )
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK'],
-    weights:    [0.3,    0.2,     0.2,     0.3],
+    weights:    [0.3,    0.2,     0.2,     0.3], // FOR TESTING
     maxEnemies: 4,
   },
   { // WAVE 5 — + FLIM FLAM
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK',  'FLIMFLAM'],
-    weights:    [0.2,    0.2,     0.15,     0.2,    0.25],
+    weights:    [0.1,    0.1,     0.1,     0.1,    0.6], // FOR TESTING
     maxEnemies: 4,
   },
 ];
