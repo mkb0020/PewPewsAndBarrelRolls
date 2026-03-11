@@ -1,9 +1,10 @@
-// Updated 3/10/26 @ 10am
+// Updated 3/11/26 @ 1am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 import { ImageLoader, ENEMY_SPRITE } from '../utils/imageLoader.js';
 import { GlitchFleshAssembly } from '../visuals/glitchFleshAssembly.js';
+import { TentacleSystem, TENTACLE_TYPES } from '../entities/tentacles.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //  SINGULARITY BOMB HOOK - FOR SPAGHETTIFICATION 
@@ -101,11 +102,20 @@ export class Enemy {
 
     // ─── SPRITE / ANIMATION ───
     this.spriteKey  = ENEMY_SPRITE[type];
-    this.animFrame  = Math.random() * this.config.SPRITE_FRAMES;
     this.animCount  = this.config.SPRITE_FRAMES;
     this.animSpeed  = this.config.ANIM_SPEED;
-    this.frameIndex = Math.floor(this.animFrame);
     this.pulsePhase = Math.random() * Math.PI * 2;
+
+    // ─── FRAME INDEX ───
+    // OCTOPUS TYPES: LOCK TO BODY FRAME (NO SPRITE CYCLE — LIFE COMES FROM TENTACLES)
+    // JELLYFISH TYPES: RANDOMIZE START FRAME FOR ANIMATION VARIATION
+    if (TENTACLE_TYPES.has(type)) {
+      this.animFrame  = this.config.BODY_FRAME;
+      this.frameIndex = this.config.BODY_FRAME;
+    } else {
+      this.animFrame  = Math.random() * this.config.SPRITE_FRAMES;
+      this.frameIndex = Math.floor(this.animFrame);
+    }
 
     // ─── PHASE STATE MACHINE ───
     this.phase        = 'APPROACH';  // 'APPROACH' | 'COMBAT'
@@ -141,6 +151,10 @@ export class Enemy {
     // ─── SPAWN VFX ───
     this.spawnVFX = new GlitchFleshAssembly(this);
 
+    // ─── TENTACLE SYSTEM (OCTOPUS TYPES ONLY) ───
+    // INITIALIZED AFTER SPAWN VFX — TENTACLES APPEAR ONCE ASSEMBLY IS COMPLETE
+    this.tentacleSystem = TENTACLE_TYPES.has(type) ? new TentacleSystem(this) : null;
+
     // ─── BLACK HOLE SUCTION ───
     this._bhSucked         = false;  
     this._bhOriginalScale  = 1;      
@@ -172,10 +186,17 @@ export class Enemy {
     // ─── SPAWN VFX ───
     if (!this.spawnVFX.isDone) this.spawnVFX.update(dt);
 
-    // ─── ANIMATION  ───
+    // ─── ANIMATION (JELLYFISH TYPES ONLY — OCTOPUS frameIndex IS LOCKED) ───
     this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
-    this.animFrame  = (this.animFrame + this.animSpeed * dt) % this.animCount;
-    this.frameIndex = Math.floor(this.animFrame);
+    if (this.animSpeed > 0) {
+      this.animFrame  = (this.animFrame + this.animSpeed * dt) % this.animCount;
+      this.frameIndex = Math.floor(this.animFrame);
+    }
+
+    // ─── TENTACLE UPDATE (OCTOPUS TYPES, COMBAT PHASE ONLY) ───
+    if (this.tentacleSystem && this.spawnVFX.isDone) {
+      this.tentacleSystem.update(dt, time);
+    }
 
     if (this._bhSucked) return;
 
@@ -353,7 +374,7 @@ export class Enemy {
     }
   }
 
-  checkCollision(shipX, shipY) { // RETURNS COLLISION DAMAGE IF CLOSE AND HASN'T ALREADY HIT / 0 OTHERSWISE
+  checkCollision(shipX, shipY) { // RETURNS COLLISION DAMAGE IF CLOSE AND HASN'T ALREADY HIT / 0 OTHERWISE
     if (this.hasDealtCollisionDamage || this.scale < 0.82) return 0;
     const hitRadius = this.getSize() * 0.75; // SLIGHTLY FORGIVING
     const dx = this.x - shipX;
@@ -380,6 +401,9 @@ export class Enemy {
     const renderSize   = this.config.SIZE * this.scale;
     const sprite       = ImageLoader.get(this.spriteKey);
 
+    // ── TENTACLES BEHIND BODY — NOT AFFECTED BY BH TRANSFORMS ────────────────
+    if (this.tentacleSystem) this.tentacleSystem.draw(ctx);
+
     ctx.save();
 
     // ── SPAGHETTIFICATION ──
@@ -400,7 +424,7 @@ export class Enemy {
     }
 
     // ── GRAVITATIONAL LENS DISTORTION — DISPLACES DRAW POSITION OUTWARD FROM BH ──
-    // PURELY VISUAL— REUSES _activeSingularityBH HOOK
+    // PURELY VISUAL — REUSES _activeSingularityBH HOOK
     if (_activeSingularityBH && !_activeSingularityBH.isDead()) {
       const lensStr = _activeSingularityBH.getLensStrength?.() ?? 0;
       if (lensStr > 0.005) {
@@ -415,37 +439,32 @@ export class Enemy {
       }
     }
 
-    if (this.type === 'FLIMFLAM' && sprite) {
-      ctx.globalAlpha = spriteAlpha;
-      const fw  = sprite.width / this.config.SPRITE_FRAMES;
-      const fh  = sprite.height;
-      const dx  = this.x - renderSize / 2;
-      const dy  = this.y - renderSize / 2;
-
-      ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
-
-      if (this.ffAttackState === 'TELEGRAPHING') {
-        const telegraphPulse = (Math.sin(this.pulsePhase * 4) + 1) * 0.5;
-        ctx.save();
-        ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur  = 25 + telegraphPulse * 40;
-        ctx.globalAlpha = spriteAlpha * 0.7;
-        ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, fh, dx, dy, renderSize, renderSize);
-        ctx.restore();
-      }
+    // ── BODY SPRITE  ──────────────────
+    ctx.globalAlpha = spriteAlpha;
+    if (sprite) {
+      const fw = sprite.width / this.animCount;
+      const dx = this.x - renderSize / 2;
+      const dy = this.y - renderSize / 2;
+      ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, sprite.height, dx, dy, renderSize, renderSize);
     } else {
-      // ─── ALL OTHER ENEMIES ───
-      ctx.globalAlpha = spriteAlpha;
-      if (sprite) {
-        const fw = sprite.width / this.animCount;
-        ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, sprite.height,
-          this.x - renderSize / 2, this.y - renderSize / 2, renderSize, renderSize);
-      } else {
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * this.scale, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * this.scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ── FLIMFLAM TELEGRAPH GLOW ────────────────────────────────────────────────
+    if (this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING' && sprite) {
+      const fw             = sprite.width / this.animCount;
+      const dx             = this.x - renderSize / 2;
+      const dy             = this.y - renderSize / 2;
+      const telegraphPulse = (Math.sin(this.pulsePhase * 4) + 1) * 0.5;
+      ctx.save();
+      ctx.shadowColor = '#ff0000';
+      ctx.shadowBlur  = 25 + telegraphPulse * 40;
+      ctx.globalAlpha = spriteAlpha * 0.7;
+      ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, sprite.height, dx, dy, renderSize, renderSize);
+      ctx.restore();
     }
 
     // ─── APPROACH TINT OVERLAY ───
@@ -472,6 +491,8 @@ export class Enemy {
     }
 
     ctx.restore();
+
+    // ── HEALTH BAR ────────────────────────────────────────────────────────────
     if (fadeProgress > 0.15 && !this._bhSucked) {
       const halfSprite = renderSize * 0.5;
       const barW    = Math.max(55, renderSize * 0.72);
@@ -653,7 +674,7 @@ export class EnemyManager {
     return totalDamage;
   }
  
-  checkCollisions(shipX, shipY) {  // CHECK ALL ENEMIES FOR BODY COLLISION WITH SHIP - RETURNS TOTSL DAMAGE DEALT THIS FRAME
+  checkCollisions(shipX, shipY) {  // CHECK ALL ENEMIES FOR BODY COLLISION WITH SHIP - RETURNS TOTAL DAMAGE DEALT THIS FRAME
     let totalDamage = 0;
     for (const enemy of this.enemies) {
       totalDamage += enemy.checkCollision(shipX, shipY);
