@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10:30AM
+// Updated 3/11/26 @ 1AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -494,8 +494,8 @@ export class AudioManager {
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
   playBoost()    { this._playSfx('boost',    0.6); }  // SHIP BOOST DRIVE
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.6); } // SINGULARITY BOMB DEPLOY
-  playEnemyDeath()    { this._playSfx('enemyDeath',    0.4); } // BIOLOGICAL MELT COLLAPSE
-  playGlitchOut()     { this._playSfx('glitchOut',     0.85); } // SHIP DEATH GLITCH
+  playEnemyDeath()    { this._playSfx('enemyDeath',    0.2); } // BIOLOGICAL MELT COLLAPSE
+  playGlitchOut()     { this._playSfx('glitchOut',     0.7); } // SHIP DEATH GLITCH
 
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;

@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10am
+// Updated 3/11/26 @ 1 AM
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -80,9 +80,9 @@ export const CONFIG = {
     COLLECT_RADIUS:    52,    
     ROTATION_SPEED:    0.9,   
     LIFETIME:          5,    
-    FIRST_SPAWN_DELAY: 12,    //FOR TESTING
-    SPAWN_INTERVAL:    30,     //FOR TESTING
-    MAX_COUNT:         1,     //FOR TESTING
+    FIRST_SPAWN_DELAY: 12,    // TESTING
+    SPAWN_INTERVAL:    30,     // TESTING
+    MAX_COUNT:         1,     // TESTING
     BOOST_DURATION:    8.0,   
   },
 
@@ -102,7 +102,7 @@ export const CONFIG = {
   MAX_PIXEL_RATIO: 2,
 
   ENEMIES: {
-    MAX_COUNT: 1, // FOR TESTING
+    MAX_COUNT: 1, //  TESTING
     SPAWN_INTERVAL_MIN: 3.0, 
     SPAWN_INTERVAL_MAX: 6,
     SPAWN_DISTANCE: 400, 
@@ -127,68 +127,117 @@ export const CONFIG = {
         WANDER_X: 180,
         WANDER_Y: 120,
       },
+
       FAST: { // ZIP ZAP
-        SIZE: 140,
-        SPEED: 300,
-        COLOR: '#ff3366',
-        GLOW_COLOR: '#ff3366',
-        HEALTH: 7, // FOR TESTING
+        SIZE: 130,
+        SPEED: 200,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#303040',
+        HEALTH: 7,
         SCORE: 20,
-        SPRITE_FRAMES: 5,
-        ANIM_SPEED: 12,
+
+        SPRITE_FRAMES: 6,       // NOTE TO SELF:  IF I FINALIZE TO NOT USE SPRITE SEGMENTS, UPDATE THIS TO 3 
+        BODY_FRAME:    1,       
+        SEGMENT_FRAME: 4,        
+        ANIM_SPEED:    0,       
+        SPLINE_COLOR:  '#4a4a63',
+
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 2.0,   
-        COMBAT_DURATION: 7.0,   
+        LASER_INTERVAL: 2.0,
+        COMBAT_DURATION: 7.0,
         WANDER_SPEED: 200,
         WANDER_X: 290,
         WANDER_Y: 170,
+// VALUES BELOW ARE NOT FINALIZED - TWEAKS NEEDED TO GET THE TENTACLES JUST RIGHT
+        TENTACLE_COUNT:          4,
+        TENTACLE_SEGMENTS:       6,
+        TENTACLE_SEGMENT_LENGTH: 13,   
+        TENTACLE_BASE_WIDTH:     20,   // px AT BASE (TAPERS TO ~0.28x AT TIP)
+        TENTACLE_REACH:          90,  // px RADIUS — TIP WANDER RANGE
+        TENTACLE_WANDER_SPEED:   1.2, 
+        TENTACLE_CURL_STRENGTH:  0.18, // HIGHER = MORE WRITHING
+        TENTACLE_ANCHOR_RADIUS:  35,   // px FROM BODY CENTER TO ATTACHMENT POINT
+        TENTACLE_ANCHOR_Y_OFFSET: 20,  // px — SHIFTS ANCHOR DOWN TO BASE OF HEAD SPRITE
+        TENTACLE_REPEL_RADIUS:    50,  // px — SEGMENTS PUSHED OUTSIDE THIS RADIUS FROM BODY CENTER
+        TENTACLE_REPEL_STRENGTH:  50,  // px OF PUSH AT FULL OVERLAP (TUNE UP IF BUNCHING PERSISTS)
+        TENTACLE_TIP_GRAVITY:     40,  // px CONSTANT DOWNWARD PULL ON TIP — HIGHER = MORE DROOP
+        TENTACLE_TIP_REPEL_RADIUS:   55,  // px — TIPS PUSH EACH OTHER APART
+        TENTACLE_TIP_REPEL_STRENGTH: 70,  // PUSH MAGNITUDE — HIGHER = MORE SPREAD
       },
-      TANK: { // GLORK
+
+      TANK: { // GLORK 
         SIZE: 160,
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10, // FOR TESTING
+        HEALTH: 10,
         SCORE: 50,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 7,
         COLLISION_DAMAGE: 35,
         LASER_COLOR: '#ff0000',
         LASER_INTERVAL: 3.5,
-        COMBAT_DURATION: 16.0, 
+        COMBAT_DURATION: 16.0,
         WANDER_SPEED: 30,
         WANDER_X: 90,
         WANDER_Y: 60,
       },
-      ZIGZAG: { // PHIL
-        SIZE: 160,
+
+      ZIGZAG: { // PHIL — 
+        SIZE: 110,
         SPEED: 200,
         COLOR: '#FF0000',
-        GLOW_COLOR: '#FF0000',
-        HEALTH: 7, // FOR TESTING
+        GLOW_COLOR: '#2b2927',
+        HEALTH: 7,
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 90,
         ZIGZAG_FREQUENCY: 3.2,
-        SPRITE_FRAMES: 5,
-        ANIM_SPEED: 7,
+
+        SPRITE_FRAMES: 6,        // NOTE TO SELF:  IF I FINALIZE TO NOT USE SPRITE SEGMENTS, UPDATE THIS TO 3 
+        BODY_FRAME:    0,        
+        SEGMENT_FRAME: 3,        
+        ANIM_SPEED:    0,        
+        SPLINE_COLOR:  '#47443f', 
+
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
         LASER_INTERVAL: 2.8,
         COMBAT_DURATION: 11.0,
-        WANDER_SPEED: 55,      
+        WANDER_SPEED: 55,
         WANDER_X: 80,
         WANDER_Y: 130,
+// VALUES BELOW ARE NOT FINALIZED - TWEAKS NEEDED TO GET THE TENTACLES JUST RIGHT
+        TENTACLE_COUNT:          4,
+        TENTACLE_SEGMENTS:       6,
+        TENTACLE_SEGMENT_LENGTH: 18,
+        TENTACLE_BASE_WIDTH:     20,
+        TENTACLE_REACH:          80,   
+        TENTACLE_WANDER_SPEED:   1.2,  
+        TENTACLE_CURL_STRENGTH:  0.15,
+        TENTACLE_ANCHOR_RADIUS:  25,
+        TENTACLE_ANCHOR_Y_OFFSET: 25,
+        TENTACLE_REPEL_RADIUS:    30,
+        TENTACLE_REPEL_STRENGTH:  50,
+        TENTACLE_TIP_GRAVITY:     40,  
+        TENTACLE_TIP_REPEL_RADIUS:   50,
+        TENTACLE_TIP_REPEL_STRENGTH: 50,
       },
-      FLIMFLAM: { // FLIM FLAM — THE BUZZER
-        SIZE: 200,
+
+      FLIMFLAM: { // FLIM FLAM
+        SIZE: 150,
         SPEED: 260,
         COLOR: '#FF0000',
-        GLOW_COLOR: '#FF0000',
-        HEALTH: 10, // FOR TESTING
+        GLOW_COLOR: '#590202',
+        HEALTH: 10,
         SCORE: 40,
-        SPRITE_FRAMES: 4,
-        ANIM_SPEED: 6,
+
+        SPRITE_FRAMES: 6,    // NOTE TO SELF:  IF I FINALIZE TO NOT USE SPRITE SEGMENTS, UPDATE THIS TO 3    
+        BODY_FRAME:    2,       
+        SEGMENT_FRAME: 5,       
+        ANIM_SPEED:    0,        
+        SPLINE_COLOR:  '#590202', 
+
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
         LASER_INTERVAL: 2.8,
@@ -200,12 +249,30 @@ export const CONFIG = {
         ROAM_X: 240,
         ROAM_Y: 155,
         COMBAT_DURATION: 11.0,
-        PRISM_FIRST_DELAY_MIN: 0.5, 
+        PRISM_FIRST_DELAY_MIN: 0.5,
         PRISM_FIRST_DELAY_MAX: 1,
-        PRISM_COOLDOWN_MIN:    8.0,  
+        PRISM_COOLDOWN_MIN:    8.0,
         PRISM_COOLDOWN_MAX:   12.0,
-        PRISM_TELEGRAPH:       1.8,  
+        PRISM_TELEGRAPH:       1.8,
+// VALUES BELOW ARE NOT FINALIZED - TWEAKS NEEDED TO GET THE TENTACLES JUST RIGHT
+        TENTACLE_COUNT:          4,
+        TENTACLE_SEGMENTS:       6,
+        TENTACLE_SEGMENT_LENGTH: 18,
+        TENTACLE_BASE_WIDTH:     32,   
+        TENTACLE_REACH:          120,  
+        TENTACLE_WANDER_SPEED:   0.8,  
+        TENTACLE_CURL_STRENGTH:  0.10,
+        TENTACLE_ANCHOR_RADIUS:  24,
+        TENTACLE_ANCHOR_Y_OFFSET: 22,  
+        TENTACLE_REPEL_RADIUS:    36,
+        TENTACLE_REPEL_STRENGTH:  50,
+        TENTACLE_TIP_GRAVITY:     60,  
+        TENTACLE_TIP_REPEL_RADIUS:   65,  
+        TENTACLE_TIP_REPEL_STRENGTH: 50,
       },
+
+
+
     },
 
     GLOW_OPACITY: 0.3,
@@ -368,14 +435,14 @@ export const CONFIG = {
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
-    HEALTH:            5, // FOR TESTING
+    HEALTH:            1, // FOR TESTING
 
-    FIRST_SPAWN_DELAY_MIN: 15.0, // FOR TESTING
-    FIRST_SPAWN_DELAY_MAX: 20.5,// FOR TESTING
-    SPAWN_GAP_MIN:         10,   // FOR TESTING
-    SPAWN_GAP_MAX:         20, // FOR TESTING
+    FIRST_SPAWN_DELAY_MIN: 1.0, // FOR TESTING
+    FIRST_SPAWN_DELAY_MAX: 1.5,// FOR TESTING
+    SPAWN_GAP_MIN:         10,   //  TESTING
+    SPAWN_GAP_MAX:         20, //  TESTING
 
-    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // FOR TESTING   
+    KILLS_PER_WAVE: [1, 1, 1, 1, 1], // FOR TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,
@@ -398,10 +465,10 @@ export const CONFIG = {
     RADIUS:               20,    // SPINOR ITEM
     COLLECT_RADIUS:       50,    
     LIFETIME:             5,    
-    FIRST_SPAWN_DELAY:    30,    // FOR TESTING
-    SPAWN_INTERVAL:       45,   // FOR TESTING
+    FIRST_SPAWN_DELAY:    30,    //  TESTING
+    SPAWN_INTERVAL:       45,   //  TESTING
     MAX_COUNT:             1,   
-    MAX_INVENTORY:         3,    // FOR TESTING
+    MAX_INVENTORY:         3,    
     ROTATION_SPEED:        1.4,  // radians/s — INTERNAL SPINOR ANGLE
 
     BH_LIFETIME:           7,  // SECONDS AT FULL SIZE (CURRENT SFX IS 4 BARS = 10.67 SECONDS / COLLAPSE SOUND IS AT BAR 3 = 8 SECONDS)
@@ -433,7 +500,7 @@ export const CONFIG = {
   //  SHIP DEATH SEQUENCE  (NON-BOSS BATTLE)
   SHIP_DEATH: {
     FREEZE_DURATION:    0.2,   
-    GLITCH_DURATION:    2.4,   // FOR TESTING
+    GLITCH_DURATION:    2.4,   
     GLITCH_SLICES:      9,     
     GLITCH_OFFSET_MAX:  16,     
     PIECE_SCALE:        0.47,   
@@ -442,7 +509,7 @@ export const CONFIG = {
     PIECE_DRIFT_X:      100,     
     PIECE_DRIFT_Y:      45,     
     PIECE_SPIN:         2.2,   
-    PIECE_FADE_START:   1.8,   // FOR TESTING
+    PIECE_FADE_START:   1.8,  
     KABAM_FRAMES:       5,
     KABAM_FPS:          13,    
     KABAM_SIZE:         270,    

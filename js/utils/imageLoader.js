@@ -1,5 +1,4 @@
-// Updated 3/8/26 @ 8am
-
+// Updated 3/11/26 @ 1AM
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -10,10 +9,13 @@ const MANIFEST = {
   babyWorm:     { path: 'babyWorm.png' },
   glork:        { path: 'glork.png' },       // 5 FRAMES
   glipGlop:     { path: 'glipGlop.png' },    // 5 FRAMES
-  zipZap:       { path: 'zipZap.png' },      // 5 FRAMES
-  phil:         { path: 'phil.png' },        // 8 FRAMES
-  flimFlam:     { path: 'flimFlam.png' },   // 8 FRAMES: 0-2 wings, 3 red-eye, 4-7 body
-  boom:         { path: 'boom.png' },        // 6 FRAMES 
+
+  // ── QUADROPUS — COMBINED SHEET FOR ALL 3 OCTOPUS-TYPE ENEMIES ──
+  // FRAME LAYOUT: 0=Phil body  1=ZipZap body  2=FlimFlam body
+  //               3=Phil seg   4=ZipZap seg   5=FlimFlam seg
+  quadropus:    { path: 'quadropus.png' },
+
+  boom:         { path: 'boom.png' },        // 6 FRAMES
   zap:          { path: 'zap.png',     lazy: true },   // 6 FRAMES
   bam:          { path: 'bam.png' },         // 8 FRAMES
   spiral:       { path: 'spiral.png',  lazy: true },   // 13 FRAMES
@@ -34,11 +36,11 @@ const MANIFEST = {
 
 
 export const ENEMY_SPRITE = {
-  BASIC:   'glipGlop',
-  FAST:    'zipZap',
-  TANK:    'glork',
-  ZIGZAG:  'phil',
-  FLIMFLAM:'flimFlam',
+  BASIC:    'glipGlop',
+  FAST:     'quadropus',   // ZIP ZAP — OCTOPUS (BODY FRAME 1, SEG FRAME 4)
+  TANK:     'glork',
+  ZIGZAG:   'quadropus',   // PHIL    — OCTOPUS (BODY FRAME 0, SEG FRAME 3)
+  FLIMFLAM: 'quadropus',   // FLIM FLAM — OCTOPUS (BODY FRAME 2, SEG FRAME 5)
 };
 
 // ======================= INTERNAL REGISTRY =======================
@@ -116,7 +118,7 @@ const ImageLoader = {
   },
 
   /**
-   * CHECK IF SPRIE IS LOADED
+   * CHECK IF SPRITE IS LOADED
    * @param {string} key
    * @returns {boolean}
    */
