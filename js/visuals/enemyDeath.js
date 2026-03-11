@@ -1,4 +1,4 @@
-// Updated 3/9/26 12PM
+// Updated 3/11/26 @ 1AM
 // enemyDeath.js  —
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -9,7 +9,7 @@ const SLICES          = 10;    // HORIZONTAL STRIPS FOR MELT DISTORTION
 const SAMPLE_STEP     = 4;     // px  STEP WHEN SAMPLING DRIP COLORS (64X64 CANVAS)
 const SAMPLE_SIZE     = 64;    //  OFFSCREEN CANVAS SIZE FOR COLOR SAMPLING
 const MAX_DRIPS_EFFECT = 35;   //  DRIP CAP PER INDIVIDUAL DEATH
-const MAX_DRIPS_TOTAL  = 150;  //  GLOBAL BUDGET ACCROSS ALL CURRENT DEATHS 
+const MAX_DRIPS_TOTAL  = 150;  //  GLOBAL BUDGET ACROSS ALL CURRENT DEATHS 
 const POOL_MAX         = 300;  //  RECYCLED DRIP OBJECTS
 
 // ── DRIP PARTICLE POOL ────────────────────────────────────────────────────────
@@ -195,18 +195,15 @@ export class EnemyDeathManager {
   }
 
   /**
-   * MELT EFFECT - CSLLED BEFORE ENEMY IS REMOVED FROM ENEMY MANAGER ARRAY
+   * MELT EFFECT — CALLED BEFORE ENEMY IS REMOVED FROM ENEMY MANAGER ARRAY
    * @param {Enemy} enemy
    */
   spawn(enemy) {
-    // RESOLVE CORRECT frameIndex FOR FLIMFLAM 
-    let frameIndex = enemy.frameIndex;
-    let animCount  = enemy.animCount;
-    if (enemy.type === 'FLIMFLAM') {
-      const cfg  = CONFIG.ENEMIES.TYPES.FLIMFLAM;
-      frameIndex = cfg.BODY_FRAME_OFFSET + (enemy.bodyIndex ?? 0);
-      animCount  = cfg.SPRITE_FRAMES;
-    }
+    // RESOLVE BODY FRAME INDEX:
+    // OCTOPUS TYPES (ZIGZAG / FAST / FLIMFLAM) STORE THEIR EXACT BODY FRAME IN CONFIG.
+    // JELLYFISH TYPES (BASIC / TANK) USE THE CURRENT ANIMATED frameIndex.
+    const frameIndex = enemy.config.BODY_FRAME ?? enemy.frameIndex;
+    const animCount  = enemy.animCount;
 
     const effect = new EnemyDeathEffect(
       enemy.x,
@@ -244,7 +241,7 @@ export class EnemyDeathManager {
     for (const effect of this.effects) effect.draw(ctx);
   }
 
-  /** CALLL WHEN RESETTING GAME STATE  */
+  /** CALL WHEN RESETTING GAME STATE  */
   clear() {
     for (const effect of this.effects) {
       for (const d of effect.drips) _recycleDrip(d);

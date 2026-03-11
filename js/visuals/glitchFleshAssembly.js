@@ -1,4 +1,4 @@
-// Updated 3/9/26 12PM
+// Updated 3/11/26 @ 1AM
 // glitchFleshAssembly.js
 
 import { ImageLoader, ENEMY_SPRITE } from '../utils/imageLoader.js';
@@ -26,7 +26,8 @@ const _targetCache = {};
 
 function _buildTargets(enemyType) {
   const spriteKey  = ENEMY_SPRITE[enemyType];
-  const frameCount = CONFIG.ENEMIES.TYPES[enemyType].SPRITE_FRAMES;
+  const typeCfg    = CONFIG.ENEMIES.TYPES[enemyType];
+  const frameCount = typeCfg.SPRITE_FRAMES;
   const img        = ImageLoader.get(spriteKey);
   if (!img) return [];
 
@@ -38,7 +39,8 @@ function _buildTargets(enemyType) {
   oc.height = fh;
   const oc2 = oc.getContext('2d');
 
-  const keyFrame = Math.floor(frameCount / 2);
+  // USE BODY_FRAME IF DEFINED (OCTOPUS TYPES) — ELSE USE MIDPOINT HEURISTIC
+  const keyFrame = typeCfg.BODY_FRAME ?? Math.floor(frameCount / 2);
   oc2.drawImage(img, keyFrame * fw, 0, fw, fh, 0, 0, fw, fh);
 
   const { data } = oc2.getImageData(0, 0, fw, fh);
@@ -212,7 +214,6 @@ export class GlitchFleshAssembly {
         for (const p of this.particles) p.isCyan = t < 0.5;
       }
 
-     
       const pulseThreshold = this.isB ? T.FLESH_END : T.BURST_END;
       if (!this._pulseFired && this.t >= pulseThreshold) this._firePulse();
     }
@@ -382,8 +383,7 @@ export class GlitchFleshAssembly {
 
   _getFrameIndex() {
     const e = this.enemy;
-    // FLIMFLAM - USE FIRST BODY FRAME
-    if (e.type === 'FLIMFLAM') return e.config.BODY_FRAME_OFFSET || 4;
-    return e.frameIndex || 0;
+    // USE BODY_FRAME IF DEFINED (ALL OCTOPUS TYPES) — ELSE USE CURRENT FRAME
+    return e.config.BODY_FRAME ?? e.frameIndex ?? 0;
   }
 }
