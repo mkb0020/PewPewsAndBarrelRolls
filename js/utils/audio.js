@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/12/26 @ 8AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -10,6 +10,7 @@ export class AudioManager {
     this._preMuteVolume = 1.0;
 
     this.MUSIC_VOLUME        = 0.3;
+    this.CREDITS_MUSIC_VOLUME = 0.6; // LOUDER — ONLY AUDIO IN CLOSING SCENE
     this.LASER_VOLUME        = 0.5;
     this.ENEMY_LASER_VOLUME  = 0.5;
     this.IMPACT_VOLUME       = 0.2;
@@ -232,7 +233,7 @@ export class AudioManager {
       source.loop   = true;
       source.connect(this._musicGain);
       this._musicGain.gain.setValueAtTime(0, this.context.currentTime);
-      this._musicGain.gain.linearRampToValueAtTime(this.MUSIC_VOLUME, this.context.currentTime + fadeDuration);
+      this._musicGain.gain.linearRampToValueAtTime(this.CREDITS_MUSIC_VOLUME, this.context.currentTime + fadeDuration);
       source.start(0);
       this._musicSource = source;
       // console.log('♫ Credits music fading in');

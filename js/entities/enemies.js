@@ -1,4 +1,4 @@
-// Updated 3/11/26 @ 1am
+// Updated 3/12/26 @ 8am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -545,6 +545,7 @@ export class EnemyManager {
     this.onSlimeTelegraph  = null;
     this.onOcularPrism     = null; 
     this.onTelegraph       = null;
+    this.onEnemyKilled     = null; // FIRES WITH ENEMY TYPE WHEN AN ENEMY IS REMOVED — USED TO STOP ORPHANED TELEGRAPH SFX
 
     //  WAVE CONTROL  
     this._allowedTypes    = null;   
@@ -653,6 +654,7 @@ export class EnemyManager {
       }
 
       if (enemy.isDead) {
+        this.onEnemyKilled?.(enemy.type); // NOTIFY SO ORPHANED TELEGRAPH SFX CAN BE STOPPED
         this.enemies.splice(i, 1);
       }
     }

@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/12/26 @ 8AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -106,6 +106,15 @@ enemyManager.onSlimeTelegraph = () => {
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   ImageLoader.load('slimeDrip');
   slimeAttack.trigger(glorkX, glorkY);
+};
+enemyManager.onEnemyKilled = (type) => {
+  // STOP ORPHANED TELEGRAPH SFX IF THE ENEMY WHO STARTED IT DIES MID-TELEGRAPH
+  if (type === 'TANK') {
+    audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
+  }
+  if (type === 'FLIMFLAM') {
+    ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+  }
 };
 
 // ==================== OCULAR PRISM CALLBACKS ====================
