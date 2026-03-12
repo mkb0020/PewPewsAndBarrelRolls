@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 11AM
+// Updated 3/12/26 @ 11:30AM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -73,6 +73,8 @@ export class Ship {
     this.CINEMATIC_LERP         = 0.08;
 
     this.particles = new ParticleSystem();
+    this._particleBoosterToggle = false; // ALTERNATES ODD PARTICLE BETWEEN LEFT/RIGHT BOOSTERS EACH FRAME
+    this._particleBoosterToggle = false; // ALTERNATES ODD PARTICLE BETWEEN LEFT/RIGHT EACH FRAME
 
     // ========== GLORK SLIME EFFECT ==========
     this._slimeHeaviness = 0;          
@@ -99,6 +101,19 @@ export class Ship {
     this.onDeathSequenceStart  = null;   
 
     console.log('✔ Ship initialized');
+  }
+
+  // ========== BOOSTER POSITIONS ==========
+  // RETURNS WORLD-SPACE [LEFT, RIGHT] BOOSTER COORDS, ROTATION-AWARE
+  _boosterPositions() {
+    const cos = Math.cos(this.rotation);
+    const sin = Math.sin(this.rotation);
+    const ox  = CONFIG.PARTICLES.BOOSTER_OFFSET_X;
+    const oy  = CONFIG.PARTICLES.BOOSTER_OFFSET_Y;
+    return [
+      { x: this.x + (-ox * cos - oy * sin), y: this.y + (-ox * sin + oy * cos) }, // LEFT
+      { x: this.x + ( ox * cos - oy * sin), y: this.y + ( ox * sin + oy * cos) }, // RIGHT
+    ];
   }
 
   startBarrelRoll(direction = 1) {
@@ -223,7 +238,10 @@ export class Ship {
         this._boostActive = false;
         this._boostTimer  = 0;
       } else {
-        for (let i = 0; i < 3; i++) this.particles.spawn(this.x, this.y);
+        const [bL, bR] = this._boosterPositions();
+        this._particleBoosterToggle = !this._particleBoosterToggle;
+        this.particles.spawn(bL.x, bL.y, this._particleBoosterToggle ? 2 : 1);
+        this.particles.spawn(bR.x, bR.y, this._particleBoosterToggle ? 1 : 2);
       }
     }
     if (this._boostGhost) {
@@ -255,7 +273,9 @@ export class Ship {
         const rollAngle = this.barrelRollProgress * 360 * this.barrelRollDirection;
         this.rotation   = rollAngle * Math.PI / 180;
         if (this.particles.getCount() < CONFIG.PARTICLES.MAX_COUNT * CONFIG.BARREL_ROLL.PARTICLE_SPAWN_MULTIPLIER) {
-          for (let i = 0; i < 2; i++) this.particles.spawn(this.x, this.y);
+          const [bL, bR] = this._boosterPositions();
+          this.particles.spawn(bL.x, bL.y);
+          this.particles.spawn(bR.x, bR.y);
         }
       }
     } else {
@@ -314,7 +334,12 @@ export class Ship {
     }
 
     if (!this.isBarrelRolling) {
-      this.particles.spawn(this.x, this.y, CONFIG.PARTICLES.SPAWN_RATE);
+      const [bL, bR] = this._boosterPositions();
+      const base  = Math.floor(CONFIG.PARTICLES.SPAWN_RATE / 2);
+      const extra = CONFIG.PARTICLES.SPAWN_RATE % 2;
+      this._particleBoosterToggle = !this._particleBoosterToggle;
+      this.particles.spawn(bL.x, bL.y, base + (extra &&  this._particleBoosterToggle ? 1 : 0));
+      this.particles.spawn(bR.x, bR.y, base + (extra && !this._particleBoosterToggle ? 1 : 0));
     }
     this.particles.update(dt);
 
