@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 2AM
+// Updated 3/12/26 @ 7AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -31,7 +31,7 @@ import { SingularityBombManager }                    from './entities/singularit
 import { EnemyDeathManager }                         from './visuals/enemyDeath.js';
 
 
-console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
+// console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 
 // ==================== CANVAS ====================
 const gameCanvas    = document.createElement('canvas');
@@ -245,7 +245,7 @@ wormBoss.onDeath = () => {
   const rawScore = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
   closingScene.start(parseInt(rawScore, 10) || 0);
   setTimeout(() => projectileManager.clear(), 11000);
-  console.log('★ Worm defeated — closing scene triggered');
+  // console.log('★ Worm defeated — closing scene triggered');
 };
 
 // ==================== CLOSING SCENE → BACK TO MENU ====================
@@ -423,7 +423,7 @@ bossBattleScene.onWormholeGameOver = () => {
   audio.start();
   audio.startWaveMusic(0);
 
-  console.log('★ Wormhole game over — restarting from wave 1');
+  // console.log('★ Wormhole game over — restarting from wave 1');
 };
 
 transitionScene.onContinue = () => {
@@ -805,13 +805,13 @@ function gameLoop() {
 // ==================== STARTUP ====================
 async function startup() {
   await ImageLoader.preloadCritical();
-  console.log('✔ Images ready');
+  // console.log('✔ Images ready');
 
   const { mode, enemyCount } = await menu.show(starfield, () => audio.start());
 
   currentMode       = mode;
   currentEnemyCount = enemyCount;
-  console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
+  // console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
 
   // ── TENTACLE LAB — SKIP OPENING SCENE, LAUNCH SANDBOX DIRECTLY ────────────
   if (mode === 'tentacleLab') {
@@ -825,7 +825,7 @@ async function startup() {
   }
 
   await openingScene.play(true); 
-  console.log('✔ Opening scene complete');
+  // console.log('✔ Opening scene complete');
 
   // REVEAL HUD AND MOBILE CONTROLS AFTER OPENING SCENE
   document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden'));
@@ -855,7 +855,7 @@ async function startup() {
 
 
   lastTime = performance.now();
-  console.log('=== Starting game loop ===');
+  // console.log('=== Starting game loop ===');
   gameLoop();
 }
 
