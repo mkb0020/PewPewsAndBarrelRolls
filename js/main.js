@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10:30AM
+// Updated 3/12/26 @ 2AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -801,6 +801,7 @@ function gameLoop() {
   closingScene.renderFlash(ctx);
 }
 
+
 // ==================== STARTUP ====================
 async function startup() {
   await ImageLoader.preloadCritical();
@@ -811,6 +812,17 @@ async function startup() {
   currentMode       = mode;
   currentEnemyCount = enemyCount;
   console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
+
+  // ── TENTACLE LAB — SKIP OPENING SCENE, LAUNCH SANDBOX DIRECTLY ────────────
+  if (mode === 'tentacleLab') {
+    // HIDE MENU OVERLAY IMMEDIATELY — LAB USES RAW CANVAS
+    document.getElementById('menu-overlay')?.classList.add('hidden');
+    // DYNAMIC IMPORT — LAB CODE IS ONLY LOADED WHEN ACTUALLY NEEDED
+    const { TentacleLab } = await import('./temp/tentacleLab.js');
+    const lab = new TentacleLab(gameCanvas, ctx);
+    lab.start();
+    return; // DON'T START GAME LOOP OR OPENING SCENE
+  }
 
   await openingScene.play(true); 
   console.log('✔ Opening scene complete');
