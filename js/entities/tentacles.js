@@ -1,5 +1,5 @@
-// Updated 3/11/26 @ 1AM
-// tentacles.js 
+// Updated 3/12/26 @ 2AM
+// tentacles.js
 
 const HALF_PI = Math.PI * 0.5;
 
@@ -32,17 +32,40 @@ class Tentacle {
     this.repelRadius  = cfg.TENTACLE_REPEL_RADIUS;     // px — HEAD PUSHES SEGMENTS OUTSIDE THIS SPHERE
     this.repelStr     = cfg.TENTACLE_REPEL_STRENGTH;   // px OF PUSH PER FRAME AT FULL OVERLAP
     this.tipGravity   = cfg.TENTACLE_TIP_GRAVITY;       // px CONSTANT DOWNWARD PULL ON TIP TARGET
-    this.tipRepelRad  = cfg.TENTACLE_TIP_REPEL_RADIUS;  // px — TIPS PUSH EACH OTHER APART
-    this.tipRepelStr  = cfg.TENTACLE_TIP_REPEL_STRENGTH; // PUSH MAGNITUDE AT FULL OVERLAP
+    this.tipRepelRad  = cfg.TENTACLE_TIP_REPEL_RADIUS;   // px — TIPS PUSH EACH OTHER APART
+    this.tipRepelStr  = cfg.TENTACLE_TIP_REPEL_STRENGTH;  // PUSH MAGNITUDE AT FULL OVERLAP
+    this.maxBend      = cfg.TENTACLE_MAX_BEND   ?? Math.PI; // MAX BEND ANGLE PER SEGMENT — PREVENTS SHARP KINKS
+    // LOWERED DEFAULTS: STIFFNESS 6 + DRAG 0.92 REMOVES ~90% OF SPRING SPAZ (WAS 12/0.88)
+    this.tipStiffness = cfg.TENTACLE_TIP_STIFFNESS ?? 6;
+    this.tipDrag      = cfg.TENTACLE_TIP_DRAG      ?? 0.92;
+    this.anchorSway   = cfg.TENTACLE_ANCHOR_SWAY   ?? 0;    // px — SUBTLE ROOT MOTION AMPLITUDE
+
+    // TIP DIRECTIONAL BIAS — SET BY TentacleSystem AFTER CONSTRUCTION BASED ON TENTACLE INDEX
+    // OUTER TIPS NUDGE OUTWARD (LEFT/RIGHT), INNER TIPS NUDGE DOWNWARD
+    this.tipBiasX = 0;
+    this.tipBiasY = 0;
+
+    // PER-TENTACLE CURL DIRECTION — RANDOMIZED SO ARMS WRITHE INDEPENDENTLY (SOME CW, SOME CCW)
+    this.curlDir = Math.random() > 0.5 ? 1 : -1;
 
     // IRRATIONAL Y PHASE OFFSET — DESYNC X/Y WANDER AXES FOR ORGANIC FEEL
     this.phaseX = phaseOffset;
     this.phaseY = phaseOffset + 1.91;
 
+    // TIP VELOCITY — DRIVES THE INERTIA/DRAG SYSTEM (GROK'S CORE FIX)
+    // INSTEAD OF HARD-SETTING TIP POSITION EACH FRAME, WE SPRING-CHASE THE WANDER TARGET
+    // THIS GIVES NATURAL LAG, OVERSHOOT, AND PROPAGATING WAVES DOWN THE CHAIN
+    this.tipVx = 0;
+    this.tipVy = 0;
+
     // xs[0] = TIP   xs[segCount] = BASE (at body anchor)
     // Float32Array FOR PERFORMANCE — NO GC PRESSURE DURING UPDATE
     this.xs = new Float32Array(this.segCount + 1);
     this.ys = new Float32Array(this.segCount + 1);
+
+    // PRE-ALLOCATED SEGMENT LENGTHS — STORES sl FROM FORWARD PASS FOR REUSE IN BACKWARD PASS
+    // FIXES FORWARD/BACKWARD LENGTH MISMATCH THAT CAUSES CONSTANT MICRO-JITTER
+    this.segLens = new Float32Array(this.segCount + 1);
 
     // DEATH DROOP STATE
     this.dying    = false;
@@ -72,21 +95,38 @@ class Tentacle {
     const anchorR = this.anchorRad * scale;
 
     // ANCHOR POINT — WHERE THIS TENTACLE MEETS THE BODY
+    // ANCHOR SWAY: TINY SINUSOIDAL ROOT MOTION — EVEN STATIONARY CREATURES FLEX AT THE BASE
     // anchorYOff SHIFTS THE ATTACHMENT POINT DOWN SO TENTACLES ROOT AT HEAD BASE, NOT CENTER
-    const ax = bodyX + Math.cos(this.anchorAng) * anchorR;
+    const sway = Math.sin(time * 1.5 + this.phaseX) * this.anchorSway * scale;
+    const ax = bodyX + Math.cos(this.anchorAng) * anchorR + sway;
     const ay = bodyY + Math.sin(this.anchorAng) * anchorR + this.anchorYOff * scale;
 
-    // ── TIP TARGET ────────────────────────────────────────────────────────────
+    // ── TIP REST POINT (PASSIVE GRAVITY ANCHOR — NO WANDER) ──────────────────
+    // THE TIP NO LONGER CHASES AN ANIMATED TARGET.
+    // INSTEAD IT HAS A LOOSE GRAVITY HANG POINT BELOW THE BODY.
+    // ALL VISIBLE MOTION COMES FROM THE TRAVELLING CURL WAVE IN THE FORWARD PASS.
+    // THE SPRING JUST STOPS THE TIP DRIFTING INFINITELY FAR — IT'S A SOFT LEASH, NOT A DRIVER.
     if (!this.dying) {
-      // WANDER: INDEPENDENT LISSAJOUS-LIKE MOTION PER TENTACLE (DIFFERENT X/Y SPEEDS)
-      // GRAVITY PULLS TIP DOWNWARD — OSCILLATION HAS TO FIGHT UPWARD, FALLS FREELY DOWNWARD
-      // THIS GIVES NATURAL DROOP AND STOPS TIPS FLOATING UP BEHIND THE HEAD
-      const swing   = Math.sin(time * this.wanderSpd * 0.62 + this.phaseY) * this.reach * 0.52 * scale;
-      const gravity = this.tipGravity * scale;  // CONSTANT DOWNWARD PULL
-      this.xs[0] = bodyX + Math.cos(time * this.wanderSpd + this.phaseX) * this.reach * scale;
-      this.ys[0] = bodyY + this.anchorYOff * scale * 0.6   // ANCHOR OFFSET
-                         + swing                            // OSCILLATION (UP AND DOWN EQUALLY)
-                         + gravity;                         // GRAVITY ALWAYS WINS DOWNWARD
+      const restX = bodyX + this.tipBiasX * scale;
+      const restY = bodyY + this.anchorYOff * scale + this.tipGravity * scale + this.tipBiasY * scale;
+
+      this.tipVx += (restX - this.xs[0]) * this.tipStiffness * dt;
+      this.tipVy += (restY - this.ys[0]) * this.tipStiffness * dt;
+      this.tipVx *= this.tipDrag;
+      this.tipVy *= this.tipDrag;
+
+      // CLAMP MAX TIP SPEED — PREVENTS SPRING EXPLOSION ON LARGE POSITION DELTAS
+      const maxSpeed = 200 * scale;
+      const speed    = Math.hypot(this.tipVx, this.tipVy);
+      if (speed > maxSpeed) {
+        const inv    = maxSpeed / speed;
+        this.tipVx  *= inv;
+        this.tipVy  *= inv;
+      }
+
+      // FIX: MULTIPLY BY dt SO POSITION INTEGRATION IS FRAME-RATE INDEPENDENT (WAS MISSING dt)
+      this.xs[0] += this.tipVx * dt;
+      this.ys[0] += this.tipVy * dt;
     } else {
       // DEATH DROOP — GRAVITY TAKES OVER, TIP FALLS
       this.deathT += dt;
@@ -96,15 +136,22 @@ class Tentacle {
     }
 
     // ── FORWARD PASS: TIP → BASE ──────────────────────────────────────────────
-    // EACH SEGMENT FOLLOWS THE PREVIOUS AT FIXED DISTANCE
-    // CURL WAVE ADDS ORGANIC WRITHING WITHOUT VERLET COST
+    // TRAVELLING WAVE: NEGATIVE TIME SIGN MAKES THE WAVE CRAWL FROM BASE → TIP
+    // THIS IS WHAT GIVES THE "MUSCLE CONTRACTION MOVING DOWN THE ARM" FEEL
+    // TIP FACTOR: CURL AMPLITUDE GROWS TOWARD THE TIP — BASE STAYS PLANTED, TIP IS EXPRESSIVE
+    // CURL DIR: PER-TENTACLE RANDOM SIGN SO SOME ARMS CURL CW, OTHERS CCW
+    // MICRO STRETCH: ±5% SEGMENT LENGTH VARIATION FOR ORGANIC FLEX — NO ROBOTIC UNIFORMITY
+    // sl STORED IN segLens[] SO THE BACKWARD PASS USES THE EXACT SAME LENGTH (FIXES MICRO-JITTER)
     for (let i = 1; i <= this.segCount; i++) {
       const dx  = this.xs[i - 1] - this.xs[i];
       const dy  = this.ys[i - 1] - this.ys[i];
+      const tipFactor = (this.segCount - i) / this.segCount; // 0 AT BASE, ~1 AT TIP
       const ang = Math.atan2(dy, dx)
-                + Math.sin(i * 0.7 + time * 2.8) * this.curlStr; // CURL WAVE
-      this.xs[i] = this.xs[i - 1] - Math.cos(ang) * segLen;
-      this.ys[i] = this.ys[i - 1] - Math.sin(ang) * segLen;
+                + Math.sin(i * 0.8 - time * 2.2 + this.phaseX) * this.curlStr * tipFactor * this.curlDir;
+      const sl  = segLen * (0.95 + Math.sin(time * 1.3 + i * 1.7 + this.phaseX) * 0.05); // MICRO STRETCH
+      this.segLens[i] = sl; // CACHE FOR BACKWARD PASS — AVOIDS LENGTH MISMATCH JITTER
+      this.xs[i] = this.xs[i - 1] - Math.cos(ang) * sl;
+      this.ys[i] = this.ys[i - 1] - Math.sin(ang) * sl;
     }
 
     // ── LOCK BASE TO ANCHOR ───────────────────────────────────────────────────
@@ -113,18 +160,46 @@ class Tentacle {
 
     // ── BACKWARD PASS: BASE → TIP (RECONCILE ANCHOR) ─────────────────────────
     // ONE PASS IS SUFFICIENT FOR SMOOTH RESULTS AT LOW COST
+    // ANGLE CAP CLAMPS EACH SEGMENT'S BEND RELATIVE TO ITS PARENT — NO SHARP KINKS
+    // FIX: USE segLens[i] (CACHED FROM FORWARD PASS) INSTEAD OF PLAIN segLen
+    // THIS ENSURES BOTH PASSES AGREE ON SEGMENT LENGTH — ELIMINATES CONSTANT CONSTRAINT FIGHTING
     for (let i = this.segCount - 1; i >= 0; i--) {
+      const sl  = this.segLens[i + 1]; // REUSE THE SAME LENGTH COMPUTED IN FORWARD PASS
       const dx  = this.xs[i + 1] - this.xs[i];
       const dy  = this.ys[i + 1] - this.ys[i];
       const d   = Math.sqrt(dx * dx + dy * dy) || 1;
-      const inv = segLen / d;
-      this.xs[i] = this.xs[i + 1] - dx * inv;
-      this.ys[i] = this.ys[i + 1] - dy * inv;
+      const inv = sl / d;
+
+      // UNCONSTRAINED POSITION
+      let nx = this.xs[i + 1] - dx * inv;
+      let ny = this.ys[i + 1] - dy * inv;
+
+      // ANGLE CAP — SKIP THE BASE SEGMENT (i = segCount-1) SINCE IT HAS NO PARENT REFERENCE
+      if (i < this.segCount - 1) {
+        const pdx      = this.xs[i + 1] - this.xs[i + 2];
+        const pdy      = this.ys[i + 1] - this.ys[i + 2];
+        const parentAng = Math.atan2(pdy, pdx);
+
+        let diff = Math.atan2(ny - this.ys[i + 1], nx - this.xs[i + 1]) - parentAng;
+        // NORMALIZE TO [-PI, PI]
+        if (diff >  Math.PI) diff -= Math.PI * 2;
+        if (diff < -Math.PI) diff += Math.PI * 2;
+
+        if (Math.abs(diff) > this.maxBend) {
+          const clampedAng = parentAng + Math.sign(diff) * this.maxBend;
+          nx = this.xs[i + 1] + Math.cos(clampedAng) * sl;
+          ny = this.ys[i + 1] + Math.sin(clampedAng) * sl;
+        }
+      }
+
+      this.xs[i] = nx;
+      this.ys[i] = ny;
     }
 
     // ── REPULSION PASS — PUSH SEGMENTS AWAY FROM BODY CENTER ─────────────────
     // PREVENTS TENTACLES BUNCHING INSIDE THE HEAD SPRITE
     // APPLIED AFTER CONSTRAINT SOLVE SO IT DOESN'T FIGHT THE CHAIN
+    // FIX: MULTIPLY push BY dt — WAS APPLYING FULL PIXEL PUSH EVERY FRAME REGARDLESS OF FRAME RATE
     if (!this.dying) {
       const repR  = this.repelRadius * scale;
       const repR2 = repR * repR;
@@ -134,7 +209,7 @@ class Tentacle {
         const d2 = dx * dx + dy * dy;
         if (d2 < repR2 && d2 > 0.01) {
           const d    = Math.sqrt(d2);
-          const push = (1 - d / repR) * this.repelStr * scale;
+          const push = (1 - d / repR) * this.repelStr * scale * dt; // dt ADDED — FRAME-RATE INDEPENDENT
           this.xs[i] += (dx / d) * push;
           this.ys[i] += (dy / d) * push;
         }
@@ -230,18 +305,25 @@ export class TentacleSystem {
     this.totalFrames = cfg.SPRITE_FRAMES;
     this.splineColor = cfg.SPLINE_COLOR;
 
-    // ANCHOR ANGLES SPREAD EVENLY ACROSS THE BOTTOM ARC (ARC_START → ARC_END)
-    // SMALL RANDOM JITTER PER INSTANCE SO NO TWO ENEMIES LOOK IDENTICAL
-    const jitter = (Math.random() - 0.5) * 0.25; // ±~14° MAX VARIATION
-
     this.tentacles = [];
     for (let i = 0; i < count; i++) {
       // LERP EVENLY ACROSS ARC — count-1 DENOMINATOR PUTS OUTERMOST PAIR AT THE EDGES
       const t_    = count > 1 ? i / (count - 1) : 0.5;
-      const angle = ARC_START + t_ * (ARC_END - ARC_START) + jitter;
+      // FIX: JITTER COMPUTED PER-TENTACLE (WAS SHARED — ALL ARMS ROTATED AS ONE UNIT)
+      // NOW EACH ARM GETS INDEPENDENT ANGLE VARIATION FOR A MORE ORGANIC SPREAD
+      const jitter      = (Math.random() - 0.5) * 0.25; // ±~14° MAX VARIATION PER ARM
+      const angle       = ARC_START + t_ * (ARC_END - ARC_START) + jitter;
       const phaseOffset = angle + Math.random() * Math.PI;
       const t           = new Tentacle(angle, cfg, phaseOffset);
       t.initialize(enemy.x, enemy.y);
+
+      // PER-TENTACLE DIRECTIONAL BIAS — FANS TENTACLES OUTWARD FOR A MORE ORGANIC SPREAD
+      // i=0 (RIGHTMOST) → NUDGE RIGHT  |  i=count-1 (LEFTMOST) → NUDGE LEFT  |  MIDDLE → NUDGE DOWN
+      const bias = cfg.TENTACLE_TIP_BIAS || 0;
+      if      (i === 0)          { t.tipBiasX =  bias; t.tipBiasY =    0; }
+      else if (i === count - 1)  { t.tipBiasX = -bias; t.tipBiasY =    0; }
+      else                       { t.tipBiasX =     0; t.tipBiasY = bias; }
+
       this.tentacles.push(t);
     }
   }
@@ -258,6 +340,7 @@ export class TentacleSystem {
 
     // ── TIP-TO-TIP REPULSION — SPREAD TIPS APART SO ALL TENTACLES ARE VISIBLE ──
     // O(n²) ON TENTACLE COUNT — 6 PAIRS FOR 4 TENTACLES, NEGLIGIBLE COST
+    // FIX: MULTIPLY push BY dt — WAS FRAME-RATE DEPENDENT (SAME BUG AS BODY REPULSION)
     const n = this.tentacles.length;
     for (let i = 0; i < n; i++) {
       const ti = this.tentacles[i];
@@ -272,7 +355,7 @@ export class TentacleSystem {
         const d2 = dx * dx + dy * dy;
         if (d2 < repR2 && d2 > 0.01) {
           const d    = Math.sqrt(d2);
-          const push = (1 - d / repR) * ti.tipRepelStr * e.scale * 0.5; // SPLIT EVENLY
+          const push = (1 - d / repR) * ti.tipRepelStr * e.scale * 0.5 * dt; // dt ADDED
           const nx   = dx / d;
           const ny   = dy / d;
           ti.xs[0] += nx * push;
