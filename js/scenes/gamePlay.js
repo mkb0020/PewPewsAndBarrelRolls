@@ -1,33 +1,33 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/12/26 @ 4PM
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
 import { WaveWormManager } from '../entities/waveWorm.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 const WAVE_CONFIGS = [
-  { // WAVE 1 — GLIP GLOP ONLY
+  { // WAVE 1 — GLIP GLOP ONLY (JELLYFISH)
     types:      ['BASIC'],
     weights:    [1.00],
     maxEnemies: 4, 
   },
-  { // WAVE 2 — + ZIP ZAP (FAST) INTRODUCED AS THE DOMINANT TYPE
-    types:      ['BASIC', 'FAST'],
-    weights:    [0.35,    0.65],
+  { // WAVE 2 — + ZIP ZAP 
+    types:      ['BASIC', 'ZIGZAG'],
+    weights:    [0.1,    0.9], // FOR TESTING
     maxEnemies: 5,
   },
-  { // WAVE 3 — + PHIL (ZIGZAG) INTRODUCED AS THE DOMINANT TYPE
-    types:      ['BASIC', 'FAST',  'ZIGZAG'],
-    weights:    [0.25,    0.25,    0.50],
+  { // WAVE 3 — + PHIL 
+    types:      ['BASIC', 'ZIGZAG', 'FAST'],
+    weights:    [0.1,    0.1,     0.8], // FOR TESTING
     maxEnemies: 5,
   },
-  { // WAVE 4 — + GLORK (TANK — SLIME ATTACK, FEWER SPAWNS DUE TO WEIGHT)
-    types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK'],
-    weights:    [0.20,    0.20,    0.25,     0.35],
+  { // WAVE 4 — + GLORK 
+    types:      ['BASIC', 'ZIGZAG', 'FAST',  'TANK'],
+    weights:    [0.1,    0.1,     0.1,    0.7], // FOR TESTING
     maxEnemies: 4,
   },
-  { // WAVE 5 — + FLIM FLAM — ALL TYPES, FLIMFLAM GETS EDGE AS THE FINALE ENEMY
-    types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK',  'FLIMFLAM'],
-    weights:    [0.15,    0.20,    0.20,     0.15,    0.30],
+  { // WAVE 5 — + FLIM FLAM 
+    types:      ['BASIC', 'ZIGZAG', 'FAST',  'TANK',  'FLIMFLAM'],
+    weights:    [0.1,    0.1,     0.1,    0.1,    0.6], // FOR TESTING
     maxEnemies: 4,
   },
 ];

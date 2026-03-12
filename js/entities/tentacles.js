@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 2AM
+// Updated 3/12/26 @ 2PM
 // tentacles.js
 
 const HALF_PI = Math.PI * 0.5;
@@ -10,7 +10,7 @@ const ARC_START = Math.PI / 6;        // RIGHTMOST ANCHOR ANGLE
 const ARC_END   = Math.PI * (5 / 6);  // LEFTMOST ANCHOR ANGLE
 
 // WHICH ENEMY TYPES USE THE TENTACLE SYSTEM
-export const TENTACLE_TYPES = new Set(['ZIGZAG', 'FAST', 'FLIMFLAM']);
+export const TENTACLE_TYPES = new Set(['ZIGZAG', 'TANK', 'FLIMFLAM']);
 
 // ── SINGLE TENTACLE ───────────────────────────────────────────────────────────
 class Tentacle {

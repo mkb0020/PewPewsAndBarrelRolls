@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 11:30AM
+// Updated 3/12/26 @ 4PM
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -7,12 +7,12 @@ const MANIFEST = {
   ship:         { path: 'spaceship.png' },
   worm:         { path: 'worm.png' }, // NOW 14 FRAMES
   babyWorm:     { path: 'babyWorm.png' },
-  glork:        { path: 'glork.png' },       // 5 FRAMES
-  glipGlop:     { path: 'glipGlop.png' },    // 5 FRAMES
+  phil:         { path: 'phil.png' },         // 11 FRAMES — JELLYFISH (FAST TYPE)
+  glipGlop:     { path: 'glipGlop.png' },     // 11 FRAMES — JELLYFISH (BASIC TYPE)
 
   // ── QUADROPUS — COMBINED SHEET FOR ALL 3 OCTOPUS-TYPE ENEMIES ──
-  // FRAME LAYOUT: 0=Phil body  1=ZipZap body  2=FlimFlam body
-  //               3=Phil seg   4=ZipZap seg   5=FlimFlam seg
+  // FRAME LAYOUT: 0=ZipZap body  1=Glork body  2=FlimFlam body
+  //               3=ZipZap seg   4=Glork seg   5=FlimFlam seg
   quadropus:    { path: 'quadropus.png' },
 
   boom:         { path: 'boom.png' },        // 6 FRAMES
@@ -38,10 +38,10 @@ const MANIFEST = {
 
 export const ENEMY_SPRITE = {
   BASIC:    'glipGlop',
-  FAST:     'quadropus',   // ZIP ZAP — OCTOPUS (BODY FRAME 1, SEG FRAME 4)
-  TANK:     'glork',
-  ZIGZAG:   'quadropus',   // PHIL    — OCTOPUS (BODY FRAME 0, SEG FRAME 3)
-  FLIMFLAM: 'quadropus',   // FLIM FLAM — OCTOPUS (BODY FRAME 2, SEG FRAME 5)
+  FAST:     'phil',       // PHIL     — JELLYFISH (11 FRAMES)
+  TANK:     'quadropus',  // GLORK    — OCTOPUS (BODY FRAME 1, SEG FRAME 4)
+  ZIGZAG:   'quadropus',  // ZIP ZAP  — OCTOPUS (BODY FRAME 0, SEG FRAME 3)
+  FLIMFLAM: 'quadropus',  // FLIM FLAM — OCTOPUS (BODY FRAME 2, SEG FRAME 5)
 };
 
 // ======================= INTERNAL REGISTRY =======================

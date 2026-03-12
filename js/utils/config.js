@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/12/26 @ 4PM
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -131,20 +131,15 @@ export const CONFIG = {
         WANDER_Y: 120,
       },
 
-      FAST: { // ZIP ZAP
-        SIZE: 70,
+      FAST: { // PHIL — JELLYFISH
+        SIZE: 110,
         SPEED: 120,
         COLOR: '#FF0000',
         GLOW_COLOR: '#b444a3',
         HEALTH: 7,
         SCORE: 20,
-
-        SPRITE_FRAMES: 6,       // NOTE TO SELF:  IF I FINALIZE TO NOT USE SPRITE SEGMENTS, UPDATE THIS TO 3 
-        BODY_FRAME:    1,       
-        SEGMENT_FRAME: 4,        
-        ANIM_SPEED:    0,       
-        SPLINE_COLOR:  '#543c57',
-
+        SPRITE_FRAMES: 11,
+        ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#FF0000',
         LASER_INTERVAL: 2.0,
@@ -152,13 +147,36 @@ export const CONFIG = {
         WANDER_SPEED: 120,
         WANDER_X: 290,
         WANDER_Y: 170,
+      },
+
+      TANK: { // GLORK — OCTOPUS
+        SIZE: 80,
+        SPEED: 70,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#FF0000',
+        HEALTH: 10,
+        SCORE: 50,
+
+        SPRITE_FRAMES: 6,       // NOTE TO SELF: IF I FINALIZE TO NOT USE SPRITE SEGMENTS, UPDATE THIS TO 3
+        BODY_FRAME:    1,       // QUADROPUS FRAME INDEX 1 (GLORK BODY)
+        SEGMENT_FRAME: 4,       // QUADROPUS FRAME INDEX 4 (GLORK SEG)
+        ANIM_SPEED:    0,
+        SPLINE_COLOR:  '#543c57',
+
+        COLLISION_DAMAGE: 35,
+        LASER_COLOR: '#ff0000',
+        LASER_INTERVAL: 3.5,
+        COMBAT_DURATION: 16.0,
+        WANDER_SPEED: 30,
+        WANDER_X: 90,
+        WANDER_Y: 60,
 // VALUES BELOW ARE NOT FINALIZED - CLOSE BUT NOT QUITE RIGHT
         TENTACLE_COUNT:          1,
         TENTACLE_SEGMENTS:       8,
-        TENTACLE_SEGMENT_LENGTH: 11,   
+        TENTACLE_SEGMENT_LENGTH: 11,
         TENTACLE_BASE_WIDTH:     9.5,   // px AT BASE (TAPERS TO ~0.28x AT TIP)
         TENTACLE_REACH:          90,  // px RADIUS — TIP WANDER RANGE
-        TENTACLE_WANDER_SPEED:   1, 
+        TENTACLE_WANDER_SPEED:   1,
         TENTACLE_CURL_STRENGTH:  0.1, // TRAVELLING WAVE — SOLE MOTION DRIVER NOW THAT TIP WANDER IS GONE
         TENTACLE_ANCHOR_RADIUS:  14,   // px FROM BODY CENTER TO ATTACHMENT POINT
         TENTACLE_ANCHOR_Y_OFFSET: 15.5,  // px — SHIFTS ANCHOR DOWN TO BASE OF HEAD SPRITE
@@ -169,38 +187,20 @@ export const CONFIG = {
         TENTACLE_TIP_REPEL_STRENGTH: 200, // SCALED UP (×dt IN CODE) — ~7px/FRAME EFFECTIVE PUSH @ 60FPS
         TENTACLE_MAX_BEND:  Math.PI / 0.628,  // MAX ANGLE BETWEEN ADJACENT SEGMENTS (~60°) — PREVENTS SHARP KINKS
         TENTACLE_TIP_BIAS:           40,  // px — OUTER TIPS NUDGE OUTWARD, INNER TIPS NUDGE DOWN
-        TENTACLE_TIP_STIFFNESS:       10,  
-        TENTACLE_TIP_DRAG:         0.9,  
+        TENTACLE_TIP_STIFFNESS:       10,
+        TENTACLE_TIP_DRAG:         0.9,
         TENTACLE_ANCHOR_SWAY:         1,  // px — SUBTLE ROOT SWAY AMPLITUDE
       },
 
-      TANK: { // GLORK 
-        SIZE: 120,
-        SPEED: 70,
-        COLOR: '#FF0000',
-        GLOW_COLOR: '#FF0000',
-        HEALTH: 10,
-        SCORE: 50,
-        SPRITE_FRAMES: 11,
-        ANIM_SPEED: 7,
-        COLLISION_DAMAGE: 35,
-        LASER_COLOR: '#ff0000',
-        LASER_INTERVAL: 3.5,
-        COMBAT_DURATION: 16.0,
-        WANDER_SPEED: 30,
-        WANDER_X: 90,
-        WANDER_Y: 60,
-      },
-
-      ZIGZAG: { // PHIL — 
-        SIZE: 70,
+      ZIGZAG: { // ZIP ZAP — OCTOPUS
+        SIZE: 75,
         SPEED: 90,
         COLOR: '#FF0000',
         GLOW_COLOR: '#7097eb',
         HEALTH: 7,
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 70,
-        ZIGZAG_FREQUENCY: 3.2,
+        ZIGZAG_FREQUENCY: 2,
 
         SPRITE_FRAMES: 6,        // NOTE TO SELF:  IF I FINALIZE TO NOT USE SPRITE SEGMENTS, UPDATE THIS TO 3 
         BODY_FRAME:    0,        
@@ -528,9 +528,9 @@ export const CONFIG = {
     PIECE_DRIFT_Y:      45,     
     PIECE_SPIN:         2.2,   
     PIECE_FADE_START:   1.8,  
-    KABAM_FRAMES:       5,
-    KABAM_FPS:          13,    
-    KABAM_SIZE:         270,    
+    KABAM_FRAMES:       16,
+    KABAM_FPS:          20,    
+    KABAM_SIZE:         400,    
     SMOKE_COUNT:        9,     
     SMOKE_FRAMES:       9,      
     SMOKE_FPS:          12,

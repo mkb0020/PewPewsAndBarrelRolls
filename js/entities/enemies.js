@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 8am
+// Updated 3/12/26 @ 4PM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -440,31 +440,22 @@ export class Enemy {
     }
 
     // ── BODY SPRITE  ──────────────────
+    // TELEGRAPH HEAD SWAP — OCTOPUS TYPES SHOW ALTERNATE HEAD FRAME DURING ATTACK TELEGRAPH
+    let drawFrameIndex = this.frameIndex;
+    if (this.type === 'TANK'     && this.slimeTelegraphActive)             drawFrameIndex = 4;
+    if (this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING') drawFrameIndex = 5;
+
     ctx.globalAlpha = spriteAlpha;
     if (sprite) {
       const fw = sprite.width / this.animCount;
       const dx = this.x - renderSize / 2;
       const dy = this.y - renderSize / 2;
-      ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, sprite.height, dx, dy, renderSize, renderSize);
+      ctx.drawImage(sprite, drawFrameIndex * fw, 0, fw, sprite.height, dx, dy, renderSize, renderSize);
     } else {
       ctx.fillStyle = this.color;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.size * this.scale, 0, Math.PI * 2);
       ctx.fill();
-    }
-
-    // ── FLIMFLAM TELEGRAPH GLOW ────────────────────────────────────────────────
-    if (this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING' && sprite) {
-      const fw             = sprite.width / this.animCount;
-      const dx             = this.x - renderSize / 2;
-      const dy             = this.y - renderSize / 2;
-      const telegraphPulse = (Math.sin(this.pulsePhase * 4) + 1) * 0.5;
-      ctx.save();
-      ctx.shadowColor = '#ff0000';
-      ctx.shadowBlur  = 25 + telegraphPulse * 40;
-      ctx.globalAlpha = spriteAlpha * 0.7;
-      ctx.drawImage(sprite, this.frameIndex * fw, 0, fw, sprite.height, dx, dy, renderSize, renderSize);
-      ctx.restore();
     }
 
     // ─── APPROACH TINT OVERLAY ───
@@ -474,20 +465,6 @@ export class Enemy {
       ctx.beginPath();
       ctx.arc(this.x, this.y, renderSize * 0.5, 0, Math.PI * 2);
       ctx.fill();
-    }
-
-    // ── TANK SLIME TELEGRAPH GLOW  ──
-    if (this.type === 'TANK' && this.slimeTelegraphActive) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.shadowColor = '#22ff44';
-      ctx.shadowBlur  = 22 + this.slimeGlowPulse * 52;
-      ctx.globalAlpha = 0.05 + this.slimeGlowPulse * 0.1;
-      ctx.fillStyle   = '#22ff44';
-      ctx.beginPath();
-      ctx.ellipse(this.x, this.y, renderSize * 0.52, renderSize * 0.44, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
     }
 
     ctx.restore();

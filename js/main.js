@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 11:30AM
+// Updated 3/12/26 @ 4PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -270,34 +270,39 @@ ship.onDeathSequenceStart = () => {
   audio.playGlitchOut();
 };
 
-ship.onDeath       = (livesLeft) => {
-  audio.stopMusic();
-  const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
+// EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WIRED AFTER A WORMHOLE GAME OVER
+// (bossBattle.startWormholeGameOver nulls ship.onDeath — it must be restored on reset)
+function wireShipOnDeath() {
+  ship.onDeath = (livesLeft) => {
+    audio.stopMusic();
+    const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
 
-  // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
-  if (livesLeft <= 0 && inWormBattle) {
-    babyWormManager.clear(); // CLEAR BABY WORMS BEFORE VORTEX BEGINS SO THEY DON'T LATCH ON POST-RESET
-    bossBattleScene.startWormholeGameOver(ship);
-    return;
-  }
+    // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
+    if (livesLeft <= 0 && inWormBattle) {
+      babyWormManager.clear(); // CLEAR BABY WORMS BEFORE VORTEX BEGINS SO THEY DON'T LATCH ON POST-RESET
+      bossBattleScene.startWormholeGameOver(ship);
+      return;
+    }
 
-  // BOSS REGULAR DEATH — CLEAR BABY WORMS SO THEY DON'T PERSIST ON THE DIED SCREEN
-  if (inWormBattle) {
-    babyWormManager.clear();
-  }
+    // BOSS REGULAR DEATH — CLEAR BABY WORMS SO THEY DON'T PERSIST ON THE DIED SCREEN
+    if (inWormBattle) {
+      babyWormManager.clear();
+    }
 
-  // GAMEPLAY DEATH (REGULAR OR GAME OVER) — CLEAR ALL ENEMIES AND CANCEL ANY ACTIVE ATTACKS
-  if (!inWormBattle) {
-    enemyManager.clear();
-    slimeAttack.reset();
-    audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
-    ocularPrism.active = false;
-    ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
-    ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
-  }
+    // GAMEPLAY DEATH (REGULAR OR GAME OVER) — CLEAR ALL ENEMIES AND CANCEL ANY ACTIVE ATTACKS
+    if (!inWormBattle) {
+      enemyManager.clear();
+      slimeAttack.reset();
+      audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
+      ocularPrism.active = false;
+      ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
+      ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+    }
 
-  transitionScene.handleDeath(livesLeft, inWormBattle);
-};
+    transitionScene.handleDeath(livesLeft, inWormBattle);
+  };
+}
+wireShipOnDeath(); // INITIAL WIRE-UP
 
 // ==================== HUD HELPERS ====================
 function updateHPBar(hp, maxHP) {
@@ -435,6 +440,8 @@ bossBattleScene.onWormholeGameOver = () => {
   cosmicPrismManager.reset();
   tesseractManager.reset();
   singularityBombManager.reset();
+  wireShipOnDeath(); // RE-WIRE — startWormholeGameOver() nulls ship.onDeath; restore it now
+
   gameplayScene.start();
   bossBattleScene.updateHUD();
   showWaveHUD(true);
