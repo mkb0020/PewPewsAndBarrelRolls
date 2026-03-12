@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 8PM
+// Updated 3/12/26 @ 7AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -193,7 +193,7 @@ class SuctionParticleSystem {
     this.smokeSprite.onload = () => {
       this.spriteLoaded    = true;
       this.smokeFrameWidth = this.smokeSprite.width / SUCTION.SMOKE_FRAMES;
-      console.log('✔ Suction smoke sprite loaded');
+      // console.log('✔ Suction smoke sprite loaded');
     };
     this.smokeSprite.onerror = () => {
       console.warn('⚠ Suction smoke sprite not found');
@@ -297,7 +297,7 @@ export class WormBoss {
     this.sprite.onload = () => {
       this.spriteLoaded = true;
       this.frameWidth   = this.sprite.width / WORM.SPRITE_FRAMES;
-      console.log('✔ Worm sprite loaded');
+      // console.log('✔ Worm sprite loaded');
     };
     this.sprite.onerror = () => {
       console.warn('⚠ WORM SPRITE NOT FOUND, USING FALLBACK');
@@ -305,7 +305,7 @@ export class WormBoss {
 
     this.suctionParticles = new SuctionParticleSystem();
 
-    console.log('✔ WormBoss initialized');
+    // console.log('✔ WormBoss initialized');
   }
 
   activate() {
@@ -351,7 +351,7 @@ export class WormBoss {
 
   applyBlackHoleStun(duration) {
     this.stunTimer = Math.max(this.stunTimer, duration); 
-    console.log(`💜 Worm stunned for ${duration}s by Singularity Bomb`);
+    // console.log(`💜 Worm stunned for ${duration}s by Singularity Bomb`);
     if (this.onStunned) this.onStunned(duration);
   }
 
@@ -372,6 +372,10 @@ export class WormBoss {
     if (!this.isActive || this.isDead) return;
 
     this.time += dt;
+
+    // CACHE SCREEN CENTER ONCE PER FRAME — REUSED IN DYING PATH, ORBIT PATH, AND SEGMENT PROJECTION
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
 
     // ============= APPROACH / SCALE (ALWAYS NEEDED — EVEN WHILE DYING) =============
     this.z       += (WORM.IDLE_Z - this.z) * WORM.APPROACH_SPEED;
@@ -400,8 +404,7 @@ export class WormBoss {
       }
 
       // UPDATE SCREEN POSITIONS
-      const cx = window.innerWidth  / 2;
-      const cy = window.innerHeight / 2;
+      // cx / cy CACHED AT TOP OF update()
       const bs = this.baseScale;
       for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
         const seg = this.segments[i];
@@ -570,8 +573,7 @@ export class WormBoss {
     // ============= ORGANIC HEAD MOVEMENT =============
     if (this._orbitScreenX !== null) {
       // ── BLACK HOLE ORBIT ──
-      const cx = window.innerWidth  / 2;
-      const cy = window.innerHeight / 2;
+      // cx / cy CACHED AT TOP OF update()
       const bs = this.baseScale || 0.001;
       const worldTargetX = (this._orbitScreenX - cx) / bs;
       const worldTargetY = (this._orbitScreenY - cy) / bs;
@@ -608,8 +610,7 @@ export class WormBoss {
     }
 
     // ============= PROJECT TO SCREEN SPACE & CACHE =============
-    const cx = window.innerWidth  / 2;
-    const cy = window.innerHeight / 2;
+    // cx / cy CACHED AT TOP OF update()
     const bs = this.baseScale;
 
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {

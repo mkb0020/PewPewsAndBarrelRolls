@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 11:30AM
+// Updated 3/12/26 @ 7AM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -100,7 +100,7 @@ export class Ship {
     this._dsFrags              = [];     
     this.onDeathSequenceStart  = null;   
 
-    console.log('✔ Ship initialized');
+    // console.log('✔ Ship initialized');
   }
 
   // ========== BOOSTER POSITIONS ==========
@@ -122,7 +122,7 @@ export class Ship {
       this.barrelRollProgress  = 0;
       this.barrelRollDirection = direction;
       this._rollBurstFired     = false;
-      console.log('DO A BARREL ROLL!');
+      // console.log('DO A BARREL ROLL!');
     }
   }
 

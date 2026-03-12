@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10AM
+// Updated 3/12/26 @ 7AM
 // slimeAttack.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { ImageLoader }  from '../utils/imageLoader.js';
@@ -50,7 +50,7 @@ export class SlimeAttack {
     this.dripAnimTimer = 0;
     this._slimeTarget  = 1;
     this.screenSlime.spawn();
-    console.log('[SlimeAttack] Phase: warping — screen slime deployed');
+    // console.log('[SlimeAttack] Phase: warping — screen slime deployed');
   }
 
   // ── UPDATE — CALLED EVERY FRAME ──────────────────────────────────
@@ -64,7 +64,7 @@ export class SlimeAttack {
         this.phase        = 'recovering';
         this.recoverTimer = this.RECOVER_DURATION;
         this._slimeTarget = 0;
-        console.log('[SlimeAttack] Phase: recovering');
+        // console.log('[SlimeAttack] Phase: recovering');
       }
     }
 
@@ -77,7 +77,7 @@ export class SlimeAttack {
         this.phase         = 'idle';
         this.cooldownUntil = Date.now() + 5000;
         this.dripActive    = false;
-        console.log('[SlimeAttack] Phase: idle (attack complete)');
+        // console.log('[SlimeAttack] Phase: idle (attack complete)');
       }
     }
 

@@ -1,3 +1,4 @@
+// Updated 3/12/26 @ 7AM
 // babyWorm.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -103,7 +104,10 @@ class BabyWorm {
 
     ctx.save();
 
-
+    // SHADOW STATE SET ONCE BEFORE THE TRAIL LOOP — NOT PER ELEMENT
+    ctx.fillStyle   = BW.TRAIL_COLOR;
+    ctx.shadowColor = BW.TRAIL_GLOW;
+    ctx.shadowBlur  = 10;
     for (let i = 0; i < this.trail.length; i++) {
       const t     = i / (this.trail.length - 1); // 0=FRESHEST, 1=OLDEST
       const size  = BW.TRAIL_MAX_SIZE * (1 - t * 0.85);
@@ -111,14 +115,11 @@ class BabyWorm {
       if (alpha < 0.01) continue;
 
       ctx.globalAlpha = alpha;
-      ctx.fillStyle   = BW.TRAIL_COLOR;
-      ctx.shadowColor = BW.TRAIL_GLOW;
-      ctx.shadowBlur  = 10;
       ctx.beginPath();
       ctx.arc(this.trail[i].x, this.trail[i].y, Math.max(0.5, size), 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur = 0; // RESET ONCE AFTER THE LOOP
 
     ctx.globalAlpha = this.alpha; // BODY SEGMENTS — TAIL FIRST SO HEAD RENDERS ON TOP
     for (let i = this.segments.length - 1; i >= 0; i--) {
@@ -246,7 +247,7 @@ export class BabyWormManager {
     this.spawnTimer = 0;
     this._spawning  = false;
     this._splats    = []; // ACTIVE SlimeSplat INSTANCES
-    console.log('✔ BabyWormManager initialized');
+    // console.log('✔ BabyWormManager initialized');
   }
 
   spawnWave(mouthX, mouthY) {
@@ -310,10 +311,10 @@ export class BabyWormManager {
     for (let i = this.worms.length - 1; i >= 0; i--) {
       const w = this.worms[i];
       if (w.isDead || w.isLatched) continue;
-      const dx   = seg.x1 - w.x;
-      const dy   = seg.y1 - w.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < BW.HEAD_SIZE * 0.5) {
+      const dx  = seg.x1 - w.x;
+      const dy  = seg.y1 - w.y;
+      const r   = BW.HEAD_SIZE * 0.5;
+      if (dx * dx + dy * dy < r * r) {  // SQUARED DISTANCE — NO Math.sqrt NEEDED
         const killed = w.takeDamage();
         return { hit: true, x: w.x, y: w.y, killed };
       }

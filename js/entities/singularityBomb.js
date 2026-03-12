@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 12:30AM
+// Updated 3/12/26 @ 7AM
 // js/entities/singularityBomb.js
 import { CONFIG } from '../utils/config.js';
 
@@ -616,7 +616,7 @@ export class BabyBlackHole {
           Math.hypot(head.screenX - this.x, head.screenY - this.y),
           350  // DON'T START TOO FAR OUT
         );
-        console.log('🌀 Worm boss captured in black hole orbit');
+        // console.log('🌀 Worm boss captured in black hole orbit');
       }
 
       // ADVANCE ORBIT ANGLE
@@ -635,7 +635,7 @@ export class BabyBlackHole {
       // PHASE ENDED — RELEASE WORM
       this._bossOrbitActive = false;
       wormBoss.clearOrbit();
-      console.log('🌀 Worm boss released from orbit');
+      // console.log('🌀 Worm boss released from orbit');
     }
   }
 
@@ -914,7 +914,7 @@ export class SingularityBombManager {
     const spawnX = this.isBossBattle ? window.innerWidth  / 2 : shipX;
     const spawnY = this.isBossBattle ? window.innerHeight / 2 : shipY;
     this.blackHole = new BabyBlackHole(spawnX, spawnY, this.isBossBattle);
-    console.log(`💣 Singularity Bomb deployed | remaining: ${this.inventory} | boss: ${this.isBossBattle}`);
+    // console.log(`💣 Singularity Bomb deployed | remaining: ${this.inventory} | boss: ${this.isBossBattle}`);
   }
 
   // ── UPDATE ───────────────────────────────────────────────────────────────────
@@ -1001,6 +1001,6 @@ export class SingularityBombManager {
     this.audio?.playPowerUp3();
     this._collectEffects.push(new SpinorCollectEffect(collectX, collectY));
     this.onSpinorCollect?.();   // → tunnel.triggerSpinor()
-    console.log(`💜 Singularity Bomb collected | inventory: ${this.inventory}`);
+    // console.log(`💜 Singularity Bomb collected | inventory: ${this.inventory}`);
   }
 }

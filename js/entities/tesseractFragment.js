@@ -1,4 +1,4 @@
-// Updated 3/9/26 @ 11am
+// Updated 3/12/26 @ 7AM
 // tesseractFragment.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -17,6 +17,11 @@ const EDGES = [
 
 const _outerP = Array.from({ length: 8 }, () => new Float32Array(2));
 const _innerP = Array.from({ length: 8 }, () => new Float32Array(2));
+
+// ── REUSABLE COLOR STRING ARRAYS — FILLED ONCE PER draw() CALL, NOT PER LOOP ITERATION ──
+const _outerEdgeColors = new Array(12);  //  HSL STRINGS FOR OUTER EDGES
+const _innerEdgeColors = new Array(12);  //  HSL STRINGS FOR INNER EDGES
+const _vertColors      = new Array(8);   //  HSL STRINGS FOR VERTEX DOTS
 
 function _ry(x, y, z, c, s) { return [x * c + z * s, y, -x * s + z * c]; }
 function _rx(x, y, z, c, s) { return [x, y * c - z * s, y * s + z * c]; }
@@ -41,10 +46,11 @@ class TesseractFragment {
     this.collected = false;
 
     this.sparks = Array.from({ length: 3 }, (_, i) => ({
-      angle:  (i / 3) * Math.PI * 2,
-      speed:  1.3 + Math.random() * 0.5,
-      orbitR: this.radius * 2.3 + Math.random() * 5,
-      hue:    i * 120,
+      angle:     (i / 3) * Math.PI * 2,
+      speed:     1.3 + Math.random() * 0.5,
+      orbitR:    this.radius * 2.3 + Math.random() * 5,
+      hue:       i * 120,
+      colorStr:  `hsl(${i * 120}, 100%, 75%)`,  // PRE-BUILT — HUE IS STATIC PER SPARK
     }));
   }
 
@@ -86,6 +92,16 @@ class TesseractFragment {
     ctx.translate(this.x, this.y);
     ctx.globalAlpha = alpha;
 
+    // ── BUILD COLOR STRINGS ONCE FOR THIS FRAME — REFERENCED BY INDEX IN ALL LOOPS BELOW ──
+    // AVOIDS ALLOCATING NEW STRINGS INSIDE EACH LOOP ITERATION (~24 strings → 3 passes × 1 allocation per slot)
+    for (let e = 0; e < EDGES.length; e++) {
+      _outerEdgeColors[e] = `hsl(${(hueBase + e * 22) % 360},100%,65%)`;
+      _innerEdgeColors[e] = `hsl(${(hueBase + e * 22 + 180) % 360},100%,75%)`;
+    }
+    for (let i = 0; i < 8; i++) {
+      _vertColors[i] = `hsl(${(hueBase + i * 45) % 360}, 100%, 88%)`;
+    }
+
     // ── OUTER GLOW HALO ──────────────────────────────────────────
     ctx.save();
     ctx.globalAlpha = alpha * 0.14;
@@ -118,9 +134,9 @@ class TesseractFragment {
       const [ai, bi] = EDGES[e];
       const x1 = _outerP[ai][0], y1 = _outerP[ai][1];
       const x2 = _outerP[bi][0], y2 = _outerP[bi][1];
-      const hue = (hueBase + e * 22) % 360;
-      ctx.strokeStyle = `hsl(${hue},100%,65%)`;
-      ctx.shadowColor = `hsl(${hue},100%,65%)`;
+      const col = _outerEdgeColors[e];  // PRE-BUILT THIS FRAME — NO STRING ALLOCATION
+      ctx.strokeStyle = col;
+      ctx.shadowColor = col;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       if (doWarp) {
@@ -140,9 +156,9 @@ class TesseractFragment {
     ctx.save();
     ctx.shadowBlur = 7;
     for (let i = 0; i < 8; i++) {
-      const hue = (hueBase + i * 45) % 360;
-      ctx.fillStyle   = `hsl(${hue}, 100%, 88%)`;
-      ctx.shadowColor = `hsl(${hue}, 100%, 88%)`;
+      const col = _vertColors[i];  // PRE-BUILT THIS FRAME — NO STRING ALLOCATION
+      ctx.fillStyle   = col;
+      ctx.shadowColor = col;
       ctx.beginPath();
       ctx.arc(_outerP[i][0], _outerP[i][1], 2, 0, Math.PI * 2);
       ctx.fill();
@@ -169,9 +185,9 @@ class TesseractFragment {
     ctx.shadowBlur = 6;
     for (let e = 0; e < EDGES.length; e++) {
       const [ai, bi] = EDGES[e];
-      const hue = (hueBase + e * 22 + 180) % 360;
-      ctx.strokeStyle = `hsl(${hue},100%,75%)`;
-      ctx.shadowColor = `hsl(${hue},100%,75%)`;
+      const col = _innerEdgeColors[e];  // PRE-BUILT THIS FRAME — NO STRING ALLOCATION
+      ctx.strokeStyle = col;
+      ctx.shadowColor = col;
       ctx.beginPath();
       ctx.moveTo(_innerP[ai][0], _innerP[ai][1]);
       ctx.lineTo(_innerP[bi][0], _innerP[bi][1]);
@@ -185,8 +201,8 @@ class TesseractFragment {
     for (const s of this.sparks) {
       const ox = Math.cos(s.angle) * s.orbitR;
       const oy = Math.sin(s.angle) * s.orbitR;
-      ctx.fillStyle   = `hsl(${s.hue}, 100%, 75%)`;
-      ctx.shadowColor = `hsl(${s.hue}, 100%, 75%)`;
+      ctx.fillStyle   = s.colorStr;  // PRE-BUILT IN CONSTRUCTOR — HUE NEVER CHANGES
+      ctx.shadowColor = s.colorStr;
       ctx.beginPath();
       ctx.arc(ox, oy, 2.5, 0, Math.PI * 2);
       ctx.fill();
@@ -484,7 +500,7 @@ export class TesseractFragmentManager {
     const x      = cx + (Math.random() * 2 - 1) * rangeX;
     const y      = cy + (Math.random() * 2 - 1) * rangeY;
     this.fragments.push(new TesseractFragment(x, y));
-    console.log('◈ Tesseract Fragment spawned');
+    // console.log('◈ Tesseract Fragment spawned');
   }
 
   _triggerCollect(frag, shipX, shipY) {
@@ -493,6 +509,6 @@ export class TesseractFragmentManager {
     this._boostTime  = 0;
     this.audio?.playPowerUp2();
     this.onCollect?.();
-    console.log(`◈ Laser boost active for ${CONFIG.TESSERACT_FRAGMENT.BOOST_DURATION}s!`);
+    // console.log(`◈ Laser boost active for ${CONFIG.TESSERACT_FRAGMENT.BOOST_DURATION}s!`);
   }
 }
