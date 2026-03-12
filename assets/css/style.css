@@ -1,4 +1,4 @@
-/* Updated 3/11/26 @ 1 AM */
+/* Updated 3/12/26 @ 2 AM */
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -617,6 +617,31 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 
+/* ── TENTACLE LAB DEV BUTTON —  ──────────────────────────── */
+
+.dev-mode .menu-btn.dev-lab {
+  opacity: 1;          /* VISIBLE IN DEV MODE */
+}
+.menu-btn.dev-lab {
+  opacity: 0;          /* HIDDEN IN PROD (DEV_MODE=false hides entire class) */
+  pointer-events: none;
+  margin-top: 6px;
+  border-color: rgba(120, 60, 200, 0.5);
+  color: #b090ff;
+  font-size: 0.85em;
+  letter-spacing: 1px;
+}
+.dev-mode .menu-btn.dev-lab {
+  pointer-events: auto;
+}
+.menu-btn.dev-lab:hover {
+  background: rgba(90, 40, 160, 0.35);
+  border-color: #9060ee;
+  color: #d0b8ff;
+  box-shadow: 0 0 12px rgba(130, 70, 220, 0.4);
+}
+/* END TENTACLE LAB SECTION */
+
 #menu-overlay .dev-controls {
   display: none;
   margin-top: 36px;
@@ -843,8 +868,8 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   display: none;                  
   position: fixed;
   inset: 0;
-  /*background: rgba(0, 0, 0, 0.45);*/
-  background: rgba(0, 0, 0, 0);
+  /*background: rgba(0, 0, 0, 0);*/ /*FOR TESTING*/
+  background: rgba(0, 0, 0, 0.45);
   z-index: 10000;
   pointer-events: none;
   flex-direction: column;
@@ -859,7 +884,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 
 .pause-title {
   font-family: 'GothNerd';
-  font-size: 0.5rem; /* FOR TESTING */
+  font-size: 5rem; 
   letter-spacing: 0.15em;
   color: #67FEBD;
   text-shadow:
