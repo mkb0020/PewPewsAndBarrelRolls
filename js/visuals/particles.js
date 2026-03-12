@@ -1,4 +1,5 @@
 // particles.js
+// 3/12/26 @ 7am
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -24,12 +25,25 @@ export class Particle {
   draw(ctx) {
     ctx.save();
     const opacity = Math.max(0, this.life / this.maxLife);
-    ctx.globalAlpha = opacity * CONFIG.PARTICLES.OPACITY;
-    ctx.fillStyle = this.color;
+    const alpha = opacity * CONFIG.PARTICLES.OPACITY;
+
+    // ADDITIVE BLENDING — OVERLAPPING PARTICLES BRIGHTEN INSTEAD OF DARKENING
+    ctx.globalCompositeOperation = 'lighter';
+
+    // RADIAL GRADIENT — SOFT/FUZZY EDGES INSTEAD OF HARD CIRCLE
+    const grad = ctx.createRadialGradient(
+      this.x, this.y, 0,           // INNER CIRCLE (CENTER)
+      this.x, this.y, this.radius  // OUTER CIRCLE (EDGE)
+    );
+    grad.addColorStop(0, this.color);    // SOLID AT CENTER
+    grad.addColorStop(1, 'transparent'); // FADE TO NOTHING AT EDGE
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
+    ctx.restore(); // RESETS COMPOSITE MODE BACK TO SOURCE-OVER
   }
 
   isDead() {
