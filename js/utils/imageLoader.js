@@ -1,4 +1,4 @@
-// Updated 3/11/26 @ 1AM
+// Updated 3/12/26 @ 11:30AM
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -21,7 +21,8 @@ const MANIFEST = {
   spiral:       { path: 'spiral.png',  lazy: true },   // 13 FRAMES
   slime:            { path: 'slime.png',            lazy: true },
   slimeProjectiles: { path: 'slimeProjectiles.png', lazy: true }, // 4 FRAMES
-  slimeDrip:        { path: 'slimeDrip.png',        lazy: true }, // 10 FRAMES (5R + 5L)
+  slimeDrip:        { path: 'slimeDrip.png',        lazy: true }, // 10 FRAMES (5R + 5L) — GLORK WING DRIP
+  screenSlimeDrip:  { path: 'screenSlimeDrip.png',  lazy: true }, // 9 FRAMES — FULL-SCREEN SLIME OVERLAY
 
   prismEye:     { path: 'prismEye.png',     lazy: true },  // 3 FRAMES: BASE / PUPIL / EYELID
   prePrismEyes: { path: 'prePrismEyes.png', lazy: true },  // 8 FRAMES: telegraph blink animation

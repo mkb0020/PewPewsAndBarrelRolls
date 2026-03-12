@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 8AM
+// Updated 3/12/26 @ 11:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -350,6 +350,15 @@ function showWaveHUD(visible) {
   if (el) el.classList.toggle('hidden', !visible);
 }
 
+function resetWaveBadges() {
+  for (let i = 0; i < 5; i++) {
+    const badge = document.getElementById(`wave-badge-${i}`);
+    if (!badge) continue;
+    badge.classList.remove('unlocked', 'badge-flash');
+    badge.classList.add('greyed');
+  }
+}
+
 // ==================== SHOOT ====================
 function doShoot() {
   if (isPaused || ship.isBarrelRolling) return;
@@ -380,6 +389,7 @@ transitionScene.onRestart = () => {
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
   gameplayScene.reset();
+  resetWaveBadges();          // RESET BADGES BACK TO GREYED-OUT FOR FRESH RUN
   cosmicPrismManager.reset();
   tesseractManager.reset();
   singularityBombManager.reset();
@@ -414,6 +424,7 @@ bossBattleScene.onWormholeGameOver = () => {
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
   enemyDeathManager.clear(); // 💀
   gameplayScene.reset();
+  resetWaveBadges();          // RESET BADGES BACK TO GREYED-OUT FOR FRESH RUN
   bossBattleScene.reset();
   tunnel.resetBossTransition();
   _bossTracerTarget    = 0;

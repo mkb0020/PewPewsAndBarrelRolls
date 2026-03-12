@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/12/26 @ 10:30AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -22,7 +22,7 @@ const WORM = {
   START_Z:          1400,  // STARTS FAR AWAY (TINY)
   IDLE_Z:           320,   // HOVERS AT THIS DEPTH WHEN ACTIVE
   APPROACH_SPEED:   0.006, // LERP FACTOR TOWARD IDLE Z
-  SPRITE_FRAMES:    14,
+  SPRITE_FRAMES:    9,
   FRAME_HEAD:       0,
   FRAME_SEGMENT:    1,
   FRAME_TAIL:       1,     
@@ -30,14 +30,12 @@ const WORM = {
   TRANSITION_DURATION: 0.25, 
   FRAME_ATTACK_START:   3, // FOR SUCTION ATTACK
   FRAME_ATTACK_END:     8, // 0-INDEXED: FRAME 9 = INDEX 8 / END FRAMES FOR SUCTION ATTACK
-  FRAME_BABY_START:     9, // 0-INDEXED: FRAME 10 — BABY WORM ATTACK ANIMATION START
-  FRAME_BABY_END:      13, // 0-INDEXED: FRAME 14 — BABY WORM ATTACK ANIMATION END
-  ATTACK_HEAD_SCALE:  0.85, // SCALE MULTIPLIER FOR HEAD DURING ATTACK FRAMES (4-14) — COMPENSATES FOR OVERSIZED SPRITE
+  ATTACK_HEAD_SCALE:  0.85, // SCALE MULTIPLIER FOR HEAD DURING ATTACK FRAMES (4-9) — COMPENSATES FOR OVERSIZED SPRITE
   DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
   ATTACK_INTERVAL:    15,  
   ATTACK_DURATION:    7,
   BABY_ATTACK_DURATION: 9,  
-  ATTACK_FPS:         10,  
+  ATTACK_FPS:         7,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, //POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
   ALPHA_START:      0.0,
@@ -512,7 +510,7 @@ export class WormBoss {
         if (this.attackProgress >= WORM.TRANSITION_DURATION) {
           this.attackPhase     = 'loop';
           this.attackProgress  = 0;
-          this.attackFrame     = this.attackType === 'babyworm' ? WORM.FRAME_BABY_START : WORM.FRAME_ATTACK_START;
+          this.attackFrame     = this.attackType === 'babyworm' ? WORM.FRAME_HEAD : WORM.FRAME_ATTACK_START;
           this.attackFrameTime = 0;
         }
 
@@ -535,15 +533,6 @@ export class WormBoss {
           }
 
         } else {
-          this.attackFrameTime += dt;
-          const frameDur = 1 / WORM.ATTACK_FPS;
-          if (this.attackFrameTime >= frameDur) {
-            this.attackFrameTime -= frameDur;
-            this.attackFrame++;
-            if (this.attackFrame > WORM.FRAME_BABY_END) {
-              this.attackFrame = WORM.FRAME_BABY_START;
-            }
-          }
           if (!this._babySpawnFired) {
             this._babySpawnFired = true;
             const head = this.segments[0];
