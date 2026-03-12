@@ -464,7 +464,6 @@ export class AudioManager {
       if (idx !== -1) this._activeLoops.splice(idx, 1);
     };
 
-    // Auto-clean from registry when it finishes naturally
     source.onended = () => {
       const idx = this._activeLoops.indexOf(entry);
       if (idx !== -1) this._activeLoops.splice(idx, 1);
