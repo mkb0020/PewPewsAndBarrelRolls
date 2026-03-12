@@ -1,4 +1,4 @@
-// Updated 3/11/26 @ 1AM
+// Updated 3/11/26 @ 10PM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -9,7 +9,7 @@ export class AudioManager {
     this.isMuted    = false;
     this._preMuteVolume = 1.0;
 
-    this.MUSIC_VOLUME        = 0.4;
+    this.MUSIC_VOLUME        = 0.3;
     this.LASER_VOLUME        = 0.5;
     this.ENEMY_LASER_VOLUME  = 0.5;
     this.IMPACT_VOLUME       = 0.2;
@@ -493,8 +493,8 @@ export class AudioManager {
   playPowerUp2() { this._playSfx('powerUp2', 0.5); }  // LASER BOOST
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
   playBoost()    { this._playSfx('boost',    0.6); }  // SHIP BOOST DRIVE
-  playBabyBlackhole() { this._playSfx('babyBlackhole', 0.6); } // SINGULARITY BOMB DEPLOY
-  playEnemyDeath()    { this._playSfx('enemyDeath',    0.2); } // BIOLOGICAL MELT COLLAPSE
+  playBabyBlackhole() { this._playSfx('babyBlackhole', 0.5); } // SINGULARITY BOMB DEPLOY
+  playEnemyDeath()    { this._playSfx('enemyDeath',    0.1); } // BIOLOGICAL MELT COLLAPSE
   playGlitchOut()     { this._playSfx('glitchOut',     0.7); } // SHIP DEATH GLITCH
 
   startWaveMusic(waveIndex) {
