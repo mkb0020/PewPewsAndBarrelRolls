@@ -1,4 +1,4 @@
-// Updated 3/11/26 @ 10PM
+// Updated 3/12/26 @ 7AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -50,7 +50,7 @@ export class AudioManager {
     this._sfxBuffers = {};
 
     this._initContext();
-    console.log('✔ AudioManager initialized');
+    // console.log('✔ AudioManager initialized');
   }
 
   _initContext() {
@@ -138,7 +138,7 @@ export class AudioManager {
         this._prefetchAndDecode(src)
           .then(buf => {
             this._sfxBuffers[name] = buf;
-            console.log(`✔ SFX buffer ready: ${name}`);
+            // console.log(`✔ SFX buffer ready: ${name}`);
           });
       }
 
@@ -209,7 +209,7 @@ export class AudioManager {
     if (this.context?.state === 'suspended') {
       this.context.resume().catch(() => {});
     }
-    console.log('✔ Audio unlocked');
+    // console.log('✔ Audio unlocked');
   }
 
   stop() {
@@ -235,7 +235,7 @@ export class AudioManager {
       this._musicGain.gain.linearRampToValueAtTime(this.MUSIC_VOLUME, this.context.currentTime + fadeDuration);
       source.start(0);
       this._musicSource = source;
-      console.log('♫ Credits music fading in');
+      // console.log('♫ Credits music fading in');
     };
     if (!this._creditsBuffer) {
       this._creditsDecodePromise.then(() => { if (!this.isMuted) play(); });
@@ -275,7 +275,7 @@ export class AudioManager {
     boss.start(bossStartTime);
     this._musicSource = boss;
 
-    console.log(`♫ Intro → Boss scheduled (handoff in ${this._introBuffer.duration.toFixed(2)}s)`);
+    // console.log(`♫ Intro → Boss scheduled (handoff in ${this._introBuffer.duration.toFixed(2)}s)`);
   }
 
   //  REGULAR GAMEPLAY GAME OVER — LOOPING, NO FADE - STOPS CURRENT MUSIC IMMEDIATELY. CLEANED UP BY audio.stop() ON RESTART.
@@ -301,7 +301,7 @@ export class AudioManager {
 
     this._gameover1Source = source;
     this._gameover1Gain   = gain;
-    console.log('♫ GameOver1 started (looping)');
+    // console.log('♫ GameOver1 started (looping)');
   }
 
   //  BOSS GAME OVER — ONE-SHOT, SCHEDULED FADE-OUT OVER LAST fadeDuration SECONDS.
@@ -336,7 +336,7 @@ export class AudioManager {
 
     this._gameover2Source = source;
     this._gameover2Gain   = gain;
-    console.log(`♫ GameOver2 started (fade-out starts at ${(duration - fadeDuration).toFixed(2)}s, over ${fadeDuration}s)`);
+    // console.log(`♫ GameOver2 started (fade-out starts at ${(duration - fadeDuration).toFixed(2)}s, over ${fadeDuration}s)`);
   }
 
   toggleMute() {
@@ -430,7 +430,7 @@ export class AudioManager {
       } catch (_) {}
     }
     this._activeLoops = [];
-    console.log(`♪ stopAllLoopingSfx: killed ${loops.length} active loop(s)`);
+    // console.log(`♪ stopAllLoopingSfx: killed ${loops.length} active loop(s)`);
   }
 
   // ==================== PUBLIC PLAY METHODS ====================
