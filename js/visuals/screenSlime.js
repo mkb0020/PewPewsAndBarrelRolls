@@ -1,4 +1,4 @@
-// Updated 3/10/26 @ 10AM
+// Updated 3/12/26 @ 7AM
 // screenSlime.js
 
 // ── DRIP CONSTANTS ────────────────────────────────────────────────────────────
@@ -10,7 +10,7 @@ const LEN_MIN       = 150;   // px — DRIP LENGTH BEFORE DROPS DETACH
 const LEN_MAX       = 350;  
 const ROOT_W_MIN    = 25;    // px — NARROWEST ROOT WIDTH 
 const ROOT_W_MAX    = 40;    // px — WIDEST ROOT WIDTH 
-const WOBBLE_AMP    = 0;    // px — MAX HORIZONTAL SWAY OF DRIP TIP
+const WOBBLE_AMP    = 0;     // px — MAX HORIZONTAL SWAY OF DRIP TIP
 const DRIP_GAP_MIN  = 0.25;  // s  — MIN PAUSE BEFORE DRIP RESTARTS 
 const DRIP_GAP_MAX  = 2.2;   // s  — MAX PAUSE
 const DROP_GRAVITY  = 195;   // px/s² — FALLING DROPLET ACCELERATION 
@@ -31,6 +31,12 @@ export class ScreenSlime {
     this.drips    = [];
     this.droplets = [];
     this._waveT   = 0;
+
+    // CACHED GRADIENTS — BUILT ONCE ON FIRST DRAW, REUSED EVERY FRAME
+    this._poolGrad     = null;   // VERTICAL GRADIENT FOR THE SLIME POOL
+    this._specStripGrad = null;  // SPECULAR HIGHLIGHT STRIP ACROSS POOL TOP
+    this._dripGrad     = null;   // SHARED HORIZONTAL GRADIENT FOR ALL DRIP BODIES
+
     this._init();
   }
 
@@ -39,6 +45,10 @@ export class ScreenSlime {
     this.drips    = [];
     this.droplets = [];
     this._waveT   = 0;
+    // INVALIDATE CACHED GRADIENTS ON REINIT (SCREEN MAY HAVE RESIZED)
+    this._poolGrad      = null;
+    this._specStripGrad = null;
+    this._dripGrad      = null;
     for (let i = 0; i < DRIP_COUNT; i++) {
       this.drips.push(this._makeDrip(true));
     }
@@ -55,7 +65,7 @@ export class ScreenSlime {
       wobble:    (Math.random() - 0.5) * 2 * WOBBLE_AMP,
       wobSpd:    0.3 + Math.random() * 0.5,
       wobPhase:  Math.random() * Math.PI * 2,
-      delay:     staggerDelay ? Math.random() * 2.4 : 0, 
+      delay:     staggerDelay ? Math.random() * 2.4 : 0,
       active:    false,
     };
   }
@@ -123,9 +133,43 @@ export class ScreenSlime {
     return d.rootW * 0.44 + t * d.rootW * 0.82;
   }
 
+  // LAZY-INIT CACHED GRADIENTS — BUILT ONCE PER SPAWN, REUSED EVERY FRAME
+  _ensureGradients(ctx) {
+    const W = window.innerWidth;
+
+    if (!this._poolGrad) {
+      const g = ctx.createLinearGradient(0, 0, 0, POOL_H + 16);
+      g.addColorStop(0,    C_POOL_TOP);
+      g.addColorStop(0.65, C_MID);
+      g.addColorStop(1,    C_POOL_BOT);
+      this._poolGrad = g;
+    }
+
+    if (!this._specStripGrad) {
+      const g = ctx.createLinearGradient(0, 1, 0, 10);
+      g.addColorStop(0, 'rgba(180,255,195,0.42)');
+      g.addColorStop(1, 'rgba(180,255,195,0)');
+      this._specStripGrad = g;
+    }
+
+    // DRIP BODY GRADIENT — ONE SHARED GRADIENT SPANNING FULL SCREEN WIDTH
+    // INDIVIDUAL DRIPS CLIP TO THEIR OWN SHAPE SO THE CORRECT COLORS SHOW THROUGH
+    if (!this._dripGrad) {
+      const g = ctx.createLinearGradient(0, 0, W, 0);
+      g.addColorStop(0,    C_DARK);
+      g.addColorStop(0.25, C_MID);
+      g.addColorStop(0.5,  C_BRIGHT);
+      g.addColorStop(0.75, C_MID);
+      g.addColorStop(1,    C_DARK);
+      this._dripGrad = g;
+    }
+  }
+
   // ── DRAW ─────────────────────────────────────────────────────────────────────
   draw(ctx, intensity) {
     if (intensity < 0.01) return;
+
+    this._ensureGradients(ctx);
 
     ctx.save();
     ctx.globalAlpha = Math.min(0.4, intensity);
@@ -141,14 +185,10 @@ export class ScreenSlime {
     const W = window.innerWidth;
     const t = this._waveT;
 
-    const grad = ctx.createLinearGradient(0, 0, 0, POOL_H + 16);
-    grad.addColorStop(0,   C_POOL_TOP);
-    grad.addColorStop(0.65, C_MID);
-    grad.addColorStop(1,   C_POOL_BOT);
-
+    // USE CACHED GRADIENT — NO OBJECT CREATION THIS FRAME
     ctx.shadowColor = C_GLOW;
     ctx.shadowBlur  = 24;
-    ctx.fillStyle   = grad;
+    ctx.fillStyle   = this._poolGrad;
 
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -165,11 +205,9 @@ export class ScreenSlime {
     ctx.closePath();
     ctx.fill();
 
-    ctx.shadowBlur = 0;
-    const specGrad = ctx.createLinearGradient(0, 1, 0, 10);
-    specGrad.addColorStop(0, 'rgba(180,255,195,0.42)');
-    specGrad.addColorStop(1, 'rgba(180,255,195,0)');
-    ctx.fillStyle = specGrad;
+    ctx.shadowBlur  = 0;
+    // USE CACHED GRADIENT — NO OBJECT CREATION THIS FRAME
+    ctx.fillStyle   = this._specStripGrad;
     ctx.fillRect(0, 0, W, 10);
   }
 
@@ -183,78 +221,65 @@ export class ScreenSlime {
   _drawOneDrip(ctx, d) {
     const { length: len, maxLen, rootW, x, wobPhase, wobble } = d;
 
-    const wobX     = Math.sin(wobPhase) * wobble * (len / maxLen);
-    const tipX     = x + wobX;
-    const poolY    = POOL_H;
-    const tipY     = poolY + len;
-    const tipR     = this._tipRadius(d);
+    const wobX      = Math.sin(wobPhase) * wobble * (len / maxLen);
+    const tipX      = x + wobX;
+    const poolY     = POOL_H;
+    const tipY      = poolY + len;
+    const tipR      = this._tipRadius(d);
     const halfRoot  = rootW / 2;
-    const halfStalk = rootW * 0.17;   
+    const halfStalk = rootW * 0.17;
 
-    const dripGrad = ctx.createLinearGradient(tipX - tipR, 0, tipX + tipR, 0);
-    dripGrad.addColorStop(0,    C_DARK);
-    dripGrad.addColorStop(0.25, C_MID);
-    dripGrad.addColorStop(0.5,  C_BRIGHT);
-    dripGrad.addColorStop(0.75, C_MID);
-    dripGrad.addColorStop(1,    C_DARK);
-
+    // USE CACHED FULL-WIDTH GRADIENT — NO OBJECT CREATION THIS FRAME
+    // THE DRIP SHAPE CLIPS TO THE CORRECT COLOR BAND AUTOMATICALLY
     ctx.shadowColor = C_GLOW;
     ctx.shadowBlur  = 10;
-    ctx.fillStyle   = dripGrad;
+    ctx.fillStyle   = this._dripGrad;
 
     ctx.beginPath();
     ctx.moveTo(x - halfRoot, poolY);
     ctx.bezierCurveTo(
-      x    - halfRoot,  poolY + len * 0.35,   
-      tipX - halfStalk, poolY + len * 0.65,   
-      tipX - tipR,      tipY                 
+      x    - halfRoot,  poolY + len * 0.35,
+      tipX - halfStalk, poolY + len * 0.65,
+      tipX - tipR,      tipY
     );
-    ctx.arc(tipX, tipY, tipR, Math.PI, 0, true);  
+    ctx.arc(tipX, tipY, tipR, Math.PI, 0, true);
     ctx.bezierCurveTo(
-      tipX + halfStalk, poolY + len * 0.65,   
-      x    + halfRoot,  poolY + len * 0.35,   
-      x    + halfRoot,  poolY                 
+      tipX + halfStalk, poolY + len * 0.65,
+      x    + halfRoot,  poolY + len * 0.35,
+      x    + halfRoot,  poolY
     );
     ctx.closePath();
     ctx.fill();
 
-    ctx.shadowBlur = 0;
+    // SPECULAR HIGHLIGHT — SIMPLE SEMI-TRANSPARENT ARC, NO GRADIENT OBJECT NEEDED
+    ctx.shadowBlur  = 0;
     const specR = tipR * 0.38;
     const specX = tipX - tipR * 0.28;
     const specY = tipY - tipR * 0.32;
-    const specGrad = ctx.createRadialGradient(specX, specY, 0, specX, specY, specR);
-    specGrad.addColorStop(0, C_SPEC);
-    specGrad.addColorStop(1, 'rgba(180,255,200,0)');
-    ctx.fillStyle = specGrad;
+    ctx.fillStyle = C_SPEC;
     ctx.beginPath();
     ctx.arc(specX, specY, specR, 0, Math.PI * 2);
     ctx.fill();
   }
 
   _drawDroplets(ctx) {
+    if (this.droplets.length === 0) return;
+
+    // SINGLE SHADOW STATE SET FOR ALL DROPLETS — NOT PER DROPLET
+    ctx.shadowColor = C_GLOW;
+    ctx.shadowBlur  = 8;
+
     for (const dr of this.droplets) {
       const r  = dr.r;
-      const rx = r;
-      const ry = r * 0.78;   
 
-      ctx.save();
-      ctx.shadowColor = C_GLOW;
-      ctx.shadowBlur  = 8;
-
-      const dropGrad = ctx.createRadialGradient(
-        dr.x - r * 0.3, dr.y - r * 0.3, r * 0.05,
-        dr.x,            dr.y,            r
-      );
-      dropGrad.addColorStop(0,    'rgba(185,255,195,0.85)');
-      dropGrad.addColorStop(0.38, C_MID);
-      dropGrad.addColorStop(1,    C_DARK);
-
-      ctx.fillStyle = dropGrad;
+      // SOLID FILL + SHADOW GLOW — NO PER-DROPLET GRADIENT OR SAVE/RESTORE
+      ctx.fillStyle = C_MID;
       ctx.beginPath();
-      ctx.ellipse(dr.x, dr.y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.ellipse(dr.x, dr.y, r, r * 0.78, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     }
+
+    ctx.shadowBlur = 0;  // RESET SHADOW ONCE AFTER THE LOOP
   }
 
   // ── RESET ────────────────────────────────────────────────────────────────────
