@@ -1,4 +1,4 @@
-// Updated 3/6/26 @ 8PM
+// Updated 3/12/26 @ 7AM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -39,7 +39,7 @@ export class BossBattleScene {
     //  WIRE WORM BOSS CALLBACKS 
     this._wireCallbacks();
 
-    console.log('✔ BossBattleScene initialized');
+    // console.log('✔ BossBattleScene initialized');
   }
 
   //  PUBLIC API
@@ -137,7 +137,7 @@ export class BossBattleScene {
   readyForBattle() {
     this._battleReady = true;
     if (this.singularityBombManager) this.singularityBombManager.deployEnabled = true;
-    console.log('⚔ Battle ready — boss damage unlocked');
+    // console.log('⚔ Battle ready — boss damage unlocked');
   }
 
   /**

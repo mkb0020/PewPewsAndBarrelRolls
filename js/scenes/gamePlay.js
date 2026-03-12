@@ -1,4 +1,4 @@
-// Updated 3/11/26 @ 1 AM
+// Updated 3/12/26 @ 7AM
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -10,24 +10,24 @@ const WAVE_CONFIGS = [
     weights:    [1.00],
     maxEnemies: 4, 
   },
-  { // WAVE 2 — + ZIP ZAP
+  { // WAVE 2 — + ZIP ZAP (FAST) INTRODUCED AS THE DOMINANT TYPE
     types:      ['BASIC', 'FAST'],
-    weights:    [0.10,    0.9], // FOR TESTING
+    weights:    [0.35,    0.65],
     maxEnemies: 5,
   },
-  { // WAVE 3 — + PHIL
+  { // WAVE 3 — + PHIL (ZIGZAG) INTRODUCED AS THE DOMINANT TYPE
     types:      ['BASIC', 'FAST',  'ZIGZAG'],
-    weights:    [0.1,    0.1,     0.8], // FOR TESTING
+    weights:    [0.25,    0.25,    0.50],
     maxEnemies: 5,
   },
-  { // WAVE 4 — + GLORK (TANK — SLIME ATTACK, FEWER SPAWNS )
+  { // WAVE 4 — + GLORK (TANK — SLIME ATTACK, FEWER SPAWNS DUE TO WEIGHT)
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK'],
-    weights:    [0.3,    0.2,     0.2,     0.3], // FOR TESTING
+    weights:    [0.20,    0.20,    0.25,     0.35],
     maxEnemies: 4,
   },
-  { // WAVE 5 — + FLIM FLAM
+  { // WAVE 5 — + FLIM FLAM — ALL TYPES, FLIMFLAM GETS EDGE AS THE FINALE ENEMY
     types:      ['BASIC', 'FAST',  'ZIGZAG', 'TANK',  'FLIMFLAM'],
-    weights:    [0.1,    0.1,     0.1,     0.1,    0.6], // FOR TESTING
+    weights:    [0.15,    0.20,    0.20,     0.15,    0.30],
     maxEnemies: 4,
   },
 ];
@@ -65,7 +65,7 @@ export class GameplayScene {
     this.waveWormManager.onWaveCleared = () => this._onWaveCleared();
     this.waveWormManager.onGooHit      = () => this.onGooHit?.();
 
-    console.log('✔ GameplayScene initialized');
+    // console.log('✔ GameplayScene initialized');
   }
 
   //  PUBLIC API 
@@ -147,10 +147,10 @@ export class GameplayScene {
 
     this.onWaveStart?.(waveIndex);
 
-    console.log(
-      `▶ Wave ${waveIndex + 1} / ${WAVE_CONFIGS.length} | ` +
-      `Types: [${cfg.types.join(', ')}] | Max enemies: ${cfg.maxEnemies}`
-    );
+    // console.log(
+     // `▶ Wave ${waveIndex + 1} / ${WAVE_CONFIGS.length} | ` +
+    //  `Types: [${cfg.types.join(', ')}] | Max enemies: ${cfg.maxEnemies}`
+  //  );
   }
 
   _onWaveCleared() {
@@ -163,6 +163,6 @@ export class GameplayScene {
 
     this.onWaveCleared?.(this.waveIndex);
 
-    console.log(`✔ Wave ${this.waveIndex + 1} cleared! Transitioning in ${CONFIG.GAMEPLAY.WAVE_TRANSITION_DURATION}s`);
+    // console.log(`✔ Wave ${this.waveIndex + 1} cleared! Transitioning in ${CONFIG.GAMEPLAY.WAVE_TRANSITION_DURATION}s`);
   }
 }
