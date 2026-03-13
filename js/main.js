@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 4PM
+// Updated 3/12/26 @ 10:30PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -29,6 +29,7 @@ import { CosmicPrismManager }                        from './entities/cosmicPris
 import { TesseractFragmentManager }                  from './entities/tesseractFragment.js';
 import { SingularityBombManager }                    from './entities/singularityBomb.js';
 import { EnemyDeathManager }                         from './visuals/enemyDeath.js';
+import { FractalCascade }                            from './entities/fractalCascade.js';
 
 
 // console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
@@ -56,6 +57,7 @@ const babyWormManager   = new BabyWormManager();
 const menu              = new Menu();
 const slimeAttack       = new SlimeAttack();
 const ocularPrism       = new OcularPrism();
+const fractalCascade    = new FractalCascade();
 const waveWormManager   = new WaveWormManager();
 const cosmicPrismManager = new CosmicPrismManager();
 cosmicPrismManager.audio = audio; 
@@ -115,6 +117,23 @@ enemyManager.onEnemyKilled = (type) => {
   if (type === 'FLIMFLAM') {
     ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
   }
+  if (type === 'ZIGZAG') {
+    audio._stopFractalCode?.(); audio._stopFractalCode = null;
+  }
+};
+
+// ==================== FRACTAL CASCADE CALLBACKS ====================
+enemyManager.onFractalTelegraph = () => {
+  if (fractalCascade.isActive()) return;
+  audio._stopFractalCode?.();                  // KILL ANY ORPHANED PRIOR INSTANCE
+  audio._stopFractalCode = audio.startFractalCode();
+};
+enemyManager.onFractalCascade = () => {
+  audio._stopFractalCode?.(); audio._stopFractalCode = null; // TELEGRAPH PHASE DONE — RELEASE HANDLE
+  fractalCascade.activate();
+};
+fractalCascade.onRecompile = () => {
+  audio.playFractalCode(); // RECOMPILE SNAP — BRIEF SECOND HIT OF SAME ASSET
 };
 
 // ==================== OCULAR PRISM CALLBACKS ====================
@@ -190,6 +209,7 @@ gameplayScene.onWaveCleared = (waveIndex) => {
   ocularPrism.active = false;                        // CANCEL ANY ACTIVE OCULAR PRISM
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+  fractalCascade.reset();                            // CANCEL ANY ACTIVE FRACTAL CASCADE
   singularityBombManager.blackHole = null;           // KILL ANY ACTIVE BLACK HOLE (keep inventory)
 
   cosmicPrismManager.stop(); // 🔮 NO PRISMS DURING BOSS SEQUENCE
@@ -297,6 +317,7 @@ function wireShipOnDeath() {
       ocularPrism.active = false;
       ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
       ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+      fractalCascade.reset(); // CANCEL ANY ACTIVE FRACTAL CASCADE
     }
 
     transitionScene.handleDeath(livesLeft, inWormBattle);
@@ -622,6 +643,7 @@ function gameLoop() {
     muzzleFlash.update(dt);
     scoreManager.update(dt);
     ocularPrism.update(dt);
+    if (gameplayScene.isActive()) fractalCascade.update(dt, ship.x, ship.y, ship);
     cosmicPrismManager.update(dt, ship.x, ship.y);
     tesseractManager.update(dt, ship.x, ship.y);
     enemyDeathManager.update(dt); // 💀
@@ -725,6 +747,7 @@ function gameLoop() {
       if (gameplayScene.isActive()) cosmicPrismManager.draw(ctx); // 🔮 PRISMS ABOVE ENEMIES, BELOW SHIP
       if (gameplayScene.isActive()) tesseractManager.drawItems(ctx); // ◈ TESSERACT FRAGMENTS
       if (gameplayScene.isActive()) singularityBombManager.drawItems(ctx); // 💣 SPINOR COLLECTIBLES
+      if (gameplayScene.isActive()) fractalCascade.drawEchoes(ctx, ship.x, ship.y); // 🌀 FRACTAL ECHOES BEHIND SHIP
   }
 
   slimeAttack.drawScreenSlime(ctx);
@@ -808,6 +831,7 @@ function gameLoop() {
 
   muzzleFlash.draw(ctx);
   ship.draw();
+  fractalCascade.drawTelegraph(ctx, ship.x, ship.y); // 🌀 FRACTAL TRIANGLES ABOVE SHIP
 
   tesseractManager.drawAuraAndHUD(ctx, ship.x, ship.y); // ◈ LASER BOOST AURA + HUD TIMER
 
