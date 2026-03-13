@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 12:30AM
+// Updated 3/13/26 @ 7AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -263,6 +263,14 @@ bossBattleScene.onCinematicEnd   = () => ship.exitCinematic();
 bossBattleScene.onCheckpoint     = () => {
   const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
   transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
+};
+
+// CELLULAR AUTOMATTACK — FLAT DAMAGE BURST WHEN CONTAINMENT FAILS
+bossBattleScene.onCollapseHit = () => {
+  if (ship.isAlive && !ship.isInvincible) {
+    ship.takeDamage(CONFIG.CELLULAR_ATTACK.COLLAPSE_DAMAGE);
+    audio.playOuch();
+  }
 };
 
 // ==================== WORM DEATH → CLOSING SCENE ====================
@@ -730,13 +738,13 @@ function gameLoop() {
 
   if (!closingScene.shouldHideTunnel) tunnel.render();
 
-
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
  
   projectileManager.draw(ctx); // ALWAYS DRAW — EXPLOSIONS MUST SURVIVE INTO CLOSING SCENE
     if (!closingScene.isActive()) {
       wormBoss.draw(ctx);
+      bossBattleScene.drawCellular(ctx); // 🧬 CELLULAR INFECTION — ABOVE WORM, BELOW EVERYTHING ELSE
       babyWormManager.draw(ctx);
       crosshair.draw(ctx);
       gameplayScene.drawBehindEnemies(ctx);
