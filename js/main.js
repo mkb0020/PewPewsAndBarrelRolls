@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 7AM
+// Updated 3/13/26 @ 5:45PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -265,12 +265,10 @@ bossBattleScene.onCheckpoint     = () => {
   transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
 };
 
-// CELLULAR AUTOMATTACK — FLAT DAMAGE BURST WHEN CONTAINMENT FAILS
+// CELLULAR AUTOMATTACK COLLAPSE — TRIGGERS REALITY DISTORTION INSTEAD OF FLAT DAMAGE
 bossBattleScene.onCollapseHit = () => {
-  if (ship.isAlive && !ship.isInvincible) {
-    ship.takeDamage(CONFIG.CELLULAR_ATTACK.COLLAPSE_DAMAGE);
-    audio.playOuch();
-  }
+  bossBattleScene.activateCellularDistort(ship);
+  audio.playOuch();
 };
 
 // ==================== WORM DEATH → CLOSING SCENE ====================
@@ -428,7 +426,7 @@ transitionScene.onRestart = () => {
   tesseractManager.reset();
   singularityBombManager.reset();
 
-  bossBattleScene.reset();
+  bossBattleScene.reset(ship);
   tunnel.resetBossTransition();
   _bossTracerTarget    = 0;
   _bossTracerIntensity = 0;
@@ -459,7 +457,7 @@ bossBattleScene.onWormholeGameOver = () => {
   enemyDeathManager.clear(); // 💀
   gameplayScene.reset();
   resetWaveBadges();          // RESET BADGES BACK TO GREYED-OUT FOR FRESH RUN
-  bossBattleScene.reset();
+  bossBattleScene.reset(ship);
   tunnel.resetBossTransition();
   _bossTracerTarget    = 0;
   _bossTracerIntensity = 0;
@@ -494,7 +492,7 @@ transitionScene.onContinue = () => {
     wormBoss.activate();
     ship.deathSequenceEnabled = false; // BOSS BATTLE HAS ITS OWN DEATH HANDLING
     babyWormManager.clear();
-    bossBattleScene.reset();
+    bossBattleScene.reset(ship);
     bossBattleScene.updateHUD();
   }
 
@@ -785,6 +783,50 @@ function gameLoop() {
         ctx.globalAlpha = alpha * 0.7;
         ctx.fillStyle   = '#22ff66';
         ctx.fillRect(-CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2, CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
+        ctx.restore();
+      }
+    }
+  }
+
+  //  CELLULAR DISTORTION TRACERS — MAGENTA/PURPLE GHOST SHIPS WHILE INFECTED
+  if (ship._cellularDistortActive) {
+    const sprite     = ImageLoader.isLoaded('ship') ? ImageLoader.get('ship') : null;
+    const frameW     = sprite ? sprite.width / CONFIG.SHIP.SPRITE_FRAMES : 0;
+    const trailSnaps = ship.getTrailPositions();
+    if (sprite && trailSnaps.length > 0) {
+      // PASS 1 — MAGENTA GHOST SHIPS
+      for (let i = 0; i < trailSnaps.length; i++) {
+        const snap    = trailSnaps[i];
+        const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
+        const alpha   = 0.55 * (1 - ageFrac * 0.88);
+        if (alpha < 0.01) continue;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(snap.x, snap.y);
+        ctx.rotate(snap.rotation);
+        ctx.drawImage(sprite, snap.frame * frameW, 0, frameW, sprite.height,
+          -CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2,
+          CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.globalAlpha = alpha * 0.85;
+        ctx.fillStyle   = '#cc0099'; // CELLULAR MAGENTA — MATCHES INFECTION PALETTE
+        ctx.fillRect(-CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2, CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
+        ctx.restore();
+      }
+      // PASS 2 — ADDITIVE PURPLE GLOW ON FRESHEST 3 GHOSTS
+      for (let i = Math.max(0, trailSnaps.length - 3); i < trailSnaps.length; i++) {
+        const snap    = trailSnaps[i];
+        const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
+        const alpha   = 0.28 * (1 - ageFrac * 0.5);
+        if (alpha < 0.01) continue;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.translate(snap.x, snap.y);
+        ctx.rotate(snap.rotation);
+        ctx.drawImage(sprite, snap.frame * frameW, 0, frameW, sprite.height,
+          -CONFIG.SHIP.WIDTH * 0.6, -CONFIG.SHIP.HEIGHT * 0.6,
+          CONFIG.SHIP.WIDTH * 1.2, CONFIG.SHIP.HEIGHT * 1.2);
         ctx.restore();
       }
     }

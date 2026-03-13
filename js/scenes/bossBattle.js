@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 7AM
+// Updated 3/13/26 @ 5:45PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -40,6 +40,7 @@ export class BossBattleScene {
 
     //  CELLULAR AUTOMATTACK
     this.cellularAttack = new CellularAttack();
+    this._distortTimer  = 0;  // COUNTDOWN — CLEARS ship._cellularDistortActive WHEN DONE
 
     //  WIRE WORM BOSS CALLBACKS 
     this._wireCallbacks();
@@ -73,8 +74,27 @@ export class BossBattleScene {
       }
     }
 
+    // CELLULAR DISTORTION TIMER — CLEAR FLAG WHEN DURATION EXPIRES
+    if (this._distortTimer > 0) {
+      this._distortTimer -= dt;
+      if (this._distortTimer <= 0) {
+        this._distortTimer          = 0;
+        ship._cellularDistortActive = false;
+      }
+    }
+
     // VORTEX UPDATE — DRIVES THREE.JS RENDER EACH FRAME AFTER SHIP IS CONSUMED
     this._vortex?.update(dt);
+  }
+
+  /**
+   * CALLED ON CELLULAR ATTACK COLLAPSE — TRIGGERS REALITY DISTORTION INSTEAD OF FLAT DAMAGE
+   * REVERSES CONTROLS, SLOWS MOVEMENT, ACTIVATES TRACERS + INVERTED SHIP COLORS FOR DISTORT_DURATION
+   */
+  activateCellularDistort(ship) {
+    if (!ship || !ship.isAlive) return;
+    ship._cellularDistortActive = true;
+    this._distortTimer          = CONFIG.CELLULAR_ATTACK.DISTORT_DURATION;
   }
 
   /**
@@ -159,12 +179,14 @@ export class BossBattleScene {
     return false;
   }
 
-  reset() {
+  reset(ship = null) {
     this._wormBattleStarted = false;
     this._warningSounded    = false;
     this._battleReady       = false;
     this._wormholeActive    = false;
     this._vortex            = null;
+    this._distortTimer      = 0;
+    if (ship) ship._cellularDistortActive = false; // ENSURE FLAG IS CLEARED ON HARD RESET
     this.cellularAttack.reset();
     if (this.singularityBombManager) this.singularityBombManager.isBossBattle = false;
   }
