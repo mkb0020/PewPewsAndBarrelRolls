@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/12/26 @ 10:30PM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -84,6 +84,9 @@ export class Ship {
     // ========== COSMIC PRISM HEAL GLOW ==========
     this._healGlow         = 0;     
     this._healGlowDuration = 0.65;  
+
+    // ========== FRACTAL CASCADE ==========
+    this._fractalControlsReversed = false; // SET BY fractalCascade.update(), FLIPS INPUT AXES
 
     // ========== SHIP DEATH SEQUENCE ==========
     this.deathSequenceEnabled  = true;  // SET FALSE BY main.js WHEN BOSS IS ACTIVE
@@ -192,6 +195,9 @@ export class Ship {
 
     const mag = Math.sqrt(inputX * inputX + inputY * inputY);
     if (mag > 1) { inputX /= mag; inputY /= mag; }
+
+    // FRACTAL CASCADE — FLIP ALL INPUT AXES WHEN CONTROLS ARE REVERSED
+    if (this._fractalControlsReversed) { inputX = -inputX; inputY = -inputY; }
 
     // ACCELERATION + DAMPING
     const accel = CONFIG.SHIP.ACCELERATION * dt

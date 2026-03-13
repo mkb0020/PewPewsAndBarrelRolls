@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 4PM
+// Updated 3/12/26 @ 10:30PM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -169,6 +169,16 @@ export class Enemy {
     this.laserColor    = this.config.LASER_COLOR;
     this.pendingLaser  = null;
 
+    // ─── ZIGZAG FRACTAL CASCADE ATTACK ───
+    if (this.type === 'ZIGZAG') {
+      const FC = CONFIG.FRACTAL_CASCADE;
+      this.fractalTimer          = FC.FIRST_DELAY_MIN + Math.random() * (FC.FIRST_DELAY_MAX - FC.FIRST_DELAY_MIN);
+      this.fractalAttackState    = 'IDLE';   // 'IDLE' | 'TELEGRAPHING'
+      this.fractalTelegraphTimer = 0;
+      this.pendingFractalTelegraph = false;
+      this.pendingFractalCascade   = false;
+    }
+
     // ─── TANK SLIME ATTACK ───
     if (this.type === 'TANK') {
       const scfg = CONFIG.SLIME_ATTACK;
@@ -308,6 +318,26 @@ export class Enemy {
         }
       }
     }
+
+    // ─── ZIGZAG FRACTAL CASCADE ATTACK STATE MACHINE ───
+    if (this.type === 'ZIGZAG') {
+      if (this.fractalAttackState === 'IDLE') {
+        this.fractalTimer -= dt;
+        if (this.fractalTimer <= 0) {
+          this.fractalAttackState    = 'TELEGRAPHING';
+          this.fractalTelegraphTimer = 0;
+          this.pendingFractalTelegraph = true;
+        }
+      } else if (this.fractalAttackState === 'TELEGRAPHING') {
+        this.fractalTelegraphTimer += dt;
+        if (this.fractalTelegraphTimer >= CONFIG.FRACTAL_CASCADE.TELEGRAPH_DURATION) {
+          this.fractalAttackState  = 'IDLE';
+          const FC = CONFIG.FRACTAL_CASCADE;
+          this.fractalTimer        = FC.COOLDOWN_MIN + Math.random() * (FC.COOLDOWN_MAX - FC.COOLDOWN_MIN);
+          this.pendingFractalCascade = true;
+        }
+      }
+    }
   }
 
   // ─── WANDER HELPERS ─────────────────────────────────────────────────────────
@@ -442,8 +472,9 @@ export class Enemy {
     // ── BODY SPRITE  ──────────────────
     // TELEGRAPH HEAD SWAP — OCTOPUS TYPES SHOW ALTERNATE HEAD FRAME DURING ATTACK TELEGRAPH
     let drawFrameIndex = this.frameIndex;
-    if (this.type === 'TANK'     && this.slimeTelegraphActive)             drawFrameIndex = 4;
-    if (this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING') drawFrameIndex = 5;
+    if (this.type === 'TANK'     && this.slimeTelegraphActive)               drawFrameIndex = 4;
+    if (this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING')   drawFrameIndex = 5;
+    if (this.type === 'ZIGZAG'   && this.fractalAttackState === 'TELEGRAPHING') drawFrameIndex = 3; // SEGMENT_FRAME — ALTERNATE HEAD
 
     ctx.globalAlpha = spriteAlpha;
     if (sprite) {
@@ -523,6 +554,8 @@ export class EnemyManager {
     this.onOcularPrism     = null; 
     this.onTelegraph       = null;
     this.onEnemyKilled     = null; // FIRES WITH ENEMY TYPE WHEN AN ENEMY IS REMOVED — USED TO STOP ORPHANED TELEGRAPH SFX
+    this.onFractalTelegraph = null; // ZIP ZAP FRACTAL CASCADE — TELEGRAPH BEGIN
+    this.onFractalCascade   = null; // ZIP ZAP FRACTAL CASCADE — ATTACK FIRE
 
     //  WAVE CONTROL  
     this._allowedTypes    = null;   
@@ -628,6 +661,16 @@ export class EnemyManager {
       if (enemy.pendingSlime) {
         this.onSlimeAttack?.(enemy.x, enemy.y);
         enemy.pendingSlime = false;
+      }
+
+      // COLLECT FRACTAL CASCADE (ZIGZAG / ZIP ZAP ONLY)
+      if (enemy.pendingFractalTelegraph) {
+        this.onFractalTelegraph?.();
+        enemy.pendingFractalTelegraph = false;
+      }
+      if (enemy.pendingFractalCascade) {
+        this.onFractalCascade?.();
+        enemy.pendingFractalCascade = false;
       }
 
       if (enemy.isDead) {
