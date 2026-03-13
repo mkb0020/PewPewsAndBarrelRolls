@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 8AM
+// Updated 3/12/26 @ 10:30PM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -9,7 +9,7 @@ export class AudioManager {
     this.isMuted    = false;
     this._preMuteVolume = 1.0;
 
-    this.MUSIC_VOLUME        = 0.3;
+    this.MUSIC_VOLUME        = 0.4;
     this.CREDITS_MUSIC_VOLUME = 0.6; // LOUDER — ONLY AUDIO IN CLOSING SCENE
     this.LASER_VOLUME        = 0.5;
     this.ENEMY_LASER_VOLUME  = 0.5;
@@ -132,6 +132,7 @@ export class AudioManager {
         glitchOut:      './audio/glitchOut.m4a',     // SHIP DEATH GLITCH SEQUENCE
         boost:          './audio/boost.m4a',         // SHIP BOOST DRIVE
         slimeSounds:    './audio/slimeSounds.m4a',   // GLORK SLIME TELEGRAPH
+        fractalCode:    './audio/fractalCode.m4a',   // ZIP ZAP FRACTAL CASCADE ATTACK
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -483,7 +484,7 @@ export class AudioManager {
   playConsumed()    { this._playSfx('consumed',      0.9); }
   playBabyWorms()   { this._playSfx('babyWorms',     1.0); }
   playWarning()     { this._playSfx('warning',       0.8); }
-  playWaveWormSfx()     { this._playSfx('waveWorms',       0.4); }
+  playWaveWormSfx()     { this._playSfx('waveWorms',       0.5); }
   playBossTransition1() { this._playSfx('bossTransition1', 0.9); }
   playBossTransition2() { this._playSfx('bossTransition2', 0.9); }
   playWaveStart()       { this._playSfx('waveStart',       0.55); }
@@ -496,6 +497,40 @@ export class AudioManager {
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.5); } // SINGULARITY BOMB DEPLOY
   playEnemyDeath()    { this._playSfx('enemyDeath',    0.1); } // BIOLOGICAL MELT COLLAPSE
   playGlitchOut()     { this._playSfx('glitchOut',     0.7); } // SHIP DEATH GLITCH
+  startFractalCode(volume = 0.7) {                             // ZIP ZAP FRACTAL CASCADE — RETURNS STOP HANDLE
+    if (this.isMuted || !this.context) return () => {};
+    const buffer = this._sfxBuffers['fractalCode'];
+    if (!buffer) return () => {};
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    source.loop   = false;
+
+    const gain = this.context.createGain();
+    gain.gain.value = Math.min(1, volume);
+    source.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
+
+    const entry = { source, gain };
+    this._activeLoops.push(entry);
+
+    const stop = () => {
+      try {
+        gain.gain.setTargetAtTime(0, this.context.currentTime, 0.05);
+        setTimeout(() => { try { source.stop(); } catch (_) {} }, 150);
+      } catch (_) {}
+      const idx = this._activeLoops.indexOf(entry);
+      if (idx !== -1) this._activeLoops.splice(idx, 1);
+    };
+
+    source.onended = () => {                        // AUTO-DEREGISTER WHEN SOUND FINISHES NATURALLY
+      const idx = this._activeLoops.indexOf(entry);
+      if (idx !== -1) this._activeLoops.splice(idx, 1);
+    };
+
+    return stop;
+  }
 
   startWaveMusic(waveIndex) {
     if (this.isMuted) return;
