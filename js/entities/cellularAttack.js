@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 7am
+// Updated 3/13/26 @ 5:45pm
 // cellularAttack.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -54,7 +54,6 @@ export class CellularAttack {
     this._buildRuleTables();
     this._initGrid();
     this._seedAt(seedX, seedY);
-    this._updateBreakNodes();
 
     this.isActive          = true;
     this._phase            = 'growing';
@@ -289,19 +288,23 @@ export class CellularAttack {
     const C    = CONFIG.CELLULAR_ATTACK;
     const { cols, rows, grid, _next: next } = this;
 
+    // COLLECT BREAK NODES IN THE SAME PASS — ELIMINATES SECOND FULL GRID SCAN
+    const newBreakNodes = [];
+
     for (let gy = 0; gy < rows; gy++) {
       for (let gx = 0; gx < cols; gx++) {
         const i          = gy * cols + gx;
         const currentAge = grid[i];
         const neighbors  = this._countNeighbors(gx, gy);
 
-        if (currentAge > 0) {
-          next[i] = this._surviveSet[neighbors]
-            ? Math.min(currentAge + 1, C.MAX_AGE)
-            : 0;
-        } else {
-          next[i] = this._birthSet[neighbors] ? 1 : 0;
-        }
+        const newAge = currentAge > 0
+          ? (this._surviveSet[neighbors] ? Math.min(currentAge + 1, C.MAX_AGE) : 0)
+          : (this._birthSet[neighbors] ? 1 : 0);
+
+        next[i] = newAge;
+
+        // CAPTURE BREAK NODES WHILE WE'RE ALREADY HERE — NO EXTRA PASS NEEDED
+        if (newAge >= C.BREAK_AGE) newBreakNodes.push({ gx, gy });
       }
     }
 
@@ -310,7 +313,7 @@ export class CellularAttack {
     this._next = grid;
     this._next.fill(0);
 
-    this._updateBreakNodes();
+    this._breakNodes = newBreakNodes;
     this._checkWinCondition();
   }
 
@@ -329,18 +332,6 @@ export class CellularAttack {
       }
     }
     return count;
-  }
-
-  _updateBreakNodes() {
-    const C = CONFIG.CELLULAR_ATTACK;
-    this._breakNodes = [];
-    for (let gy = 0; gy < this.rows; gy++) {
-      for (let gx = 0; gx < this.cols; gx++) {
-        if (this.grid[gy * this.cols + gx] >= C.BREAK_AGE) {
-          this._breakNodes.push({ gx, gy });
-        }
-      }
-    }
   }
 
   _checkWinCondition() {
@@ -426,7 +417,7 @@ export class CellularAttack {
         x: sx, y: sy,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: this.cellSize * (0.5 + Math.random() * 1.0), // SMALLER THAN BEFORE
+        size: this.cellSize * (0.5 + Math.random() * 1.0), 
         life: lifeMax, lifeMax,
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
       };

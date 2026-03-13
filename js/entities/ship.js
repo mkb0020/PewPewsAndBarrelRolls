@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 10:30PM
+// Updated 3/13/26 @ 5:45pm
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -87,6 +87,9 @@ export class Ship {
 
     // ========== FRACTAL CASCADE ==========
     this._fractalControlsReversed = false; // SET BY fractalCascade.update(), FLIPS INPUT AXES
+
+    // ========== CELLULAR DISTORTION ==========
+    this._cellularDistortActive = false;   // SET BY bossBattle — REVERSES CONTROLS + SLOWS SHIP + TRACERS
 
     // ========== SHIP DEATH SEQUENCE ==========
     this.deathSequenceEnabled  = true;  // SET FALSE BY main.js WHEN BOSS IS ACTIVE
@@ -197,11 +200,12 @@ export class Ship {
     if (mag > 1) { inputX /= mag; inputY /= mag; }
 
     // FRACTAL CASCADE — FLIP ALL INPUT AXES WHEN CONTROLS ARE REVERSED
-    if (this._fractalControlsReversed) { inputX = -inputX; inputY = -inputY; }
+    if (this._fractalControlsReversed || this._cellularDistortActive) { inputX = -inputX; inputY = -inputY; }
 
     // ACCELERATION + DAMPING
     const accel = CONFIG.SHIP.ACCELERATION * dt
-                * (1 - this._slimeHeaviness * (1 - CONFIG.SLIME_ATTACK.CONTROL_ACCEL_MULT));
+                * (1 - this._slimeHeaviness * (1 - CONFIG.SLIME_ATTACK.CONTROL_ACCEL_MULT))
+                * (this._cellularDistortActive ? CONFIG.CELLULAR_ATTACK.DISTORT_ACCEL_MULT : 1);
     this.velocity.x += inputX * accel;
     this.velocity.y += inputY * accel;
 
@@ -214,6 +218,13 @@ export class Ship {
       const slimeDamp = Math.pow(CONFIG.SLIME_ATTACK.CONTROL_DAMP_MULT, dt * 60 * this._slimeHeaviness);
       this.velocity.x *= slimeDamp;
       this.velocity.y *= slimeDamp;
+    }
+
+    // CELLULAR DISTORTION EXTRA DRAG
+    if (this._cellularDistortActive) {
+      const distortDamp = Math.pow(CONFIG.CELLULAR_ATTACK.DISTORT_DAMP_MULT, dt * 60);
+      this.velocity.x *= distortDamp;
+      this.velocity.y *= distortDamp;
     }
 
     // INTEGRATE
@@ -354,8 +365,8 @@ export class Ship {
       this._healGlow = Math.max(0, this._healGlow - dt / this._healGlowDuration);
     }
 
-    // ========= SLIME TRAIL CAPTURE =========
-    if (this._slimeHeaviness > 0.05) {
+    // ========= SLIME / CELLULAR DISTORTION TRAIL CAPTURE =========
+    if (this._slimeHeaviness > 0.05 || this._cellularDistortActive) {
       this._trailCaptureTimer -= dt;
       if (this._trailCaptureTimer <= 0) {
         this._trailCaptureTimer = CONFIG.SLIME_ATTACK.TRAIL_CAPTURE_RATE;
@@ -540,6 +551,7 @@ export class Ship {
     this._consumedDeathFired = false;
     this._trailPositions     = [];
     this._slimeHeaviness     = 0;
+    this._cellularDistortActive = false;
     this._dsActive = false;
     this._dsPhase  = 'idle';
     this._dsSmoke  = [];
@@ -569,6 +581,8 @@ export class Ship {
     this._dsPhase  = 'idle';
     this._dsSmoke  = [];
     this._dsFrags  = [];
+    this._fractalControlsReversed = false;
+    this._cellularDistortActive   = false;
     this.x = window.innerWidth  / 2;
     this.y = window.innerHeight / 2;
     if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);
@@ -1031,6 +1045,9 @@ export class Ship {
 
       const totalScale = this.suctionScale * this.cinematicScale;
       if (totalScale !== 1.0) this.ctx.scale(totalScale, totalScale);
+
+      // CELLULAR DISTORTION — INVERT SHIP COLORS AS INFECTION VISUAL INDICATOR
+      if (this._cellularDistortActive) this.ctx.filter = 'invert(1)';
 
       const frameWidth = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
       this.ctx.drawImage(
