@@ -1,4 +1,4 @@
-// Updated 3/13/26 @12:30AM
+// Updated 3/13/26 @ 7AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -133,6 +133,10 @@ export class AudioManager {
         boost:          './audio/boost.m4a',         // SHIP BOOST DRIVE
         slimeSounds:    './audio/slimeSounds.m4a',   // GLORK SLIME TELEGRAPH
         fractalCode:    './audio/fractalCode.m4a',   // ZIP ZAP FRACTAL CASCADE ATTACK
+        // ====== CELLULAR AUTOMATTACK ======
+        cellularSeed:     './audio/cellularSeed.m4a',     // WORM SPITS THE SEED CLUSTER
+        cellularSuccess:  './audio/cellularSuccess.m4a',  // INFECTION DEFEATED — RETRACT STING
+        cellularCollapse: './audio/cellularCollapse.m4a', // CONTAINMENT FAILS — SUPERNOVA HIT
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -497,6 +501,10 @@ export class AudioManager {
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.5); } // SINGULARITY BOMB DEPLOY
   playEnemyDeath()    { this._playSfx('enemyDeath',    0.1); } // BIOLOGICAL MELT COLLAPSE
   playGlitchOut()     { this._playSfx('glitchOut',     0.7); } // SHIP DEATH GLITCH
+  // ====== CELLULAR AUTOMATTACK SFX ======
+  playCellularSeed()     { this._playSfx('cellularSeed',     0.85); } // SEED SPIT
+  playCellularSuccess()  { this._playSfx('cellularSuccess',  0.80); } // PLAYER WINS
+  playCellularCollapse() { this._playSfx('cellularCollapse', 0.90); } // CONTAINMENT FAILS
   startFractalCode(volume = 0.7) {                             // ZIP ZAP FRACTAL CASCADE — RETURNS STOP HANDLE
     if (this.isMuted || !this.context) return () => {};
     const buffer = this._sfxBuffers['fractalCode'];
