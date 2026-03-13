@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 7AM
+// Updated 3/13/26 @ 4PM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -502,7 +502,7 @@ export class AudioManager {
   playEnemyDeath()    { this._playSfx('enemyDeath',    0.1); } // BIOLOGICAL MELT COLLAPSE
   playGlitchOut()     { this._playSfx('glitchOut',     0.7); } // SHIP DEATH GLITCH
   // ====== CELLULAR AUTOMATTACK SFX ======
-  playCellularSeed()     { this._playSfx('cellularSeed',     0.85); } // SEED SPIT
+  playCellularSeed()     { this._playSfx('cellularSeed',     1.5); } // SEED SPIT
   playCellularSuccess()  { this._playSfx('cellularSuccess',  0.80); } // PLAYER WINS
   playCellularCollapse() { this._playSfx('cellularCollapse', 0.90); } // CONTAINMENT FAILS
   startFractalCode(volume = 0.7) {                             // ZIP ZAP FRACTAL CASCADE — RETURNS STOP HANDLE
