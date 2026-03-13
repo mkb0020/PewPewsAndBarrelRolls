@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 4PM
+// Updated 3/12/26 @ 10:30PM
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -12,22 +12,22 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 2 — + ZIP ZAP 
     types:      ['BASIC', 'ZIGZAG'],
-    weights:    [0.1,    0.9], // FOR TESTING
+    weights:    [0.4,    0.6], // FOR TESTING
     maxEnemies: 5,
   },
   { // WAVE 3 — + PHIL 
     types:      ['BASIC', 'ZIGZAG', 'FAST'],
-    weights:    [0.1,    0.1,     0.8], // FOR TESTING
+    weights:    [0.3,    0.3,     0.4], // FOR TESTING
     maxEnemies: 5,
   },
   { // WAVE 4 — + GLORK 
     types:      ['BASIC', 'ZIGZAG', 'FAST',  'TANK'],
-    weights:    [0.1,    0.1,     0.1,    0.7], // FOR TESTING
+    weights:    [0.3,    0.3,     0.1,    0.3], // FOR TESTING
     maxEnemies: 4,
   },
   { // WAVE 5 — + FLIM FLAM 
     types:      ['BASIC', 'ZIGZAG', 'FAST',  'TANK',  'FLIMFLAM'],
-    weights:    [0.1,    0.1,     0.1,    0.1,    0.6], // FOR TESTING
+    weights:    [0.25,    0.2,     0.1,    0.2,    0.25], // FOR TESTING
     maxEnemies: 4,
   },
 ];
