@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 10:30AM
+// Updated 3/13/26 @ 7am
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -32,12 +32,16 @@ const WORM = {
   FRAME_ATTACK_END:     8, // 0-INDEXED: FRAME 9 = INDEX 8 / END FRAMES FOR SUCTION ATTACK
   ATTACK_HEAD_SCALE:  0.85, // SCALE MULTIPLIER FOR HEAD DURING ATTACK FRAMES (4-9) — COMPENSATES FOR OVERSIZED SPRITE
   DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
-  ATTACK_INTERVAL:    15,  
+  ATTACK_INTERVAL:    5, // FOR TESTING  
   ATTACK_DURATION:    7,
   BABY_ATTACK_DURATION: 9,  
   ATTACK_FPS:         7,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
-  SPAWN_OFFSET_Y:   200, //POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
+  SPAWN_OFFSET_Y:   200, // POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
+  // CELLULAR AUTOMATTACK SPIT TIMING — MIRRORS CONFIG.CELLULAR_ATTACK FOR CONVENIENCE
+  CELLULAR_SPIT_DURATION: 1, // SECONDS MOUTH STAYS OPEN AFTER SEED FIRES
+  CELLULAR_SEED_DELAY:    0.5, // SECONDS INTO LOOP BEFORE onSpawnCellular FIRES
+  CELLULAR_MAX_DURATION:  30,  // FAILSAFE — FORCE-END ATTACK IF STILL ACTIVE AFTER THIS
   ALPHA_START:      0.0,
   ALPHA_FULL:       1.0,
   ALPHA_SPEED:      0.012, // LERP FACTOR TOWARD FULL ALPHA - FADE IN AS IT EMERGES
@@ -243,7 +247,7 @@ export class WormBoss {
 
     // ATTACK ANIMATION STATE
     this.attackTimer     = WORM.ATTACK_INTERVAL;
-    this.stunTimer       = 0;   // SINGULARITY BOMB stun — disables attacks while > 0
+    this.stunTimer       = 0;   // SINGULARITY BOMB 
     this.isAttacking     = false;
     this.attackPhase     = 'idle';
     this.attackType      = 'suction';  // ALTERNATES: 'suction' | 'babyworm'
@@ -252,13 +256,16 @@ export class WormBoss {
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
     this._babySpawnFired = false;      // ENSURES onSpawnBabyWorms FIRES EXACTLY ONCE PER ATTACK
+    this._cellularSpawnFired = false;  // ENSURES onSpawnCellular FIRES EXACTLY ONCE PER ATTACK
+    this._cellularSpitTimer  = 0;      // TRACKS TIME SINCE CELLULAR LOOP STARTED (FOR SPIT ANIMATION)
 
     this.onAttack         = null;
     this.onIntro          = null;
     this.onSegmentDeath   = null;
     this.onDeathPauseEnd  = null;
     this.onDeath          = null;
-    this.onSpawnBabyWorms = null;  // CALLBACK(mouthX, mouthY) — FIRES ONCE AT BABY ATTACK LOOP START
+    this.onSpawnBabyWorms = null;  // CALLBACK(mouthX, mouthY) — FIRES ONCE PER BABY WORM ATTACK
+    this.onSpawnCellular  = null;  // CALLBACK(mouthX, mouthY) — FIRES ONCE PER CELLULAR ATTACK
     this._introFired      = false;
 
     // BLACK HOLE ORBIT STATE — SET EACH FRAME BY singularityBomb.js WHILE ACTIVE
@@ -330,7 +337,9 @@ export class WormBoss {
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
-    this._babySpawnFired = false;
+    this._babySpawnFired     = false;
+    this._cellularSpawnFired = false;
+    this._cellularSpitTimer  = 0;
 
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { // RESET ALL SEGMENTS
       const seg    = this.segments[i];
@@ -498,10 +507,12 @@ export class WormBoss {
       this.stunTimer -= dt;
       if (this.stunTimer < 0) this.stunTimer = 0;
       if (this.isAttacking) {
-        this.isAttacking = false;
-        this.attackPhase = 'idle';
-        this.attackTimer = WORM.ATTACK_INTERVAL * 0.5; 
-        this._babySpawnFired = false;
+        this.isAttacking         = false;
+        this.attackPhase         = 'idle';
+        this.attackTimer         = WORM.ATTACK_INTERVAL * 0.5; 
+        this._babySpawnFired     = false;
+        this._cellularSpawnFired = false;
+        this._cellularSpitTimer  = 0;
       }
     } else if (this.isAttacking) {
       this.attackProgress += dt;
@@ -510,7 +521,7 @@ export class WormBoss {
         if (this.attackProgress >= WORM.TRANSITION_DURATION) {
           this.attackPhase     = 'loop';
           this.attackProgress  = 0;
-          this.attackFrame     = this.attackType === 'babyworm' ? WORM.FRAME_HEAD : WORM.FRAME_ATTACK_START;
+          this.attackFrame     = (this.attackType === 'babyworm') ? WORM.FRAME_HEAD : WORM.FRAME_ATTACK_START;
           this.attackFrameTime = 0;
         }
 
@@ -532,7 +543,7 @@ export class WormBoss {
             this.attackTimer = WORM.ATTACK_INTERVAL;
           }
 
-        } else {
+        } else if (this.attackType === 'babyworm') {
           if (!this._babySpawnFired) {
             this._babySpawnFired = true;
             const head = this.segments[0];
@@ -544,6 +555,33 @@ export class WormBoss {
             this.attackTimer     = WORM.ATTACK_INTERVAL;
             this._babySpawnFired = false;
           }
+
+        } else if (this.attackType === 'cellular') {
+          // ── CELLULAR AUTOMATTACK LOOP ──
+          this._cellularSpitTimer += dt;
+
+          // ANIMATE MOUTH OPEN DURING SPIT WINDOW
+          if (this._cellularSpitTimer < WORM.CELLULAR_SPIT_DURATION) {
+            this.attackFrameTime += dt;
+            const frameDur = 1 / WORM.ATTACK_FPS;
+            if (this.attackFrameTime >= frameDur) {
+              this.attackFrameTime -= frameDur;
+              this.attackFrame++;
+              if (this.attackFrame > WORM.FRAME_ATTACK_END) this.attackFrame = WORM.FRAME_ATTACK_START;
+            }
+          }
+
+          // SEED FIRES ONCE, PARTWAY INTO THE SPIT WINDOW
+          if (!this._cellularSpawnFired && this._cellularSpitTimer >= WORM.CELLULAR_SEED_DELAY) {
+            this._cellularSpawnFired = true;
+            const head = this.segments[0];
+            this.onSpawnCellular?.(head.screenX, head.screenY);
+          }
+
+          // FAILSAFE TIMEOUT — cellularAttack.onAttackEnd SHOULD CALL endCellularAttack() FIRST
+          if (this.attackProgress >= WORM.CELLULAR_MAX_DURATION) {
+            this._endCellularAttackInternal();
+          }
         }
       }
 
@@ -551,10 +589,12 @@ export class WormBoss {
       this.attackTimer -= dt;
       if (this.attackTimer <= 0 && this.alpha > 0.8) {
         this._attackIndex++;
-        this.attackType     = (this._attackIndex % 2 === 1) ? 'suction' : 'babyworm';
+        const attackCycle   = ['suction', 'babyworm', 'cellular'];
+        this.attackType     = attackCycle[(this._attackIndex - 1) % 3]; // -1 SO FIRST ATTACK (index=1) → SUCTION
         this.isAttacking    = true;
         this.attackPhase    = 'transIn';
         this.attackProgress = 0;
+        this._cellularSpitTimer = 0; // RESET SPIT TIMER FOR EACH NEW ATTACK
         if (this.onAttack) this.onAttack();
       }
     }
@@ -638,9 +678,18 @@ export class WormBoss {
 
       let frame;  // SPRITE FRAME SELECTION
       if (i === 0) {
-        if (this.attackPhase === 'loop')    frame = this.attackFrame;
+        if (this.attackPhase === 'loop') {
+          if (this.attackType === 'cellular') {
+            // USE ATTACK FRAMES ONLY DURING SPIT WINDOW, THEN RETURN TO NEUTRAL HEAD
+            frame = (this._cellularSpitTimer < WORM.CELLULAR_SPIT_DURATION)
+              ? this.attackFrame
+              : WORM.FRAME_HEAD;
+          } else {
+            frame = this.attackFrame;
+          }
+        }
         else if (this.attackPhase === 'transIn') frame = WORM.FRAME_TRANSITION;
-        else                                frame = WORM.FRAME_HEAD;
+        else                                     frame = WORM.FRAME_HEAD;
       } else if (i === WORM.NUM_SEGMENTS - 1) {
         frame = WORM.FRAME_TAIL;
       } else {
@@ -732,6 +781,17 @@ export class WormBoss {
       }
     }
     return { hit: false };
+  }
+
+  // CALLED BY bossBattle.js VIA cellularAttack.onAttackEnd — ENDS THE CELLULAR LOOP CLEANLY
+  endCellularAttack() { this._endCellularAttackInternal(); }
+
+  _endCellularAttackInternal() {
+    this.isAttacking          = false;
+    this.attackPhase          = 'idle';
+    this.attackTimer          = WORM.ATTACK_INTERVAL;
+    this._cellularSpawnFired  = false;
+    this._cellularSpitTimer   = 0;
   }
 
   // FORCE WORM INTO SUCTION ATTACK LOOP IMMEDIATELY — USED BY BOSS GAME OVER SEQUENCE

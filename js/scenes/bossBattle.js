@@ -1,8 +1,9 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/13/26 @ 7AM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
 import { ImageLoader } from '../utils/imageLoader.js';
+import { CellularAttack } from '../entities/cellularAttack.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 export class BossBattleScene {
 
@@ -25,6 +26,7 @@ export class BossBattleScene {
     this.onCinematicEnd      = null;   
     this.onCheckpoint        = null;
     this.onWormholeGameOver  = null;   // FIRES AFTER VORTEX COMPLETES — WIRE TO WAVE-1 RESTART IN main.js
+    this.onCollapseHit       = null;   // FIRES WHEN CELLULAR CONTAINMENT FAILS — main.js APPLIES FLAT DAMAGE TO SHIP
 
     //  WORMHOLE GAME OVER STATE
     this._wormholeActive = false;
@@ -35,6 +37,9 @@ export class BossBattleScene {
     this._bossBarContainer = document.getElementById('boss-health-container');
     this._bossHPText       = document.getElementById('boss-hp-text');
     this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 150;
+
+    //  CELLULAR AUTOMATTACK
+    this.cellularAttack = new CellularAttack();
 
     //  WIRE WORM BOSS CALLBACKS 
     this._wireCallbacks();
@@ -54,6 +59,19 @@ export class BossBattleScene {
 
     this._updateSuction(dt, ship);
     this._checkBattleCheckpoint();
+
+    // CELLULAR AUTOMATTACK — TICK AND CHECK SHIP DAMAGE
+    if (this.cellularAttack.isActive) {
+      this.cellularAttack.update(dt);
+
+      if (ship.isAlive && !ship.isInvincible) {
+        const dmg = this.cellularAttack.getDamageForShip(ship.x, ship.y, dt);
+        if (dmg > 0) {
+          ship.takeDamage(dmg);
+          this.audio.playOuch();
+        }
+      }
+    }
 
     // VORTEX UPDATE — DRIVES THREE.JS RENDER EACH FRAME AFTER SHIP IS CONSUMED
     this._vortex?.update(dt);
@@ -77,6 +95,11 @@ export class BossBattleScene {
       if (this._bossHPText)  this._bossHPText.textContent  =
         Math.ceil(pct * this._wormMaxHP) + ' / ' + this._wormMaxHP;
     }
+  }
+
+  /** CALLED SEPARATELY IN THE DRAW PASS — BETWEEN TUNNEL AND WORM LAYER */
+  drawCellular(ctx) {
+    this.cellularAttack.draw(ctx);
   }
 
   /**
@@ -121,6 +144,18 @@ export class BossBattleScene {
       return true;
     }
 
+    // PROJECTILE vs CELLULAR BREAK NODES
+    if (this.cellularAttack.isActive) {
+      const cellHit = this.cellularAttack.checkProjectileHit(seg);
+      if (cellHit.hit) {
+        this.projectileManager.removeProjectile(projectile);
+        this.audio.playImpact();
+        this.projectileManager.createExplosion(cellHit.sx, cellHit.sy);
+        this.scoreManager.addScore(50, cellHit.sx, cellHit.sy);
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -130,6 +165,7 @@ export class BossBattleScene {
     this._battleReady       = false;
     this._wormholeActive    = false;
     this._vortex            = null;
+    this.cellularAttack.reset();
     if (this.singularityBombManager) this.singularityBombManager.isBossBattle = false;
   }
 
@@ -224,6 +260,37 @@ export class BossBattleScene {
       const w = window.innerWidth;
       const h = window.innerHeight;
       babyWormManager.triggerSlimeSplat(w, h);
+    };
+
+    // CELLULAR AUTOMATTACK — WORM SPITS THE SEED; INFECTION BEGINS
+    wormBoss.onSpawnCellular = (mx, my) => {
+      audio.playCellularSeed();
+      this.cellularAttack.start(mx, my);
+
+      // SUCCESS — PLAYER DESTROYED ENOUGH BREAK NODES
+      this.cellularAttack.onAttackEnd = (didSucceed) => {
+        if (didSucceed) {
+          audio.playCellularSuccess();
+          scoreManager.addScore(300, window.innerWidth * 0.5, window.innerHeight * 0.5);
+        }
+        wormBoss.endCellularAttack(); // RETURN WORM TO NORMAL ATTACK CYCLE
+      };
+
+      // FAILURE — CONTAINMENT OVERRUN, BURST FIRES
+      this.cellularAttack.onCollapseBurst = (positions) => {
+        audio.playCellularCollapse();
+        // STAGGER EXPLOSIONS ACROSS ~550ms — PIXEL SUPERNOVA
+        const step = CONFIG.CELLULAR_ATTACK.COLLAPSE_BURST_MS / Math.max(1, positions.length);
+        positions.forEach(({ x, y }, i) => {
+          setTimeout(() => {
+            projectileManager.createExplosion(x, y, 'bam');
+          }, i * step);
+        });
+        // FLAT DAMAGE HIT TO SHIP ON COLLAPSE
+        // (SHIP DAMAGE IS APPLIED DIRECTLY HERE — OUTSIDE THE NORMAL LOOP — SO USE THE STORED SHIP REF)
+        // NOTE: ship is not directly in scope — damage is applied via the callback chain wired in main.js
+        this.onCollapseHit?.();
+      };
     };
 
 
