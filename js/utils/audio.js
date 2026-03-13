@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 10:30PM
+// Updated 3/13/26 @12:30AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -13,7 +13,7 @@ export class AudioManager {
     this.CREDITS_MUSIC_VOLUME = 0.6; // LOUDER — ONLY AUDIO IN CLOSING SCENE
     this.LASER_VOLUME        = 0.5;
     this.ENEMY_LASER_VOLUME  = 0.5;
-    this.IMPACT_VOLUME       = 0.2;
+    this.IMPACT_VOLUME       = 0.1;
     this.SPAWN_VOLUME        = 0.5;
     this.BARREL_ROLL_VOLUME  = 0.15;
 
@@ -484,7 +484,7 @@ export class AudioManager {
   playConsumed()    { this._playSfx('consumed',      0.9); }
   playBabyWorms()   { this._playSfx('babyWorms',     1.0); }
   playWarning()     { this._playSfx('warning',       0.8); }
-  playWaveWormSfx()     { this._playSfx('waveWorms',       0.5); }
+  playWaveWormSfx()     { this._playSfx('waveWorms',       0.6); }
   playBossTransition1() { this._playSfx('bossTransition1', 0.9); }
   playBossTransition2() { this._playSfx('bossTransition2', 0.9); }
   playWaveStart()       { this._playSfx('waveStart',       0.55); }

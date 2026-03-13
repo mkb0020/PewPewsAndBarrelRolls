@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 10:30PM
+// Updated 3/13/26 @ 12:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -129,11 +129,11 @@ enemyManager.onFractalTelegraph = () => {
   audio._stopFractalCode = audio.startFractalCode();
 };
 enemyManager.onFractalCascade = () => {
-  audio._stopFractalCode?.(); audio._stopFractalCode = null; // TELEGRAPH PHASE DONE — RELEASE HANDLE
+  audio._stopFractalCode?.(); audio._stopFractalCode = null; // ← needs the underscore
   fractalCascade.activate();
 };
 fractalCascade.onRecompile = () => {
-  audio.playFractalCode(); // RECOMPILE SNAP — BRIEF SECOND HIT OF SAME ASSET
+  audio.startFractalCode(); // RECOMPILE SNAP — BRIEF SECOND HIT OF SAME ASSET
 };
 
 // ==================== OCULAR PRISM CALLBACKS ====================
