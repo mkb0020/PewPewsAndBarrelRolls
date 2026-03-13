@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 10:30PM
+// Updated 3/13/26 @ 12:30AM
 // fractalCascade.js
 
 import { CONFIG }      from '../utils/config.js';
@@ -365,7 +365,7 @@ export class FractalCascade {
   }
 
   /**
-   * @param {boolean} skipCooldown — true when called from reset() (hard abort)
+   * @param {boolean} skipCooldown — TRUE WHEN CALLED FROM RESET (hard abort)
    */
   _deactivate(skipCooldown = false) {
     this.active        = false;
@@ -384,7 +384,7 @@ export class FractalCascade {
     this.onEnd?.();
   }
 
-  /** Creates the terminal DOM element once, lazily. */
+  /** CREATES THE TERMINAL DOM ELEMENT ONCE, LAZILY. */
   _ensureTerminal() {
     if (this._terminalEl) return;
     const el = document.createElement('div');
@@ -417,6 +417,7 @@ export class FractalCascade {
    * @param {boolean} finalPass — colors the last 3 lines as recompile success
    */
   _renderTerminal(finalPass) {
+    console.count('_renderTerminal'); 
     if (!this._terminalEl) return;
     const total = this._termLines.length;
     this._terminalEl.innerHTML = this._termLines
