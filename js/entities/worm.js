@@ -1,10 +1,10 @@
-// Updated 3/13/26 @ 10PM
+// Updated 3/14/26 @ 2:30AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-function organicNoise(t, layers) { // I BELEIVE THIS CAN BE REMOVED SINCE RATTLE AND wormNoise ARE NOW WRAPPED INTO bossBattle.m4a
+function organicNoise(t, layers) { 
   let val = 0;
   for (const [amp, freq, phase] of layers) {
     val += amp * Math.sin(t * freq + phase);
@@ -131,7 +131,7 @@ class SuctionParticle {
     // VECTOR FROM PARTICLE TO WORM MOUTH
     const dx   = targetX - this.x;
     const dy   = targetY - this.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;  // GUARD: PREVENT NaN IF PARTICLE LANDS EXACTLY ON MOUTH
 
     this.distToMouth = dist; // CACHE FOR DRAW
 
@@ -150,7 +150,7 @@ class SuctionParticle {
 
     // VORTEX ACCELERATION: RAMPS UP SMOOTHLY AS PARTICLE CLOSES IN
     const closeness  = Math.max(0, 1 - dist / SUCTION.VORTEX_RADIUS);
-    const speedScale = 1 + closeness * closeness * SUCTION.VORTEX_ACCEL;
+    const speedScale = 1 + Math.pow(closeness, 3) * SUCTION.VORTEX_ACCEL;  // CUBIC: RAMPS HARDER NEAR MOUTH FOR SATISFYING FINAL SLURP
 
     const vx = (tx * SUCTION.SPIN_STRENGTH + nx * SUCTION.PULL_STRENGTH) * this.speed * speedScale;
     const vy = (ty * SUCTION.SPIN_STRENGTH + ny * SUCTION.PULL_STRENGTH) * this.speed * speedScale;
@@ -260,13 +260,14 @@ export class WormBoss {
     this.alpha        = WORM.ALPHA_START;
 
     // ATTACK ANIMATION STATE
-    this.attackTimer     = WORM.ATTACK_INTERVAL;
+    this.attackTimer     = this._rollInterval();  // FIX: WORM.ATTACK_INTERVAL DOESN'T EXIST — ONLY MIN/MAX DO
     this.stunTimer       = 0;   // SINGULARITY BOMB 
     this.isAttacking     = false;
     this.attackPhase     = 'idle';
     this.attackType      = 'suction';  // CURRENT ATTACK TYPE
     this._attackIndex    = 0;          // TOTAL ATTACK COUNT (DEBUGGING / STATS)
     this._lastAttackType = null;       // AI — PREVENTS BACK-TO-BACK SAME ATTACK
+    this._attackHistory  = [];         // AI — ROLLING 3-ATTACK MEMORY FOR VARIETY
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
@@ -286,6 +287,7 @@ export class WormBoss {
     this.onLungeGrowl     = null;  // CALLBACK() — FIRES WHEN REAR-BACK PHASE BEGINS
     this.onLungeSnap      = null;  // CALLBACK() — FIRES WHEN SNAP-BACK PHASE BEGINS
     this.onLungeBite      = null;  // CALLBACK(hx, hy, biteRadius) — FIRES AT PEAK LUNGE REACH
+    this.onScreenShake    = null;  // CALLBACK(strength, duration) — FIRES ON LUNGE BITE FOR IMPACT FEEDBACK
     this._introFired      = false;
 
     // LUNGE ATTACK STATE
@@ -354,7 +356,6 @@ export class WormBoss {
     this.dyingTimer   = 0;
     this.dyingSegIndex = 0;
     this._pauseEndFired = false;
-    this._pauseEndFired = false;
     this.headX        = WORM.SPAWN_OFFSET_X;
     this.headY        = WORM.SPAWN_OFFSET_Y;
 
@@ -364,6 +365,7 @@ export class WormBoss {
     this.attackType      = 'suction';
     this._attackIndex    = 0;
     this._lastAttackType = null;
+    this._attackHistory  = [];         // RESET ATTACK MEMORY ON REACTIVATION
     this.attackTimer     = WORM.ATTACK_INTERVAL_MIN;
     this.stunTimer       = 0;
     this.attackProgress  = 0;
@@ -694,6 +696,7 @@ export class WormBoss {
               const head = this.segments[0];
               this.onLungeSnap?.();
               this.onLungeBite?.(head.screenX, head.screenY, WORM.LUNGE_BITE_RADIUS);
+              this.onScreenShake?.(14, 0.28);  // IMPACT FEEDBACK — "OH SHIT" MOMENT
             }
             const t     = (p - rearDur - strikeDur) / snapDur;
             const ease  = t * (2 - t); // EASE OUT
@@ -723,6 +726,8 @@ export class WormBoss {
           this._attackIndex++;
           this.attackType      = this._pickNextAttack();  // AI — HEALTH-TIERED, DISTANCE-WEIGHTED SELECTION
           this._lastAttackType = this.attackType;
+          this._attackHistory.push(this.attackType);        // ROLLING 3-ATTACK MEMORY
+          if (this._attackHistory.length > 3) this._attackHistory.shift();
           this.isAttacking     = true;
           this.attackProgress  = 0;
           this._cellularSpitTimer = 0;
@@ -978,6 +983,11 @@ export class WormBoss {
     if (this._lastAttackType) {
       const last = pool.find(e => e.type === this._lastAttackType);
       if (last) last.weight *= 0.5;
+    }
+
+    // ATTACK HISTORY GUARD — FURTHER REDUCE WEIGHT FOR ANY ATTACK IN RECENT 3-ATTACK MEMORY
+    for (const entry of pool) {
+      if (this._attackHistory.includes(entry.type)) entry.weight *= 0.55;
     }
 
     // WEIGHTED RANDOM PICK

@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 7AM
+// Updated 3/14/26 @ 2:30AM
 // babyWorm.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -199,8 +199,8 @@ class BabyWorm {
 }
 
 // ======================= SLIME SPLAT =======================
-const SLIME_FRAMES   = 11;
-const SLIME_FPS      = 15; 
+const SLIME_FRAMES   = 15;
+const SLIME_FPS      = 20; 
 const SLIME_SPLAT_DELAY = 0.25;
 
 class SlimeSplat {
