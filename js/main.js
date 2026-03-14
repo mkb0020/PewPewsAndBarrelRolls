@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 5:45PM
+// Updated 3/14/26 @ 2:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -271,6 +271,9 @@ bossBattleScene.onCollapseHit = () => {
   audio.playOuch();
 };
 
+// LUNGE BITE SCREEN SHAKE — CANVAS-LEVEL IMPACT FEEDBACK
+wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, duration);
+
 // ==================== WORM DEATH → CLOSING SCENE ====================
 wormBoss.onDeath = () => {
   audio.stopMusic();
@@ -297,7 +300,6 @@ ship.onDeathSequenceStart = () => {
 };
 
 // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WIRED AFTER A WORMHOLE GAME OVER
-// (bossBattle.startWormholeGameOver nulls ship.onDeath — it must be restored on reset)
 function wireShipOnDeath() {
   ship.onDeath = (livesLeft) => {
     audio.stopMusic();
@@ -389,6 +391,13 @@ function resetWaveBadges() {
     badge.classList.remove('unlocked', 'badge-flash');
     badge.classList.add('greyed');
   }
+}
+
+// ==================== SCREEN SHAKE ====================
+function triggerScreenShake(strength, duration) {
+  _screenShakeStrength = strength;
+  _screenShakeDuration = duration || 1;
+  _screenShakeTimer    = _screenShakeDuration;
 }
 
 // ==================== SHOOT ====================
@@ -515,6 +524,9 @@ let isMuted            = false;
 let _prevBarrelRolling = false;
 let _bossTracerIntensity = 0;   // CRIMSON SHIP TRACER — DRIVES BOSS TRANSITION VISUAL
 let _bossTracerTarget    = 0;
+let _screenShakeTimer    = 0;   // CANVAS-LEVEL SCREEN SHAKE — COUNTS DOWN FROM DURATION
+let _screenShakeStrength = 0;   // PEAK PIXEL DISPLACEMENT
+let _screenShakeDuration = 1;   // TOTAL SHAKE DURATION (STORED FOR DECAY CALCULATION)
 
 let currentMode       = 'bossBattle'; 
 let currentEnemyCount = 5;
@@ -649,6 +661,7 @@ function gameLoop() {
     muzzleFlash.update(dt);
     scoreManager.update(dt);
     ocularPrism.update(dt);
+    if (_screenShakeTimer > 0) _screenShakeTimer = Math.max(0, _screenShakeTimer - dt); // SCREEN SHAKE DECAY
     if (gameplayScene.isActive()) fractalCascade.update(dt, ship.x, ship.y, ship);
     cosmicPrismManager.update(dt, ship.x, ship.y);
     tesseractManager.update(dt, ship.x, ship.y);
@@ -738,6 +751,13 @@ function gameLoop() {
 
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+  // CANVAS SCREEN SHAKE — TRANSLATES THE ENTIRE DRAW PASS FOR IMPACT FEEL
+  const shakeDecay = _screenShakeDuration > 0 ? _screenShakeTimer / _screenShakeDuration : 0;
+  const shakeX = _screenShakeTimer > 0 ? (Math.random() - 0.5) * 2 * _screenShakeStrength * shakeDecay : 0;
+  const shakeY = _screenShakeTimer > 0 ? (Math.random() - 0.5) * 2 * _screenShakeStrength * shakeDecay : 0;
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
  
   projectileManager.draw(ctx); // ALWAYS DRAW — EXPLOSIONS MUST SURVIVE INTO CLOSING SCENE
     if (!closingScene.isActive()) {
@@ -900,6 +920,7 @@ function gameLoop() {
   }
 
   closingScene.renderFlash(ctx);
+  ctx.restore(); // END SCREEN SHAKE TRANSLATE
 }
 
 
