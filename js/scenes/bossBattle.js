@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 10:30PM
+// Updated 3/14/26 @ 2:30AM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -36,7 +36,7 @@ export class BossBattleScene {
     this._bossBarFill      = document.getElementById('boss-bar-fill');
     this._bossBarContainer = document.getElementById('boss-health-container');
     this._bossHPText       = document.getElementById('boss-hp-text');
-    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 200;
+    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 150;
 
     //  CELLULAR AUTOMATTACK
     this.cellularAttack = new CellularAttack();
@@ -194,7 +194,7 @@ export class BossBattleScene {
   /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
   readyForBattle() {
     this._battleReady = true;
-    this.wormBoss.enableAttacks(); // START ATTACK COUNTDOWN — FIRST ATTACK NEVER FIRES DURING RISER
+    this.wormBoss.enableAttacks();  // UNLOCK ATTACK CYCLE — RISER COMPLETE, BATTLE BEGINS
     if (this.singularityBombManager) this.singularityBombManager.deployEnabled = true;
     // console.log('⚔ Battle ready — boss damage unlocked');
   }
@@ -272,6 +272,9 @@ export class BossBattleScene {
       const riserMs = (audio._introBuffer?.duration ?? 10) * 1000;
       setTimeout(() => this.readyForBattle(), riserMs);
     };
+
+    wormBoss.onLungeGrowl = () => audio.playWormGrowl();  // REAR-BACK TELEGRAPH
+    wormBoss.onLungeSnap  = () => audio.playWormSnap();   // BITE LANDS
 
     wormBoss.onDeathPauseEnd = () => {
       audio.playWormDeath2();
