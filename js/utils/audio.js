@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 7:30pm
+// Updated 3/13/26 @ 10:30pm
 // audio.js
 export class AudioManager {
   constructor() {
@@ -114,7 +114,7 @@ export class AudioManager {
         babyWorms:   './audio/babyWorms.m4a',
         ouch:        './audio/ouch.m4a',
         splat:       './audio/splat.m4a',
-        buzz:        './audio/buzz.m4a',
+        //buzz:        './audio/buzz.m4a',
         telegraph:   './audio/telegraph.m4a',
         prism:       './audio/prism.m4a',
         pop:         './audio/pop.m4a',
@@ -367,33 +367,6 @@ export class AudioManager {
     return this.isMuted;
   }
 
-  startLoopBuzz(volume = 0.35) {
-    if (this.isMuted || !this.context) return () => {};
-    const buffer = this._sfxBuffers['buzz'];
-    if (!buffer) return () => {};
-
-    const source = this.context.createBufferSource();
-    source.buffer = buffer;
-    source.loop   = true;
-
-    const gain = this.context.createGain();
-    gain.gain.value = Math.min(1, volume);
-    source.connect(gain);
-    gain.connect(this.sfxGain);
-    source.start(0);
-
-    const entry = { source, gain };
-    this._activeLoops.push(entry);
-
-    return () => {
-      try {
-        gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
-        setTimeout(() => { try { source.stop(); } catch (_) {} }, 200);
-      } catch (_) {}
-      const idx = this._activeLoops.indexOf(entry);
-      if (idx !== -1) this._activeLoops.splice(idx, 1);
-    };
-  }
 
   startLoopStatic(volume = 0.55)    { return this._startLoop('static',    volume); }
   startLoopTelegraph(volume = 0.9)  { return this._startLoop('telegraph', volume); }
