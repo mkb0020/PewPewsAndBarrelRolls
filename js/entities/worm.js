@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 7am
+// Updated 3/13/26 @ 10PM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -32,16 +32,30 @@ const WORM = {
   FRAME_ATTACK_END:     8, // 0-INDEXED: FRAME 9 = INDEX 8 / END FRAMES FOR SUCTION ATTACK
   ATTACK_HEAD_SCALE:  0.85, // SCALE MULTIPLIER FOR HEAD DURING ATTACK FRAMES (4-9) — COMPENSATES FOR OVERSIZED SPRITE
   DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
-  ATTACK_INTERVAL:    5, // FOR TESTING  
+  ATTACK_INTERVAL_MIN: 3,  // AI — MINIMUM SECONDS BETWEEN ATTACKS
+  ATTACK_INTERVAL_MAX: 5, // AI — MAXIMUM SECONDS BETWEEN ATTACKS
   ATTACK_DURATION:    7,
   BABY_ATTACK_DURATION: 9,  
+  BABY_SPIT_DURATION:   0.8, // SECONDS MOUTH STAYS OPEN WHEN BABY WORMS ARE EXPELLED
   ATTACK_FPS:         7,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, // POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
-  // CELLULAR AUTOMATTACK SPIT TIMING — MIRRORS CONFIG.CELLULAR_ATTACK FOR CONVENIENCE
+  // AI — HEALTH THRESHOLDS FOR UNLOCKING ATTACKS (as fraction of max HP)
+  AI_TIER_CELLULAR:  0.75, // BELOW THIS HEALTH → CELLULAR ATTACK UNLOCKED
+  AI_TIER_SUCTION:   0.40, // BELOW THIS HEALTH → SUCTION ATTACK UNLOCKED
+  // AI — SCREEN-SPACE DISTANCE THRESHOLDS FOR LUNGE WEIGHTING
+  AI_DIST_CLOSE:    200,   // PIXELS — BELOW THIS: STRONGLY PREFER LUNGE
+  AI_DIST_FAR:      400,   // PIXELS — ABOVE THIS: PREFER RANGED ATTACKS
   CELLULAR_SPIT_DURATION: 1, // SECONDS MOUTH STAYS OPEN AFTER SEED FIRES
   CELLULAR_SEED_DELAY:    0.5, // SECONDS INTO LOOP BEFORE onSpawnCellular FIRES
   CELLULAR_MAX_DURATION:  30,  // FAILSAFE — FORCE-END ATTACK IF STILL ACTIVE AFTER THIS
+  // LUNGE / BITE ATTACK
+  LUNGE_REAR_DURATION:   0.8,  // SECONDS TO PULL HEAD BACK BEFORE STRIKE
+  LUNGE_STRIKE_DURATION: 0.5,  // SECONDS FOR THE FORWARD SNAP (FAST)
+  LUNGE_SNAP_DURATION:   0.3,  // SECONDS TO WHIP BACK TO ORIGIN
+  LUNGE_REACH_PX:        145,   // MAX SCREEN-PX REACH FROM ORIGIN (SHORT RANGE)
+  LUNGE_PULLBACK_PX:     75,    // SCREEN-PX PULLED BACK DURING REAR PHASE
+  LUNGE_BITE_RADIUS:     140,   // HIT DETECTION RADIUS AT PEAK LUNGE (SCREEN PX)
   ALPHA_START:      0.0,
   ALPHA_FULL:       1.0,
   ALPHA_SPEED:      0.012, // LERP FACTOR TOWARD FULL ALPHA - FADE IN AS IT EMERGES
@@ -56,7 +70,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           150, 
+  HEALTH:           200, 
   SEGMENT_HEALTH:   2,     
   HEAD_HEALTH_MULT: 3,     
 };
@@ -250,12 +264,15 @@ export class WormBoss {
     this.stunTimer       = 0;   // SINGULARITY BOMB 
     this.isAttacking     = false;
     this.attackPhase     = 'idle';
-    this.attackType      = 'suction';  // ALTERNATES: 'suction' | 'babyworm'
-    this._attackIndex    = 0;          // INCREMENTS EACH ATTACK TO DRIVE ALTERNATION
+    this.attackType      = 'suction';  // CURRENT ATTACK TYPE
+    this._attackIndex    = 0;          // TOTAL ATTACK COUNT (DEBUGGING / STATS)
+    this._lastAttackType = null;       // AI — PREVENTS BACK-TO-BACK SAME ATTACK
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
     this._babySpawnFired = false;      // ENSURES onSpawnBabyWorms FIRES EXACTLY ONCE PER ATTACK
+    this._babySpitTimer  = 0;          // COUNTDOWN — MOUTH OPEN BRIEFLY WHEN WORMS ARE EXPELLED
+    this._attacksEnabled = false;      // GATED UNTIL readyForBattle() — PREVENTS ATTACKS DURING RISER
     this._cellularSpawnFired = false;  // ENSURES onSpawnCellular FIRES EXACTLY ONCE PER ATTACK
     this._cellularSpitTimer  = 0;      // TRACKS TIME SINCE CELLULAR LOOP STARTED (FOR SPIT ANIMATION)
 
@@ -266,7 +283,21 @@ export class WormBoss {
     this.onDeath          = null;
     this.onSpawnBabyWorms = null;  // CALLBACK(mouthX, mouthY) — FIRES ONCE PER BABY WORM ATTACK
     this.onSpawnCellular  = null;  // CALLBACK(mouthX, mouthY) — FIRES ONCE PER CELLULAR ATTACK
+    this.onLungeGrowl     = null;  // CALLBACK() — FIRES WHEN REAR-BACK PHASE BEGINS
+    this.onLungeSnap      = null;  // CALLBACK() — FIRES WHEN SNAP-BACK PHASE BEGINS
+    this.onLungeBite      = null;  // CALLBACK(hx, hy, biteRadius) — FIRES AT PEAK LUNGE REACH
     this._introFired      = false;
+
+    // LUNGE ATTACK STATE
+    this._shipScreenX     = 0;    // UPDATED EACH FRAME BY bossBattle.js VIA setShipPosition()
+    this._shipScreenY     = 0;
+    this._lungeOriginX    = 0;    // WORLD-SPACE HEAD POSITION WHEN LUNGE STARTED
+    this._lungeOriginY    = 0;
+    this._lungeDirX       = 0;    // NORMALIZED WORLD-SPACE DIRECTION TOWARD SHIP
+    this._lungeDirY       = 0;
+    this._lungePhase      = 'rearBack'; // rearBack | lunge | snap
+    this._lungeGrowlFired = false;
+    this._lungeSnapFired  = false;
 
     // BLACK HOLE ORBIT STATE — SET EACH FRAME BY singularityBomb.js WHILE ACTIVE
     this._orbitScreenX    = null;
@@ -332,14 +363,20 @@ export class WormBoss {
     this.attackPhase     = 'idle';
     this.attackType      = 'suction';
     this._attackIndex    = 0;
-    this.attackTimer     = WORM.ATTACK_INTERVAL;
+    this._lastAttackType = null;
+    this.attackTimer     = WORM.ATTACK_INTERVAL_MIN;
     this.stunTimer       = 0;
     this.attackProgress  = 0;
     this.attackFrame     = WORM.FRAME_ATTACK_START;
     this.attackFrameTime = 0;
     this._babySpawnFired     = false;
+    this._babySpitTimer      = 0;
+    this._attacksEnabled     = false;  // GATE ATTACKS UNTIL enableAttacks() IS CALLED
     this._cellularSpawnFired = false;
     this._cellularSpitTimer  = 0;
+    this._lungeGrowlFired    = false;
+    this._lungeSnapFired     = false;
+    this._lungePhase         = 'rearBack';
 
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { // RESET ALL SEGMENTS
       const seg    = this.segments[i];
@@ -360,6 +397,13 @@ export class WormBoss {
     this.stunTimer = Math.max(this.stunTimer, duration); 
     // console.log(`💜 Worm stunned for ${duration}s by Singularity Bomb`);
     if (this.onStunned) this.onStunned(duration);
+  }
+
+  // CALLED BY bossBattle.readyForBattle() WHEN THE RISER ENDS AND BOSS MUSIC STARTS
+  // STARTS THE ATTACK COUNTDOWN SO THE FIRST ATTACK NEVER FIRES DURING THE INTRO
+  enableAttacks() {
+    this._attacksEnabled = true;
+    this.attackTimer     = this._rollInterval();
   }
 
   // ======================= BLACK HOLE ORBIT API - CALLED EACH FRAME WHILE BLACK HOLE IS ACTIVE =======================
@@ -509,10 +553,13 @@ export class WormBoss {
       if (this.isAttacking) {
         this.isAttacking         = false;
         this.attackPhase         = 'idle';
-        this.attackTimer         = WORM.ATTACK_INTERVAL * 0.5; 
+        this.attackTimer         = WORM.ATTACK_INTERVAL_MIN * 0.5; // SHORT RECOVERY AFTER STUN
         this._babySpawnFired     = false;
+        this._babySpitTimer      = 0;
         this._cellularSpawnFired = false;
         this._cellularSpitTimer  = 0;
+        this._lungeGrowlFired    = false;
+        this._lungeSnapFired     = false;
       }
     } else if (this.isAttacking) {
       this.attackProgress += dt;
@@ -540,20 +587,41 @@ export class WormBoss {
           if (this.attackProgress >= WORM.ATTACK_DURATION) {
             this.isAttacking = false;
             this.attackPhase = 'idle';
-            this.attackTimer = WORM.ATTACK_INTERVAL;
+            this.attackTimer = this._rollInterval();
           }
 
         } else if (this.attackType === 'babyworm') {
+          // TICK SPIT WINDOW — ANIMATE MOUTH OPEN BRIEFLY WHEN WORMS ARE EXPELLED
+          if (this._babySpitTimer > 0) {
+            this._babySpitTimer  -= dt;
+            this.attackFrameTime += dt;
+            const frameDur = 1 / WORM.ATTACK_FPS;
+            if (this.attackFrameTime >= frameDur) {
+              this.attackFrameTime -= frameDur;
+              this.attackFrame++;
+              if (this.attackFrame > WORM.FRAME_ATTACK_END) this.attackFrame = WORM.FRAME_ATTACK_START;
+            }
+            if (this._babySpitTimer <= 0) {
+              this._babySpitTimer = 0;
+              this.attackFrame    = WORM.FRAME_HEAD; // SNAP MOUTH CLOSED AFTER SPIT
+            }
+          }
+
           if (!this._babySpawnFired) {
             this._babySpawnFired = true;
+            this._babySpitTimer  = WORM.BABY_SPIT_DURATION; // OPEN MOUTH ON SPAWN
+            this.attackFrame     = WORM.FRAME_ATTACK_START;
+            this.attackFrameTime = 0;
             const head = this.segments[0];
             if (this.onSpawnBabyWorms) this.onSpawnBabyWorms(head.screenX, head.screenY);
           }
           if (this.attackProgress >= WORM.BABY_ATTACK_DURATION) {
             this.isAttacking     = false;
             this.attackPhase     = 'idle';
-            this.attackTimer     = WORM.ATTACK_INTERVAL;
+            this.attackTimer     = this._rollInterval();
             this._babySpawnFired = false;
+            this._babySpitTimer  = 0;
+            this.attackFrame     = WORM.FRAME_HEAD;
           }
 
         } else if (this.attackType === 'cellular') {
@@ -582,20 +650,93 @@ export class WormBoss {
           if (this.attackProgress >= WORM.CELLULAR_MAX_DURATION) {
             this._endCellularAttackInternal();
           }
+
+        } else if (this.attackType === 'lunge') {
+          // ── LUNGE / BITE ATTACK LOOP ──
+          const p          = this.attackProgress;
+          const rearDur    = WORM.LUNGE_REAR_DURATION;
+          const strikeDur  = WORM.LUNGE_STRIKE_DURATION;
+          const snapDur    = WORM.LUNGE_SNAP_DURATION;
+          const bs         = this.baseScale || 0.001;
+          const rearWorld  = WORM.LUNGE_PULLBACK_PX / bs;
+          const reachWorld = WORM.LUNGE_REACH_PX    / bs;
+
+          // GROWL FIRES ONCE AT START OF REAR-BACK
+          if (!this._lungeGrowlFired) {
+            this._lungeGrowlFired = true;
+            this.onLungeGrowl?.();
+          }
+
+          if (p < rearDur) {
+            // ── REAR BACK — PULL AWAY FROM SHIP, EASE IN ──
+            const t    = p / rearDur;
+            const ease = t * t;
+            this.headX = this._lungeOriginX - this._lungeDirX * rearWorld * ease;
+            this.headY = this._lungeOriginY - this._lungeDirY * rearWorld * ease;
+            this._lungePhase = 'rearBack';
+
+          } else if (p < rearDur + strikeDur) {
+            // ── FORWARD LUNGE — FAST SNAP TOWARD SHIP, EASE OUT ──
+            const t     = (p - rearDur) / strikeDur;
+            const ease  = 1 - (1 - t) * (1 - t);
+            const fromX = this._lungeOriginX - this._lungeDirX * rearWorld;
+            const fromY = this._lungeOriginY - this._lungeDirY * rearWorld;
+            const toX   = this._lungeOriginX + this._lungeDirX * reachWorld;
+            const toY   = this._lungeOriginY + this._lungeDirY * reachWorld;
+            this.headX  = fromX + (toX - fromX) * ease;
+            this.headY  = fromY + (toY - fromY) * ease;
+            this._lungePhase = 'lunge';
+
+          } else if (p < rearDur + strikeDur + snapDur) {
+            // ── SNAP BACK — RETURN TO ORIGIN, EASE OUT ──
+            if (!this._lungeSnapFired) {
+              this._lungeSnapFired = true;
+              const head = this.segments[0];
+              this.onLungeSnap?.();
+              this.onLungeBite?.(head.screenX, head.screenY, WORM.LUNGE_BITE_RADIUS);
+            }
+            const t     = (p - rearDur - strikeDur) / snapDur;
+            const ease  = t * (2 - t); // EASE OUT
+            const fromX = this._lungeOriginX + this._lungeDirX * reachWorld;
+            const fromY = this._lungeOriginY + this._lungeDirY * reachWorld;
+            this.headX  = fromX + (this._lungeOriginX - fromX) * ease;
+            this.headY  = fromY + (this._lungeOriginY - fromY) * ease;
+            this._lungePhase = 'snap';
+
+          } else {
+            // ── DONE — RETURN HEAD TO ORIGIN, HAND BACK TO WIGGLE ──
+            this.headX           = this._lungeOriginX;
+            this.headY           = this._lungeOriginY;
+            this.isAttacking     = false;
+            this.attackPhase     = 'idle';
+            this.attackTimer     = this._rollInterval();
+            this._lungePhase     = 'rearBack'; // RESET SUB-PHASE
+            this._lungeGrowlFired = false;
+            this._lungeSnapFired  = false;
+          }
         }
       }
-
     } else {
-      this.attackTimer -= dt;
-      if (this.attackTimer <= 0 && this.alpha > 0.8) {
-        this._attackIndex++;
-        const attackCycle   = ['suction', 'babyworm', 'cellular'];
-        this.attackType     = attackCycle[(this._attackIndex - 1) % 3]; // -1 SO FIRST ATTACK (index=1) → SUCTION
-        this.isAttacking    = true;
-        this.attackPhase    = 'transIn';
-        this.attackProgress = 0;
-        this._cellularSpitTimer = 0; // RESET SPIT TIMER FOR EACH NEW ATTACK
-        if (this.onAttack) this.onAttack();
+      if (this._attacksEnabled) { // WAIT FOR RISER TO FINISH BEFORE FIRST ATTACK
+        this.attackTimer -= dt;
+        if (this.attackTimer <= 0 && this.alpha > 0.8) {
+          this._attackIndex++;
+          this.attackType      = this._pickNextAttack();  // AI — HEALTH-TIERED, DISTANCE-WEIGHTED SELECTION
+          this._lastAttackType = this.attackType;
+          this.isAttacking     = true;
+          this.attackProgress  = 0;
+          this._cellularSpitTimer = 0;
+
+          if (this.attackType === 'lunge') {
+            // SKIP transIn — LUNGE STARTS IMMEDIATELY IN LOOP PHASE
+            this.attackPhase = 'loop';
+            this._initLunge();
+          } else {
+            this.attackPhase = 'transIn';
+          }
+
+          if (this.onAttack) this.onAttack();
+        }
       }
     }
 
@@ -608,6 +749,8 @@ export class WormBoss {
       const worldTargetY = (this._orbitScreenY - cy) / bs;
       this.headX += (worldTargetX - this.headX) * Math.min(1, 9 * dt);
       this.headY += (worldTargetY - this.headY) * Math.min(1, 9 * dt);
+    } else if (this.isAttacking && this.attackType === 'lunge') {
+      // ── LUNGE — HEAD POSITION DRIVEN DIRECTLY BY ATTACK HANDLER ABOVE, SKIP WIGGLE ──
     } else {
       // ── NORMAL WIGGLE ──
       const t = this.time + this.phaseOffset;
@@ -684,6 +827,9 @@ export class WormBoss {
             frame = (this._cellularSpitTimer < WORM.CELLULAR_SPIT_DURATION)
               ? this.attackFrame
               : WORM.FRAME_HEAD;
+          } else if (this.attackType === 'lunge') {
+            // OPEN MOUTH (FRAME 4) ONLY DURING THE FORWARD STRIKE PHASE; IDLE OTHERWISE
+            frame = (this._lungePhase === 'lunge') ? WORM.FRAME_ATTACK_START : WORM.FRAME_HEAD;
           } else {
             frame = this.attackFrame;
           }
@@ -783,15 +929,105 @@ export class WormBoss {
     return { hit: false };
   }
 
+  // ======================= AI — ATTACK SELECTION =======================
+
+  // RETURNS A RANDOMIZED WAIT TIME BETWEEN ATTACKS (5–10s BY DEFAULT)
+  _rollInterval() {
+    return WORM.ATTACK_INTERVAL_MIN
+      + Math.random() * (WORM.ATTACK_INTERVAL_MAX - WORM.ATTACK_INTERVAL_MIN);
+  }
+
+  /**
+   * WEIGHTED ATTACK PICKER — THE BOSS'S BRAIN
+   * THREE LAYERS OF DECISION MAKING:
+   *   1. HEALTH TIER GATES   — limits which attacks are even available
+   *   2. DISTANCE WEIGHTS    — boosts lunge when close, ranged when far
+   *   3. NO-REPEAT GUARD     — halves the weight of the last attack used
+   * @returns {string} attackType
+   */
+  _pickNextAttack() {
+    const hp = this.getHealthPercent();
+
+    // BUILD POOL — HEALTH TIER GATES WHAT'S AVAILABLE
+    const pool = [
+      { type: 'babyworm', weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
+      { type: 'lunge',    weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
+    ];
+    if (hp <= WORM.AI_TIER_CELLULAR) pool.push({ type: 'cellular', weight: 1.0 }); // TIER 2: 75% HP
+    if (hp <= WORM.AI_TIER_SUCTION)  pool.push({ type: 'suction',  weight: 1.0 }); // TIER 3: 40% HP
+
+    // DISTANCE MODIFIER — SCREEN-SPACE PROXIMITY TO HEAD
+    const head = this.segments[0];
+    const dx   = this._shipScreenX - head.screenX;
+    const dy   = this._shipScreenY - head.screenY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    for (const entry of pool) {
+      if (entry.type === 'lunge') {
+        // LUNGE IS STRONGEST WHEN CLOSE — RAMP FROM 0.4x (FAR) UP TO 3x (CLOSE)
+        if      (dist < WORM.AI_DIST_CLOSE) entry.weight = 3.0;
+        else if (dist < WORM.AI_DIST_FAR)   entry.weight = 1.5;
+        else                                 entry.weight = 0.4;
+      } else {
+        // RANGED ATTACKS GET A BUMP WHEN SHIP IS FARTHER AWAY
+        if (dist > WORM.AI_DIST_FAR) entry.weight = 1.6;
+      }
+    }
+
+    // NO-REPEAT GUARD — HALVE WEIGHT OF LAST ATTACK TO DISCOURAGE BACK-TO-BACK
+    if (this._lastAttackType) {
+      const last = pool.find(e => e.type === this._lastAttackType);
+      if (last) last.weight *= 0.5;
+    }
+
+    // WEIGHTED RANDOM PICK
+    const total = pool.reduce((sum, e) => sum + e.weight, 0);
+    let r = Math.random() * total;
+    for (const entry of pool) {
+      r -= entry.weight;
+      if (r <= 0) return entry.type;
+    }
+    return pool[pool.length - 1].type; // FALLBACK (FLOATING POINT EDGE CASE)
+  }
+
+  // ======================= CELLULAR ATTACK END =======================
+
   // CALLED BY bossBattle.js VIA cellularAttack.onAttackEnd — ENDS THE CELLULAR LOOP CLEANLY
   endCellularAttack() { this._endCellularAttackInternal(); }
 
   _endCellularAttackInternal() {
     this.isAttacking          = false;
     this.attackPhase          = 'idle';
-    this.attackTimer          = WORM.ATTACK_INTERVAL;
+    this.attackTimer          = this._rollInterval();
     this._cellularSpawnFired  = false;
     this._cellularSpitTimer   = 0;
+  }
+
+  // SNAPSHOT HEAD ORIGIN + AIMED DIRECTION TOWARD SHIP AT LUNGE START
+  _initLunge() {
+    this._lungeOriginX    = this.headX;
+    this._lungeOriginY    = this.headY;
+    this._lungeGrowlFired = false;
+    this._lungeSnapFired  = false;
+    this._lungePhase      = 'rearBack';
+
+    // CONVERT SHIP SCREEN COORDS → WORLD SPACE AND AIM
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    const bs = this.baseScale || 0.001;
+    const shipWorldX = (this._shipScreenX - cx) / bs;
+    const shipWorldY = (this._shipScreenY - cy) / bs;
+    const dx  = shipWorldX - this.headX;
+    const dy  = shipWorldY - this.headY;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    this._lungeDirX = dx / len;
+    this._lungeDirY = dy / len;
+  }
+
+  // CALLED EACH FRAME BY bossBattle.js SO THE LUNGE CAN AIM AT THE SHIP
+  setShipPosition(sx, sy) {
+    this._shipScreenX = sx;
+    this._shipScreenY = sy;
   }
 
   // FORCE WORM INTO SUCTION ATTACK LOOP IMMEDIATELY — USED BY BOSS GAME OVER SEQUENCE

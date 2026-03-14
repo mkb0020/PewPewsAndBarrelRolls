@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 4PM
+// Updated 3/13/26 @ 7:30pm
 // audio.js
 export class AudioManager {
   constructor() {
@@ -137,6 +137,9 @@ export class AudioManager {
         cellularSeed:     './audio/cellularSeed.m4a',     // WORM SPITS THE SEED CLUSTER
         cellularSuccess:  './audio/cellularSuccess.m4a',  // INFECTION DEFEATED — RETRACT STING
         cellularCollapse: './audio/cellularCollapse.m4a', // CONTAINMENT FAILS — SUPERNOVA HIT
+        // ====== LUNGE / BITE ATTACK ======
+        wormGrowl: './audio/wormGrowl.m4a',  // FIRES ON REAR-BACK
+        wormSnap:  './audio/wormSnap.m4a',   // FIRES ON SNAP-BACK / BITE
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -505,6 +508,9 @@ export class AudioManager {
   playCellularSeed()     { this._playSfx('cellularSeed',     1.5); } // SEED SPIT
   playCellularSuccess()  { this._playSfx('cellularSuccess',  0.80); } // PLAYER WINS
   playCellularCollapse() { this._playSfx('cellularCollapse', 0.90); } // CONTAINMENT FAILS
+  // ====== LUNGE / BITE SFX ======
+  playWormGrowl() { this._playSfx('wormGrowl', 0.85); } // REAR-BACK TELEGRAPH
+  playWormSnap()  { this._playSfx('wormSnap',  0.90); } // BITE LANDS
   startFractalCode(volume = 0.7) {                             // ZIP ZAP FRACTAL CASCADE — RETURNS STOP HANDLE
     if (this.isMuted || !this.context) return () => {};
     const buffer = this._sfxBuffers['fractalCode'];
