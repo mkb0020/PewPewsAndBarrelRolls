@@ -1,4 +1,4 @@
-// Updated 3/14/26 @ 2:30AM
+// Updated 3/15/26 @ 10AM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -36,15 +36,12 @@ export class BossBattleScene {
     this._bossBarFill      = document.getElementById('boss-bar-fill');
     this._bossBarContainer = document.getElementById('boss-health-container');
     this._bossHPText       = document.getElementById('boss-hp-text');
-    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 300;
-
+    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 50; // SET TO 50 TEMPORARILY FOR TESTING — REVERT TO CONFIG VALUE ONCE FINALIZED
     //  CELLULAR AUTOMATTACK
     this.cellularAttack = new CellularAttack();
     this._distortTimer  = 0;  // COUNTDOWN — CLEARS ship._cellularDistortActive WHEN DONE
-
     //  WIRE WORM BOSS CALLBACKS 
     this._wireCallbacks();
-
     // console.log('✔ BossBattleScene initialized');
   }
 
@@ -55,9 +52,7 @@ export class BossBattleScene {
    * @param {object} ship  
    */
   update(dt, ship) {
-    // *************
     this.wormBoss.setShipPosition(ship.x, ship.y);
-     // *************
     this.wormBoss.update(dt);
     this.babyWormManager.update(dt, ship);
 
@@ -278,6 +273,18 @@ export class BossBattleScene {
 
     wormBoss.onLungeGrowl = () => audio.playWormGrowl();  // REAR-BACK TELEGRAPH
     wormBoss.onLungeSnap  = () => audio.playWormSnap();   // BITE LANDS
+
+    wormBoss.onRageStart = () => {
+      audio.startRageMusic();
+      projectileManager.createExplosion(
+        wormBoss.segments[0].screenX,
+        wormBoss.segments[0].screenY,
+        'zap'
+      );
+      if (wormBoss.onScreenShake) {
+        wormBoss.onScreenShake(50, 0.5);
+      }
+    };
 
     wormBoss.onDeathPauseEnd = () => {
       audio.playWormDeath2();

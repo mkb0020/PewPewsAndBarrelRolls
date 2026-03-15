@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 3AM
+// Updated 3/15/26 @ 10AM 
 // audio.js
 export class AudioManager {
   constructor() {
@@ -10,7 +10,8 @@ export class AudioManager {
     this._preMuteVolume = 1.0;
 
     this.MUSIC_VOLUME        = 0.4;
-    this.CREDITS_MUSIC_VOLUME = 0.6; // LOUDER — ONLY AUDIO IN CLOSING SCENE
+    this.RAGE_MUSIC_VOLUME = 1.5; 
+    this.CREDITS_MUSIC_VOLUME = 0.6; 
     this.LASER_VOLUME        = 0.4;
     this.ENEMY_LASER_VOLUME  = 0.3;
     this.IMPACT_VOLUME       = 0.1;
@@ -23,12 +24,14 @@ export class AudioManager {
     // ====== MUSIC — WEB AUDIO API ======
     this._introBuffer        = null;
     this._bossBuffer         = null;
+    this._rageBuffer         = null; 
     this._creditsBuffer      = null;
     this._musicSource        = null;
     this._introSource        = null;
     this._musicGain          = null;
     this._introDecodePromise = null;
     this._bossDecodePromise  = null;
+    this._rageTimeout        = null; 
     this._creditsDecodePromise = null;
 
     // ====== WAVE MUSIC — ONE BUFFER PER WAVE + ONE TRANSITION PER WAVE (1–4) ======
@@ -74,6 +77,8 @@ export class AudioManager {
         .then(buf => { this._introBuffer = buf; console.log('✔ Intro buffer ready');      return buf; });
       this._bossDecodePromise  = this._prefetchAndDecode('./audio/bossBattle.m4a')
         .then(buf => { this._bossBuffer  = buf; console.log('✔ Boss music buffer ready'); return buf; });
+      this._rageDecodePromise  = this._prefetchAndDecode('./audio/wormRageMusic.m4a')
+        .then(buf => { this._rageBuffer  = buf; console.log('✔ Rage music buffer ready'); return buf; }); 
       this._creditsDecodePromise = this._prefetchAndDecode('./audio/credits.m4a')
         .then(buf => { this._creditsBuffer = buf; console.log('✔ Credits music buffer ready'); return buf; });
 
@@ -99,8 +104,7 @@ export class AudioManager {
         this._transitionDecodePromises.push(p);
       }
 
-      // PRELOAD ALL SFX AS WEB AUDIO BUFFERS
-      const sfxFiles = {
+      const sfxFiles = { // PRELOAD ALL SFX AS WEB AUDIO BUFFERS
         laser:       './audio/laser.m4a',
         enemyLasers: './audio/enemyLasers.m4a',
         impact:      './audio/impact.m4a',
@@ -114,7 +118,6 @@ export class AudioManager {
         babyWorms:   './audio/babyWorms.m4a',
         ouch:        './audio/ouch.m4a',
         splat:       './audio/splat.m4a',
-        //buzz:        './audio/buzz.m4a',
         telegraph:   './audio/telegraph.m4a',
         prism:       './audio/prism.m4a',
         pop:         './audio/pop.m4a',
@@ -123,7 +126,6 @@ export class AudioManager {
         bossTransition2:  './audio/bossTransition2.m4a',
         static:           './audio/static.m4a',
         waveStart:        './audio/waveStart.m4a',
-        // ====== POWER-UPS ======
         powerUp1:       './audio/powerUp1.m4a',      // COSMIC PRISM HP HEAL COLLECT
         powerUp2:       './audio/powerUp2.m4a',      // LASER BOOST
         powerUp3:       './audio/powerUp3.m4a',      // SINGULARITY BOMB COLLECT
@@ -133,13 +135,13 @@ export class AudioManager {
         boost:          './audio/boost.m4a',         // SHIP BOOST DRIVE
         slimeSounds:    './audio/slimeSounds.m4a',   // GLORK SLIME TELEGRAPH
         fractalCode:    './audio/fractalCode.m4a',   // ZIP ZAP FRACTAL CASCADE ATTACK
-        // ====== CELLULAR AUTOMATTACK ======
         cellularSeed:     './audio/cellularSeed.m4a',     // WORM SPITS THE SEED CLUSTER
         cellularSuccess:  './audio/cellularSuccess.m4a',  // INFECTION DEFEATED — RETRACT STING
         cellularCollapse: './audio/cellularCollapse.m4a', // CONTAINMENT FAILS — SUPERNOVA HIT
-        // ====== LUNGE / BITE ATTACK ======
-        wormGrowl: './audio/wormGrowl.m4a',  // FIRES ON REAR-BACK
-        wormSnap:  './audio/wormSnap.m4a',   // FIRES ON SNAP-BACK / BITE
+        wormGrowl: './audio/wormGrowl.m4a',  // FIRES ON REAR-BACK FOR LUNGE / BITE ATTACK
+        wormSnap:  './audio/wormSnap.m4a',   // FIRES ON SNAP-BACK / BITE FOR LUNGE / BITE ATTACK
+        wormRage:  './audio/wormRage.m4a', 
+        wormRageDrop:  './audio/wormRageDrop.m4a', 
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -198,10 +200,13 @@ export class AudioManager {
     this._introSource = null;
     try { this._musicSource?.stop(); } catch (_) {}
     this._musicSource = null;
+    if (this._rageTimeout) {
+      clearTimeout(this._rageTimeout);
+      this._rageTimeout = null;
+    }
   }
 
-  // STOP BOTH GAME OVER TRACKS. CALLED FROM stop() ON FULL RESTART.
-  _stopGameOverSources() {
+  _stopGameOverSources() { // STOP BOTH GAME OVER TRACKS. CALLED FROM stop() ON FULL RESTART.
     try { this._gameover1Source?.stop(); } catch (_) {}
     this._gameover1Source = null;
     this._gameover1Gain   = null;
@@ -283,8 +288,37 @@ export class AudioManager {
     boss.connect(this._musicGain);
     boss.start(bossStartTime);
     this._musicSource = boss;
-
+    this._musicGain.gain.setValueAtTime(this.MUSIC_VOLUME, bossStartTime);  // RESET GAIN TO NORMAL MUSIC VOLUME
     // console.log(`♫ Intro → Boss scheduled (handoff in ${this._introBuffer.duration.toFixed(2)}s)`);
+  }
+
+  startRageMusic() {
+    if (this.isMuted) return;
+    if (!this._rageBuffer) {
+      this._rageDecodePromise.then(() => {
+        if (!this.isMuted) this._playRageSequence();
+      });
+      return;
+    }
+    this._playRageSequence();
+  }
+
+  _playRageSequence() {
+    this._stopMusicSource();  // STOPS BOSS MUSIC
+    this.playWormRage();
+    //const rageDuration = this._sfxBuffers['wormRage'] ? this._sfxBuffers['wormRage'].duration : 2.0; // COMMENTED OUT TO TEST HARD CODING DURATION AFTER BOSS MUSIC STOPS  AND BEFORE RAGE MUSIC STARTS
+    const rageDuration = 0.667; // @ 90 BPM + 4:4 TIME SIGNATURE, 1 BEAT = 0.667s - TESTING SKIPPING 1 BEAT HERE
+    this._rageTimeout = setTimeout(() => {
+      this.playWormRageDrop(); 
+      this._musicGain.gain.setValueAtTime(this.RAGE_MUSIC_VOLUME, this.context.currentTime); // START RAGE MUSIC LOOP
+      const rageMusic = this.context.createBufferSource();
+      rageMusic.buffer = this._rageBuffer;
+      rageMusic.loop = true;
+      rageMusic.connect(this._musicGain);
+      rageMusic.start(0);
+      this._musicSource = rageMusic;
+      this._rageTimeout = null; 
+    }, rageDuration * 1000);
   }
 
   //  REGULAR GAMEPLAY GAME OVER — LOOPING, NO FADE - STOPS CURRENT MUSIC IMMEDIATELY. CLEANED UP BY audio.stop() ON RESTART.
@@ -313,9 +347,7 @@ export class AudioManager {
     // console.log('♫ GameOver1 started (looping)');
   }
 
-  //  BOSS GAME OVER — ONE-SHOT, SCHEDULED FADE-OUT OVER LAST fadeDuration SECONDS.
-  // STOPS CURRENT MUSIC IMMEDIATELY. CLEANED UP BY audio.stop() ON RESTART.
-  playGameOver2(fadeDuration = 4.0) {
+  playGameOver2(fadeDuration = 4.0) {   //  BOSS GAME OVER — ONE-SHOT, SCHEDULED FADE-OUT OVER LAST fadeDuration SECONDS -  STOPS CURRENT MUSIC IMMEDIATELY. CLEANED UP BY audio.stop() ON RESTART.
     if (this.isMuted || !this.context) return;
     if (!this._gameover2Buffer) {
       console.warn('[AudioManager] playGameOver2: buffer not ready');
@@ -334,8 +366,7 @@ export class AudioManager {
     source.loop   = false;
     source.connect(gain);
 
-    // SCHEDULE FADE-OUT: HOLD FULL VOLUME → RAMP TO 0 OVER LAST fadeDuration SECONDS
-    const duration  = this._gameover2Buffer.duration;
+    const duration  = this._gameover2Buffer.duration; // SCHEDULE FADE-OUT: HOLD FULL VOLUME → RAMP TO 0 OVER LAST fadeDuration SECONDS
     const now       = this.context.currentTime;
     const fadeStart = now + Math.max(0, duration - fadeDuration);
     gain.gain.setValueAtTime(this.MUSIC_VOLUME, fadeStart);
@@ -484,6 +515,10 @@ export class AudioManager {
   // ====== LUNGE / BITE SFX ======
   playWormGrowl() { this._playSfx('wormGrowl', 1.5); } // REAR-BACK TELEGRAPH
   playWormSnap()  { this._playSfx('wormSnap',  0.90); } // BITE LANDS
+  // RAGE MODE
+  playWormRage()  { this._playSfx('wormRage',  0.8); } // RAGE MODE ACTIVATED
+  playWormRageDrop()  { this._playSfx('wormRageDrop',  1.0); } // RAGE MODE DROP - PLAYS AT THE SAME TIME AS wormRageMusic / RIGHT AFTER wormRage - DOES NOT LOOP
+
   startFractalCode(volume = 0.7) {                             // ZIP ZAP FRACTAL CASCADE — RETURNS STOP HANDLE
     if (this.isMuted || !this.context) return () => {};
     const buffer = this._sfxBuffers['fractalCode'];

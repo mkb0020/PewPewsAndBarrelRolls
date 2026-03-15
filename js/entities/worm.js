@@ -1,4 +1,4 @@
-// Updated 3/14/26 @ 2:30AM
+// Updated 3/15/26 @ 10AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -40,16 +40,13 @@ const WORM = {
   ATTACK_FPS:         7,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, // POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
-  // AI — HEALTH THRESHOLDS FOR UNLOCKING ATTACKS (as fraction of max HP)
-  AI_TIER_CELLULAR:  0.80, // BELOW THIS HEALTH → CELLULAR ATTACK UNLOCKED
+  AI_TIER_BABYWORM: 0.80, // BELOW THIS HEALTH → BABY WORM ATTACK UNLOCKED
   AI_TIER_SUCTION:   0.40, // BELOW THIS HEALTH → SUCTION ATTACK UNLOCKED
-  // AI — SCREEN-SPACE DISTANCE THRESHOLDS FOR LUNGE WEIGHTING
   AI_DIST_CLOSE:    180,   // PIXELS — BELOW THIS: STRONGLY PREFER LUNGE
   AI_DIST_FAR:      400,   // PIXELS — ABOVE THIS: PREFER RANGED ATTACKS
   CELLULAR_SPIT_DURATION: 1, // SECONDS MOUTH STAYS OPEN AFTER SEED FIRES
   CELLULAR_SEED_DELAY:    0.5, // SECONDS INTO LOOP BEFORE onSpawnCellular FIRES
   CELLULAR_MAX_DURATION:  30,  // FAILSAFE — FORCE-END ATTACK IF STILL ACTIVE AFTER THIS
-  // LUNGE / BITE ATTACK
   LUNGE_REAR_DURATION:   0.3,  // SECONDS TO PULL HEAD BACK BEFORE STRIKE
   LUNGE_STRIKE_DURATION: 0.4,  // SECONDS FOR THE FORWARD SNAP (FAST)
   LUNGE_SNAP_DURATION:   0.3,  // SECONDS TO WHIP BACK TO ORIGIN
@@ -70,9 +67,13 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           300, 
+  HEALTH:           50, // TEMPORARY VALUE FOR TESTING —
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
+  RAGE_TRIGGER_THRESHOLD: 0.3,
+  RAGE_THRESHOLD:     0.25,
+  RAGE_INTERVAL_MULT: 0.75,
+  RAGE_LUNGE_WEIGHT:  5.0,
 };
 
 // ======================= SUCTION PARTICLES CONFIG =======================
@@ -101,8 +102,7 @@ const SUCTION = {
 
 // ======================= SUCTION PARTICLE =======================
 class SuctionParticle {
-  constructor(smokeSprite, smokeFrameWidth) {
-    // SPAWN JUST OUTSIDE A RANDOM SCREEN EDGE
+  constructor(smokeSprite, smokeFrameWidth) { // SPAWN JUST OUTSIDE A RANDOM SCREEN EDGE
     const w = window.innerWidth;
     const h = window.innerHeight;
     const edge = Math.floor(Math.random() * 4);
@@ -216,7 +216,6 @@ class SuctionParticleSystem {
     };
   }
 
- 
   update(dt, isAttacking, targetX, targetY) {  // CALL EVERY FRAME WHILE ATTACK IS ACTIVE - SPAWN NEW PARTICLES ONLY DURING ACTIVE ATTACK LOOP
     if (isAttacking && this.particles.length < SUCTION.MAX_PARTICLES) {
       this.spawnAccum += SUCTION.SPAWN_RATE * dt;
@@ -290,6 +289,11 @@ export class WormBoss {
     this.onScreenShake    = null;  // CALLBACK(strength, duration) — FIRES ON LUNGE BITE FOR IMPACT FEEDBACK
     this._introFired      = false;
 
+    // RAGE MODE
+    this.isRaging     = false;
+    this.onRageStart  = null;
+    this.rageBufferTimer = 0;
+
     // LUNGE ATTACK STATE
     this._shipScreenX     = 0;    // UPDATED EACH FRAME BY bossBattle.js VIA setShipPosition()
     this._shipScreenY     = 0;
@@ -297,7 +301,7 @@ export class WormBoss {
     this._lungeOriginY    = 0;
     this._lungeDirX       = 0;    // NORMALIZED WORLD-SPACE DIRECTION TOWARD SHIP
     this._lungeDirY       = 0;
-    this._lungePhase      = 'rearBack'; // rearBack | lunge | snap
+    this._lungePhase      = 'rearBack'; // REAR BACK | LUNGE | SNAP
     this._lungeGrowlFired = false;
     this._lungeSnapFired  = false;
 
@@ -342,7 +346,6 @@ export class WormBoss {
     };
 
     this.suctionParticles = new SuctionParticleSystem();
-
     // console.log('✔ WormBoss initialized');
   }
 
@@ -380,6 +383,9 @@ export class WormBoss {
     this._lungeSnapFired     = false;
     this._lungePhase         = 'rearBack';
 
+    this.isRaging = false;
+    this.rageBufferTimer = 0;
+
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { // RESET ALL SEGMENTS
       const seg    = this.segments[i];
       seg.isDead   = false;
@@ -408,6 +414,11 @@ export class WormBoss {
     this.attackTimer     = this._rollInterval();
   }
 
+  enterRageMode() {
+    this.isRaging = true;
+    if (this.onRageStart) this.onRageStart();
+  }
+
   // ======================= BLACK HOLE ORBIT API - CALLED EACH FRAME WHILE BLACK HOLE IS ACTIVE =======================
   setOrbitPosition(sx, sy) {
     this._orbitScreenX = sx;
@@ -433,6 +444,23 @@ export class WormBoss {
     // ============= APPROACH / SCALE (ALWAYS NEEDED — EVEN WHILE DYING) =============
     this.z       += (WORM.IDLE_Z - this.z) * WORM.APPROACH_SPEED;
     this.baseScale = WORM.FOCAL_LENGTH / (WORM.FOCAL_LENGTH + this.z);
+
+    // ============= RAGE MODE TRIGGER =============
+    if (!this.isRaging && this.health / this.maxHealth <= WORM.RAGE_TRIGGER_THRESHOLD) {
+      if (!this.isAttacking) {
+        this.enterRageMode();
+      } else {
+        this.rageBufferTimer = 1; // 1 second buffer
+      }
+    }
+
+    // ============= RAGE BUFFER TIMER =============
+    if (this.rageBufferTimer > 0) {
+      this.rageBufferTimer -= dt;
+      if (this.rageBufferTimer <= 0 && !this.isAttacking) {
+        this.enterRageMode();
+      }
+    }
 
     // ============= DYING SEQUENCE — HEAD STAYS PUT, RIPPLE WAVE DOWN THE BODY =============
     if (this.isDying) { // HEAD  STAYS ROUGHLY IN PLACE
@@ -762,8 +790,9 @@ export class WormBoss {
       const approachFrac = 1.0 - Math.max(0, (this.z - WORM.IDLE_Z) / (WORM.START_Z - WORM.IDLE_Z));
       const spawnBlendX  = WORM.SPAWN_OFFSET_X * (1.0 - approachFrac);
       const spawnBlendY  = WORM.SPAWN_OFFSET_Y * (1.0 - approachFrac);
-      const targetX = spawnBlendX + organicNoise(t, WORM.WIGGLE_X);
-      const targetY = spawnBlendY + organicNoise(t, WORM.WIGGLE_Y);
+      let targetX = spawnBlendX + organicNoise(t, WORM.WIGGLE_X);
+      let targetY = spawnBlendY + organicNoise(t, WORM.WIGGLE_Y);
+
       this.headX += (targetX - this.headX) * WORM.HEAD_SMOOTH;
       this.headY += (targetY - this.headY) * WORM.HEAD_SMOOTH;
     }
@@ -938,8 +967,12 @@ export class WormBoss {
 
   // RETURNS A RANDOMIZED WAIT TIME BETWEEN ATTACKS (5–10s BY DEFAULT)
   _rollInterval() {
-    return WORM.ATTACK_INTERVAL_MIN
+    let interval = WORM.ATTACK_INTERVAL_MIN
       + Math.random() * (WORM.ATTACK_INTERVAL_MAX - WORM.ATTACK_INTERVAL_MIN);
+
+    if (this.isRaging) interval *= WORM.RAGE_INTERVAL_MULT;
+
+    return interval;
   }
 
   /**
@@ -955,27 +988,45 @@ export class WormBoss {
 
     // BUILD POOL — HEALTH TIER GATES WHAT'S AVAILABLE
     const pool = [
-      { type: 'babyworm', weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
       { type: 'lunge',    weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
+      { type: 'cellular', weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
     ];
-    if (hp <= WORM.AI_TIER_CELLULAR) pool.push({ type: 'cellular', weight: 1.0 }); // TIER 2: 75% HP
+    if (hp <= WORM.AI_TIER_BABYWORM) pool.push({ type: 'babyworm', weight: 1.0 }); // TIER 2: 80% HP
     if (hp <= WORM.AI_TIER_SUCTION)  pool.push({ type: 'suction',  weight: 1.0 }); // TIER 3: 40% HP
 
-    // DISTANCE MODIFIER — SCREEN-SPACE PROXIMITY TO HEAD
-    const head = this.segments[0];
-    const dx   = this._shipScreenX - head.screenX;
-    const dy   = this._shipScreenY - head.screenY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    // WEIGHT MODIFIERS
+    if (this.isRaging) {
+      // Rage mode: prioritize lunge, suction, babyworm; disable cellular
+      const rageWeights = {
+        lunge: 4.0,
+        suction: 3.0,
+        babyworm: 2.0,
+        cellular: 0.0
+      };
+      for (const entry of pool) {
+        entry.weight = entry.type in rageWeights ? rageWeights[entry.type] : 1.0;
+      }
+    } else {
+      // DISTANCE MODIFIER — SCREEN-SPACE PROXIMITY TO HEAD
+      const head = this.segments[0];
+      const dx   = this._shipScreenX - head.screenX;
+      const dy   = this._shipScreenY - head.screenY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
 
-    for (const entry of pool) {
-      if (entry.type === 'lunge') {
-        // LUNGE IS STRONGEST WHEN CLOSE — RAMP FROM 0.4x (FAR) UP TO 3x (CLOSE)
-        if      (dist < WORM.AI_DIST_CLOSE) entry.weight = 3.0;
-        else if (dist < WORM.AI_DIST_FAR)   entry.weight = 1.5;
-        else                                 entry.weight = 0.4;
-      } else {
-        // RANGED ATTACKS GET A BUMP WHEN SHIP IS FARTHER AWAY
-        if (dist > WORM.AI_DIST_FAR) entry.weight = 1.6;
+      for (const entry of pool) {
+        if (entry.type === 'lunge') {
+          if (dist < WORM.AI_DIST_CLOSE) {
+            entry.weight = 3.0;
+          } else if (dist < WORM.AI_DIST_FAR) {
+            entry.weight = 1.5;
+          } else {
+            entry.weight = 0.4;
+          }
+        } else {
+          if (dist > WORM.AI_DIST_FAR) {
+            entry.weight = 1.6;
+          }
+        }
       }
     }
 
@@ -986,8 +1037,10 @@ export class WormBoss {
     }
 
     // ATTACK HISTORY GUARD — FURTHER REDUCE WEIGHT FOR ANY ATTACK IN RECENT 3-ATTACK MEMORY
-    for (const entry of pool) {
-      if (this._attackHistory.includes(entry.type)) entry.weight *= 0.55;
+    if (!this.isRaging) {
+      for (const entry of pool) {
+        if (this._attackHistory.includes(entry.type)) entry.weight *= 0.55;
+      }
     }
 
     // WEIGHTED RANDOM PICK
