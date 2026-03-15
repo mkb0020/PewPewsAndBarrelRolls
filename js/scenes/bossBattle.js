@@ -1,9 +1,10 @@
-// Updated 3/15/26 @ 10AM
+// Updated 3/15/26 @ 3:30PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
 import { ImageLoader } from '../utils/imageLoader.js';
 import { CellularAttack } from '../entities/cellularAttack.js';
+import { SessionRecorder } from '../temp/devTools.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 export class BossBattleScene {
 
@@ -192,6 +193,7 @@ export class BossBattleScene {
   /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
   readyForBattle() {
     this._battleReady = true;
+    SessionRecorder.log('boss_battle_start');
     this.wormBoss.enableAttacks();  // UNLOCK ATTACK CYCLE — RISER COMPLETE, BATTLE BEGINS
     if (this.singularityBombManager) this.singularityBombManager.deployEnabled = true;
     // console.log('⚔ Battle ready — boss damage unlocked');

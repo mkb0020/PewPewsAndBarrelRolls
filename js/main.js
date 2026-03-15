@@ -1,4 +1,4 @@
-// Updated 3/14/26 @ 2:30AM
+// Updated 3/15/26 @ 3:30PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -30,6 +30,7 @@ import { TesseractFragmentManager }                  from './entities/tesseractF
 import { SingularityBombManager }                    from './entities/singularityBomb.js';
 import { EnemyDeathManager }                         from './visuals/enemyDeath.js';
 import { FractalCascade }                            from './entities/fractalCascade.js';
+import { DevTools, SessionRecorder }                  from './temp/devTools.js';
 
 
 // console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
@@ -276,6 +277,7 @@ wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, du
 
 // ==================== WORM DEATH → CLOSING SCENE ====================
 wormBoss.onDeath = () => {
+  SessionRecorder.log('boss_battle_end');
   audio.stopMusic();
   ship.exitCinematic();
   document.querySelectorAll('#hud, #hp-container, #lives-container, #boss-health-container, #wave-hud, #ui-buttons, #bomb-container')
@@ -288,6 +290,7 @@ wormBoss.onDeath = () => {
 
 // ==================== CLOSING SCENE → BACK TO MENU ====================
 closingScene.onBackToMenu = () => {
+  SessionRecorder.stop();
   audio.stop();
   window.location.reload();
 };
@@ -948,6 +951,9 @@ async function startup() {
 
   await openingScene.play(true); 
   // console.log('✔ Opening scene complete');
+
+  // DEV TOOLS (SLIDERS + SESSION RECORDER)
+  DevTools.init();
 
   // REVEAL HUD AND MOBILE CONTROLS AFTER OPENING SCENE
   document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden'));

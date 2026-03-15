@@ -1,10 +1,11 @@
-// Updated 3/12/26 @ 10:30PM
+// Updated 3/15/26 @ 3:30PM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 import { ImageLoader, ENEMY_SPRITE } from '../utils/imageLoader.js';
 import { GlitchFleshAssembly } from '../visuals/glitchFleshAssembly.js';
 import { TentacleSystem, TENTACLE_TYPES } from '../entities/tentacles.js';
+import { SessionRecorder } from '../temp/devTools.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //  SINGULARITY BOMB HOOK - FOR SPAGHETTIFICATION 
@@ -79,7 +80,10 @@ class EnemyLaser {
 }
 
 export class Enemy {
+  static _nextId = 1;
+
   constructor(x, y, type = 'BASIC', curveProgress = 0) {
+    this.id = Enemy._nextId++;
     this.x = x;
     this.y = y;
     this.type = type;
@@ -612,7 +616,9 @@ export class EnemyManager {
     const y    = window.innerHeight / 2;
     const type = this.getRandomEnemyType();
 
-    this.enemies.push(new Enemy(x, y, type, spawnProgress));
+    const enemy = new Enemy(x, y, type, spawnProgress);
+    this.enemies.push(enemy);
+    SessionRecorder.log('enemy_spawn', { id: enemy.id, type: enemy.type });
   }
 
   update(dt, shipX, shipY) { // shipX/shipY - SO LASERS KNOW WHERE TO AIM
@@ -674,6 +680,7 @@ export class EnemyManager {
       }
 
       if (enemy.isDead) {
+        SessionRecorder.log('enemy_killed', { id: enemy.id, type: enemy.type });
         this.onEnemyKilled?.(enemy.type); // NOTIFY SO ORPHANED TELEGRAPH SFX CAN BE STOPPED
         this.enemies.splice(i, 1);
       }

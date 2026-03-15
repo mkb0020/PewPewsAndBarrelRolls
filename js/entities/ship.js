@@ -1,10 +1,11 @@
-// Updated 3/13/26 @ 5:45pm
+// Updated 3/15/26 @ 3:30pm
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
 import { keys, virtualKeys, isKeyPressed } from '../utils/controls.js';
 import { ParticleSystem } from '../visuals/particles.js';
 import { ImageLoader } from '../utils/imageLoader.js';
+import { SessionRecorder } from '../temp/devTools.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export class Ship {
@@ -105,7 +106,6 @@ export class Ship {
     this._dsSmoke              = [];     
     this._dsFrags              = [];     
     this.onDeathSequenceStart  = null;   
-
     // console.log('✔ Ship initialized');
   }
 
@@ -511,6 +511,7 @@ export class Ship {
   takeDamage(amount) {
     if (this.isInvincible || !this.isAlive) return false;
     this.hp = Math.max(0, this.hp - amount);
+    SessionRecorder.log('player_damage', { amount, hp: this.hp, lives: this.lives });
     if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
     if (this.hp <= 0) {
       this._triggerDeath();
