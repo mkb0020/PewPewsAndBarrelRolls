@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 10:30pm
+// Updated 3/15/26 @ 3AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -11,8 +11,8 @@ export class AudioManager {
 
     this.MUSIC_VOLUME        = 0.4;
     this.CREDITS_MUSIC_VOLUME = 0.6; // LOUDER — ONLY AUDIO IN CLOSING SCENE
-    this.LASER_VOLUME        = 0.5;
-    this.ENEMY_LASER_VOLUME  = 0.5;
+    this.LASER_VOLUME        = 0.4;
+    this.ENEMY_LASER_VOLUME  = 0.3;
     this.IMPACT_VOLUME       = 0.1;
     this.SPAWN_VOLUME        = 0.5;
     this.BARREL_ROLL_VOLUME  = 0.15;
@@ -464,7 +464,7 @@ export class AudioManager {
   playConsumed()    { this._playSfx('consumed',      0.9); }
   playBabyWorms()   { this._playSfx('babyWorms',     1.0); }
   playWarning()     { this._playSfx('warning',       0.8); }
-  playWaveWormSfx()     { this._playSfx('waveWorms',       0.6); }
+  playWaveWormSfx()     { this._playSfx('waveWorms',       0.4); }
   playBossTransition1() { this._playSfx('bossTransition1', 0.9); }
   playBossTransition2() { this._playSfx('bossTransition2', 0.9); }
   playWaveStart()       { this._playSfx('waveStart',       0.55); }
@@ -475,14 +475,14 @@ export class AudioManager {
   playPowerUp3() { this._playSfx('powerUp3', 0.5); }  // SINGULARITY BOMB COLLECT
   playBoost()    { this._playSfx('boost',    0.6); }  // SHIP BOOST DRIVE
   playBabyBlackhole() { this._playSfx('babyBlackhole', 0.5); } // SINGULARITY BOMB DEPLOY
-  playEnemyDeath()    { this._playSfx('enemyDeath',    0.1); } // BIOLOGICAL MELT COLLAPSE
+  playEnemyDeath()    { this._playSfx('enemyDeath',    0.07); } // BIOLOGICAL MELT COLLAPSE
   playGlitchOut()     { this._playSfx('glitchOut',     0.7); } // SHIP DEATH GLITCH
   // ====== CELLULAR AUTOMATTACK SFX ======
   playCellularSeed()     { this._playSfx('cellularSeed',     1.5); } // SEED SPIT
   playCellularSuccess()  { this._playSfx('cellularSuccess',  0.80); } // PLAYER WINS
   playCellularCollapse() { this._playSfx('cellularCollapse', 0.90); } // CONTAINMENT FAILS
   // ====== LUNGE / BITE SFX ======
-  playWormGrowl() { this._playSfx('wormGrowl', 0.85); } // REAR-BACK TELEGRAPH
+  playWormGrowl() { this._playSfx('wormGrowl', 1.5); } // REAR-BACK TELEGRAPH
   playWormSnap()  { this._playSfx('wormSnap',  0.90); } // BITE LANDS
   startFractalCode(volume = 0.7) {                             // ZIP ZAP FRACTAL CASCADE — RETURNS STOP HANDLE
     if (this.isMuted || !this.context) return () => {};

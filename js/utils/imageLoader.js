@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 4PM
+// Updated 3/15/26 @ 2am
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -28,7 +28,7 @@ const MANIFEST = {
   prePrismEyes: { path: 'prePrismEyes.png', lazy: true },  // 8 FRAMES: telegraph blink animation
 
   waveWorms:    { path: 'waveWorms.png', lazy: true },  // 10 FRAMES
-  gooSizzle:    { path: 'gooSizzle.png', lazy: true },  // 9 FRAMES
+  gooSizzle:    { path: 'gooSizzle.png', lazy: true },  // 12 FRAMES
 
   kabam:      { path: 'kabam.png'      },               // 5 FRAMES — SHIP EXPLOSION
   shipPieces: { path: 'shipPieces.png' },               // 3 FRAMES — L WING / BODY / R WING

@@ -1,3 +1,4 @@
+// UPDATED 3/15/26 @ 3AM
 // scenes/openingScene.js
 const TRANSMISSION_LINES = [
   'This is Deep Space Command.',
@@ -133,7 +134,8 @@ export class OpeningScene {
     return new Promise(resolve => {
       const canvas = document.getElementById('three-canvas');
       if (canvas) canvas.classList.add('glitch');
-      this._starfield.speed = 15; // Speed up for glitchy effect
+      this._starfield.speed = 15; // SPEED UP STARS FOR GLITCH EFFECT
+
 
       const start = performance.now();
       const tick  = (now) => {
