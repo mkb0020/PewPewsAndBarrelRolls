@@ -36,7 +36,7 @@ export class BossBattleScene {
     this._bossBarFill      = document.getElementById('boss-bar-fill');
     this._bossBarContainer = document.getElementById('boss-health-container');
     this._bossHPText       = document.getElementById('boss-hp-text');
-    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 150;
+    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 300;
 
     //  CELLULAR AUTOMATTACK
     this.cellularAttack = new CellularAttack();
@@ -55,6 +55,9 @@ export class BossBattleScene {
    * @param {object} ship  
    */
   update(dt, ship) {
+    // *************
+    this.wormBoss.setShipPosition(ship.x, ship.y);
+     // *************
     this.wormBoss.update(dt);
     this.babyWormManager.update(dt, ship);
 

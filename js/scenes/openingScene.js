@@ -131,6 +131,10 @@ export class OpeningScene {
 
   _fadeOut(durationSec) {
     return new Promise(resolve => {
+      const canvas = document.getElementById('three-canvas');
+      if (canvas) canvas.classList.add('glitch');
+      this._starfield.speed = 15; // Speed up for glitchy effect
+
       const start = performance.now();
       const tick  = (now) => {
         const t = Math.min((now - start) / (durationSec * 1000), 1);
@@ -140,6 +144,8 @@ export class OpeningScene {
           requestAnimationFrame(tick);
         } else {
           if (this._cockpitImg) this._cockpitImg.style.opacity = 0;
+          if (canvas) canvas.classList.remove('glitch');
+          this._starfield.speed = 4; // Reset speed
           resolve();
         }
       };
