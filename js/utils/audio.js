@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 2:30AM
+// Updated 3/16/26 @ 7PM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -308,7 +308,7 @@ export class AudioManager {
     this._stopMusicSource();  // STOPS BOSS MUSIC
     this.playWormRage();
     //const rageDuration = this._sfxBuffers['wormRage'] ? this._sfxBuffers['wormRage'].duration : 2.0; // COMMENTED OUT TO TEST HARD CODING DURATION AFTER BOSS MUSIC STOPS  AND BEFORE RAGE MUSIC STARTS
-    const rageDuration = 0.667; // @ 90 BPM + 4:4 TIME SIGNATURE, 1 BEAT = 0.667s - TESTING SKIPPING 1 BEAT HERE
+    const rageDuration = 2.56; // @ 90 BPM + 4:4 TIME SIGNATURE, 1 BEAT = 0.667s - TESTING SKIPPING 4 BEATS HERE
     this._rageTimeout = setTimeout(() => {
       this.playWormRageDrop(); 
       this._musicGain.gain.setValueAtTime(this.RAGE_MUSIC_VOLUME, this.context.currentTime); // START RAGE MUSIC LOOP
@@ -518,7 +518,7 @@ export class AudioManager {
   playWormGrowl() { this._playSfx('wormGrowl', 1.5); } // REAR-BACK TELEGRAPH
   playWormSnap()  { this._playSfx('wormSnap',  0.90); } // BITE LANDS
   // RAGE MODE
-  playWormRage()  { this._playSfx('wormRage',  0.8); } // RAGE MODE ACTIVATED
+  playWormRage()  { this._playSfx('wormRage',  1.0); } // RAGE MODE ACTIVATED
   playWormRageDrop()  { this._playSfx('wormRageDrop',  1.0); } // RAGE MODE DROP - PLAYS AT THE SAME TIME AS wormRageMusic / RIGHT AFTER wormRage - DOES NOT LOOP
 
   startFractalCode(volume = 0.7) {                             // ZIP ZAP FRACTAL CASCADE — RETURNS STOP HANDLE

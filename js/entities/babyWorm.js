@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 2:30AM
+// Updated 3/16/26 @ 7PM
 // babyWorm.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -72,6 +72,12 @@ class BabyWorm {
       // FLUNG PHYSICS
       this.x += this.vx * dt;
       this.y += this.vy * dt;
+
+      if (!Number.isFinite(this.x)) this.x = 0;
+      if (!Number.isFinite(this.y)) this.y = 0;
+      if (!Number.isFinite(this.vx)) this.vx = 0;
+      if (!Number.isFinite(this.vy)) this.vy = 0;
+
       this.vx *= 0.98;
       this.vy *= 0.98;
       this.rotation += this.spin * dt;
@@ -352,6 +358,10 @@ class BabyWorm {
 
     this.vx = tx * tangentialForce + nx * outwardForce + (ship.velocity?.x ?? 0) * 0.4;
     this.vy = ty * tangentialForce + ny * outwardForce + (ship.velocity?.y ?? 0) * 0.4;
+
+    // SAFETY: PREVENT ANY NaN FROM BREAKING THE ANIMATION
+    if (!Number.isFinite(this.vx)) this.vx = 0;
+    if (!Number.isFinite(this.vy)) this.vy = 0;
 
     this.spin = (Math.random() * 8 + 6) * rollDir;
     this.rotation = 0;

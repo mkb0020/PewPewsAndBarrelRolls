@@ -1,4 +1,4 @@
-// Updated 3/7/26 @ 12:30AM
+// Updated 3/16/26 @ 7PM
 // tunnel.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import * as THREE from 'three';
@@ -27,6 +27,12 @@ export class Tunnel {
     // SPINOR PICKUP — 720° ROLL + PINK HUE SHIFT (~0.8s)
     this._spinorRollAccum = 0;   // RADIANS ACCUMULATED (0 → 4π)
     this._spinorActive    = false;
+
+    // RAGE SEQUENCE — CRUMBLE + BLACKOUT
+    this._rageCrumble = 0;
+    this._rageCrumbleTarget = 0;
+    this._rageBlackout = 0;
+    this._rageBlackoutTarget = 0;
 
     // BOSS TRANSITION — THREE PHASES: SURGE → FLASH → EMERGENCE
     this._bossTransitionSurge       = 0;  // PHASE 1: SPEED x7, CRIMSON BLEED, ROLL RAMP
@@ -162,6 +168,17 @@ export class Tunnel {
   setBossFlash(t)           { this._bossFlashTarget           = Math.max(0, Math.min(1, t)); }
   setBossEmergenceFog(t)    { this._bossEmergenceFogTarget    = Math.max(0, Math.min(1, t)); }
 
+  // ── RAGE SEQUENCE SETTERS ──────────────────────────────────────────────────
+  setRageCrumble(t)  { this._rageCrumbleTarget  = Math.max(0, Math.min(1, t)); }
+  setRageBlackout(t) { this._rageBlackoutTarget = Math.max(0, Math.min(1, t)); }
+
+  resetRage() {
+    this._rageCrumble = 0;
+    this._rageCrumbleTarget = 0;
+    this._rageBlackout = 0;
+    this._rageBlackoutTarget = 0;
+  }
+
   // ── WAVE CLEAR PULSE SETTER ────────────────────────────────────────────────
   setWavePulse(t) { this._wavePulseTarget = Math.max(0, Math.min(1, t)); }
 
@@ -209,6 +226,15 @@ export class Tunnel {
     this._bossEmergenceFog += (this._bossEmergenceFogTarget - this._bossEmergenceFog) * befLerp;
     const bef = this._bossEmergenceFog;                            // EMERGENCE FOG: 0→1
 
+    // ── RAGE SEQUENCE LERPS ───────────────────────────────────────────────────
+    const rcLerp = this._rageCrumbleTarget > this._rageCrumble ? 0.08 : 0.04;
+    this._rageCrumble += (this._rageCrumbleTarget - this._rageCrumble) * rcLerp;
+    const rc = this._rageCrumble;                                  // RAGE CRUMBLE: 0→1
+
+    const rbLerp = this._rageBlackoutTarget > this._rageBlackout ? 0.06 : 0.02;
+    this._rageBlackout += (this._rageBlackoutTarget - this._rageBlackout) * rbLerp;
+    const rb = this._rageBlackout;                                 // RAGE BLACKOUT: 0→1
+
     // ── WAVE PULSE LERP — SNAPPY IN, GRADUAL FADE ────────────────────────────
     const wpLerp = this._wavePulseTarget > this._wavePulseIntensity ? 0.18 : 0.025;
     this._wavePulseIntensity += (this._wavePulseTarget - this._wavePulseIntensity) * wpLerp;
@@ -238,6 +264,13 @@ export class Tunnel {
 
     // ── CAMERA POSITION ───────────────────────────────────────────────────────
     this.camera.position.copy(pos);
+    // RAGE CRUMBLE SHAKE
+    if (rc > 0.01) {
+      const shake = rc * 15;
+      this.camera.position.x += (Math.random() - 0.5) * shake;
+      this.camera.position.y += (Math.random() - 0.5) * shake;
+      this.camera.position.z += (Math.random() - 0.5) * shake;
+    }
     const lookTarget = pos.clone().add(tangent);
     this.camera.lookAt(lookTarget);
 
@@ -264,6 +297,15 @@ export class Tunnel {
 
     // ── FOG DENSITY — THICKENS SO TUNNEL WALLS DISSOLVE INTO DARKNESS ─────────
     this.scene.fog.density = CONFIG.SCENE.FOG_DENSITY + ci * 0.018 + bts * 0.003 + bef * 0.048;
+
+    // ── RAGE BLACKOUT OVERRIDE — PERMANENT VOID ARENA ─────────────────────────
+    if (rb > 0.01) {
+      const black = new THREE.Color(0x000000);
+      this.scene.background.lerp(black, rb);
+      this.scene.fog.color.lerp(black, rb);
+      // EXTREMELY HEAVY FOG SO TUNNEL WALLS VANISH
+      this.scene.fog.density = CONFIG.SCENE.FOG_DENSITY + 0.05 + rb * 0.12;
+    }
 
     // ── WIREFRAME COLOR ───────────────────────────────────────────────────────
     // SUCTION LERPS PURPLE → RED (existing behaviour)

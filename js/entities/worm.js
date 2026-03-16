@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 2:30AM
+// Updated 3/16/26 @ 7PM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -67,7 +67,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           50, // TEMPORARY VALUE FOR TESTING —
+  HEALTH:           300, // NOT FINALIZED
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
   RAGE_TRIGGER_THRESHOLD: 0.3,
@@ -248,13 +248,13 @@ export class WormBoss {
     this.phaseOffset  = Math.random() * Math.PI * 2; // RANDOMISE START POSE
     this.z            = WORM.START_Z;
     this.baseScale    = 0;
-
+    this.headFrame = WORM.FRAME_HEAD; // USED IN enterRageMode
+    this.headFrameTime = 0;
     this.health       = WORM.HEALTH;
     this.maxHealth    = WORM.HEALTH;
     this.isDead       = false;
     this.isActive     = false;
     this.alpha        = WORM.ALPHA_START;
-
     // ATTACK ANIMATION STATE
     this.attackTimer     = this._rollInterval();  // ATTACK ANIMATION STATE
     this.stunTimer       = 0;   // SINGULARITY BOMB 
@@ -289,6 +289,7 @@ export class WormBoss {
     this.isRaging     = false; // RAGE MODE
     this.onRageStart  = null;
     this.rageBufferTimer = 0;
+    this.freeze = false;
 
     // LUNGE ATTACK STATE
     this._shipScreenX     = 0;    // UPDATED EACH FRAME BY bossBattle.js VIA setShipPosition()
@@ -300,6 +301,7 @@ export class WormBoss {
     this._lungePhase      = 'rearBack'; // REAR BACK | LUNGE | SNAP
     this._lungeGrowlFired = false;
     this._lungeSnapFired  = false;
+    this.isSuctionActive = false;
 
     this._orbitScreenX    = null;     // BLACK HOLE ORBIT STATE — SET EACH FRAME BY singularityBomb.js WHILE ACTIVE
     this._orbitScreenY    = null;
@@ -407,9 +409,34 @@ export class WormBoss {
     this.attackTimer     = this._rollInterval();
   }
 
+  forceNeutralHead() { // FUNCTION TO SHUT WORMS MOUTH
+    this.headFrame = WORM.FRAME_HEAD;
+    this.headFrameTime = 0;
+  }
+
   enterRageMode() {
     this.isRaging = true;
     if (this.onRageStart) this.onRageStart();
+  }
+
+  startSuctionAttack() {
+    this.isAttacking     = true;
+    this.attackType      = 'suction';
+    this.attackPhase     = 'loop';
+    this.attackProgress  = 0;
+    this.attackFrame     = WORM.FRAME_ATTACK_START;
+    this.attackFrameTime = 0;
+    this._babySpawnFired     = false;
+    this._cellularSpawnFired = false;
+    this._lungeGrowlFired    = false;
+    this._lungeSnapFired     = false;
+    this.isSuctionActive = true; 
+  }
+
+  stopSuctionAttack() {
+    this.isSuctionActive = false;
+    this.isAttacking = false;
+    this.attackType = null;
   }
 
   // ======================= BLACK HOLE ORBIT API - CALLED EACH FRAME WHILE BLACK HOLE IS ACTIVE =======================
@@ -427,6 +454,7 @@ export class WormBoss {
   // ======================= UPDATE =======================
   update(dt) {
     if (!this.isActive || this.isDead) return;
+    if (this.freeze) return;
 
     this.time += dt;
 

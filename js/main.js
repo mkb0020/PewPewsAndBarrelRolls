@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 2:30AM
+// Updated 3/16/26 @ 7PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -32,9 +32,7 @@ import { EnemyDeathManager }                         from './visuals/enemyDeath.
 import { FractalCascade }                            from './entities/fractalCascade.js';
 import { DevTools, SessionRecorder }                  from './temp/devTools.js';
 
-
 // console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
-
 // ==================== CANVAS ====================
 const gameCanvas    = document.createElement('canvas');
 gameCanvas.id       = 'game-canvas';
@@ -87,7 +85,8 @@ const bossBattleScene   = new BossBattleScene({
   scoreManager,
   projectileManager,
   transitionScene,
-  singularityBombManager, 
+  singularityBombManager,
+  tunnel,
 });
 
 // ==================== ENEMY CALLBACKS ====================

@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 3:30pm
+// Updated 3/16/26 @ 7PM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -52,6 +52,9 @@ export class Ship {
     this.suctionShakeX = 0;
     this.suctionShakeY = 0;
     this._rollBurstFired = false;
+
+    // RAGE SUCTION MULTIPLIER — APPLIED TO BASE FORCE, MAX DISTANCE, SHAKE, AND RAMP EXPONENT
+    this._rageSuction = false;
 
     // ========== BOOST ==========
     this._boostCooldown = 0;   
@@ -386,10 +389,15 @@ export class Ship {
   }
 
   //  WORM SUCTION 
+  setRageSuction(enabled) {
+    this._rageSuction = Boolean(enabled);
+  }
+
   applySuction(mouthX, mouthY, dt) {
     if (this.consumedMode) return;
     this.suctionActive = true;
     const SC = CONFIG.WORM_SUCTION;
+    const rageMul = this._rageSuction ? SC.RAGE_MULTIPLIER : 1;
 
     const shipScreenX = window.innerWidth  / 2 + this.offset.x;
     const shipScreenY = window.innerHeight / 2 - this.offset.y;
@@ -398,12 +406,19 @@ export class Ship {
     const sdy  = mouthY - shipScreenY;
     const dist = Math.sqrt(sdx * sdx + sdy * sdy);
 
-    const closeness   = Math.max(0, 1 - dist / SC.MAX_DISTANCE);
+    // PREVENT NaN WHEN SHIP IS EXACTLY AT THE MOUTH (DIST = 0). KEEP PREVIOUS VELOCITY INSTEAD OF BLOWING UP.
+    if (dist < 1) {
+      this.suctionShakeX = 0;
+      this.suctionShakeY = 0;
+      return;
+    }
+
+    const closeness   = Math.max(0, 1 - dist / (SC.MAX_DISTANCE * rageMul));
     const targetScale = SC.SCALE_FAR - closeness * (SC.SCALE_FAR - SC.SCALE_NEAR);
     this.suctionScale += (targetScale - this.suctionScale) * SC.SCALE_LERP;
 
     if (closeness > 0.1) {
-      const shakeAmt   = SC.SHAKE_INTENSITY * closeness;
+      const shakeAmt   = SC.SHAKE_INTENSITY * rageMul * closeness;
       this.suctionShakeX = (Math.random() - 0.5) * shakeAmt;
       this.suctionShakeY = (Math.random() - 0.5) * shakeAmt;
     } else {
@@ -411,15 +426,13 @@ export class Ship {
       this.suctionShakeY = 0;
     }
 
-    if (dist < 1) return;
-
     const snx = sdx / dist;
     const sny = sdy / dist;
     const stx = -sny;
     const sty =  snx;
 
-    const rawForce = SC.BASE_FORCE * Math.pow(closeness, SC.RAMP_EXPONENT);
-    const forceMag = Math.min(rawForce, SC.MAX_FORCE);
+    const rawForce = SC.BASE_FORCE * rageMul * Math.pow(closeness, SC.RAMP_EXPONENT * rageMul);
+    const forceMag = Math.min(rawForce, SC.MAX_FORCE * rageMul);
 
     const rolling  = this.isBarrelRolling;
     const spinMult = rolling ? SC.ROLL_SPIN_RESIST : 1.0;
@@ -436,6 +449,10 @@ export class Ship {
 
     this.velocity.x += screenFX * dt;
     this.velocity.y -= screenFY * dt;
+
+    // SAFETY: PREVENT NaNs FROM PROPAGATING INTO POSITION
+    if (!Number.isFinite(this.velocity.x)) this.velocity.x = 0;
+    if (!Number.isFinite(this.velocity.y)) this.velocity.y = 0;
   }
 
   clearSuction() {

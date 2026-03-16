@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 3:30PM
+// Updated 3/16/26 @ 7PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -8,7 +8,7 @@ import { SessionRecorder } from '../temp/devTools.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 export class BossBattleScene {
 
-  constructor({ wormBoss, babyWormManager, audio, scoreManager, projectileManager, transitionScene, singularityBombManager }) {
+  constructor({ wormBoss, babyWormManager, audio, scoreManager, projectileManager, transitionScene, singularityBombManager, tunnel }) {
     this.wormBoss              = wormBoss;
     this.babyWormManager       = babyWormManager;
     this.audio                 = audio;
@@ -16,11 +16,13 @@ export class BossBattleScene {
     this.projectileManager     = projectileManager;
     this.transitionScene       = transitionScene;
     this.singularityBombManager = singularityBombManager ?? null;
+    this.tunnel                = tunnel;
 
     //  INTERNAL STATE 
     this._wormBattleStarted = false;
     this._warningSounded    = false;
-    this._battleReady       = false; 
+    this._battleReady       = false;
+    this.rageStarted        = false; 
 
     //  CALLBACKS (main.js  ) 
     this.onCinematicStart    = null;   
@@ -37,12 +39,10 @@ export class BossBattleScene {
     this._bossBarFill      = document.getElementById('boss-bar-fill');
     this._bossBarContainer = document.getElementById('boss-health-container');
     this._bossHPText       = document.getElementById('boss-hp-text');
-    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 50; // SET TO 50 TEMPORARILY FOR TESTING — REVERT TO CONFIG VALUE ONCE FINALIZED
-    //  CELLULAR AUTOMATTACK
+    this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 300; // NOT FINALIZED
     this.cellularAttack = new CellularAttack();
-    this._distortTimer  = 0;  // COUNTDOWN — CLEARS ship._cellularDistortActive WHEN DONE
-    //  WIRE WORM BOSS CALLBACKS 
-    this._wireCallbacks();
+    this._distortTimer  = 0;  // COUNTDOWN — CLEARS ship._cellularDistortActive WHEN DONE 
+    this._wireCallbacks();  //  WIRE WORM BOSS CALLBACKS
     // console.log('✔ BossBattleScene initialized');
   }
 
@@ -53,6 +53,7 @@ export class BossBattleScene {
    * @param {object} ship  
    */
   update(dt, ship) {
+    this.ship = ship;
     this.wormBoss.setShipPosition(ship.x, ship.y);
     this.wormBoss.update(dt);
     this.babyWormManager.update(dt, ship);
@@ -60,8 +61,7 @@ export class BossBattleScene {
     this._updateSuction(dt, ship);
     this._checkBattleCheckpoint();
 
-    // CELLULAR AUTOMATTACK — TICK AND CHECK SHIP DAMAGE
-    if (this.cellularAttack.isActive) {
+    if (this.cellularAttack.isActive) { // CELLULAR AUTOMATTACK — TICK AND CHECK SHIP DAMAGE
       this.cellularAttack.update(dt);
 
       if (ship.isAlive && !ship.isInvincible) {
@@ -185,8 +185,14 @@ export class BossBattleScene {
     this._wormholeActive    = false;
     this._vortex            = null;
     this._distortTimer      = 0;
+    this.rageStarted        = false;
     if (ship) ship._cellularDistortActive = false; // ENSURE FLAG IS CLEARED ON HARD RESET
     this.cellularAttack.reset();
+    this.tunnel.resetRage();
+    this.tunnel.resetBossTransition();
+    this.wormBoss.isRaging = false;
+    this.wormBoss.freeze = false;
+    if (ship) ship.setRageSuction(false);
     if (this.singularityBombManager) this.singularityBombManager.isBossBattle = false;
   }
 
@@ -213,11 +219,9 @@ export class BossBattleScene {
     this.audio.playGameOver2();
     if (this.singularityBombManager) this.singularityBombManager.deployEnabled = false;
 
-    // FORCE WORM INTO SUCTION VISUALS
-    this.wormBoss.forceSuction();
+    this.wormBoss.forceSuction(); // FORCE WORM INTO SUCTION VISUALS
 
-    // NULL OUT onDeath SO THE CONSUMED ANIMATION DOESN'T RE-TRIGGER THE DEATH FLOW
-    ship.onDeath = null;
+    ship.onDeath = null;  // NULL OUT onDeath SO THE CONSUMED ANIMATION DOESN'T RE-TRIGGER THE DEATH FLOW
 
     // REVIVE SHIP JUST LONG ENOUGH TO PLAY THE CONSUMED ANIMATION
     ship.isAlive             = true;
@@ -277,15 +281,7 @@ export class BossBattleScene {
     wormBoss.onLungeSnap  = () => audio.playWormSnap();   // BITE LANDS
 
     wormBoss.onRageStart = () => {
-      audio.startRageMusic();
-      projectileManager.createExplosion(
-        wormBoss.segments[0].screenX,
-        wormBoss.segments[0].screenY,
-        'zap'
-      );
-      if (wormBoss.onScreenShake) {
-        wormBoss.onScreenShake(50, 0.5);
-      }
+      this.enterRageSequence();
     };
 
     wormBoss.onDeathPauseEnd = () => {
@@ -372,6 +368,32 @@ export class BossBattleScene {
       }, 10000);
     };
   }
+
+enterRageSequence() {
+  if (this.rageStarted) return;
+  this.rageStarted = true;
+  this.tunnel.setBossFlash(1.0);
+  this.wormBoss.forceNeutralHead();
+  this.ship.canShoot = false;
+  this.wormBoss.freeze = true;
+  this.wormBoss.isRaging = true;
+  this.audio.startRageMusic();
+  this.ship.setRageSuction(true);
+  this.tunnel.setRageCrumble(1.0);
+  setTimeout(() => {
+    this.tunnel.setBossFlash(1.0);
+  }, 2500); // SLIGHTLY LESS THAN rageDuration FROM audio.js
+  setTimeout(() => {
+    this.tunnel.setRageBlackout(1.0);
+    this.wormBoss.freeze = false;
+    this.ship.canShoot = true;
+    this.tunnel.setRageCrumble(0.25);
+  }, 2666); // MATCHES rageDuration FROM audio.js
+  // START SUCTION ATTACK AFTER SEQUENCE
+  setTimeout(() => {
+    this.wormBoss.startSuctionAttack();
+  }, 2666); // MATCHES rageDuration FROM audio.js
+}
 
   //  PRIVATE — SUCTION PHYSICS
   _updateSuction(dt, ship) {
