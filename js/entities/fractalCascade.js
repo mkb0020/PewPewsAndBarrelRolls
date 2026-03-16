@@ -1,4 +1,4 @@
-// Updated 3/13/26 @ 12:30AM
+// Updated 3/15/26 @ 10:30PM
 // fractalCascade.js
 
 import { CONFIG }      from '../utils/config.js';
@@ -28,6 +28,14 @@ const TERMINAL_LINES = [
   "",
   "which one is real?",
 ];
+
+// ── GLITCH HELPERS ─────────────────────────────────────────────────────────────
+function corruptLine(text) {
+  if (Math.random() > 0.05) return text;
+  const chars = "!@#$%<>█▒░";
+  const i = Math.floor(Math.random() * text.length);
+  return text.slice(0, i) + chars[Math.floor(Math.random() * chars.length)] + text.slice(i + 1);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 export class FractalCascade {
@@ -215,6 +223,15 @@ export class FractalCascade {
       }
     }
 
+    // ── TERMINAL MICRO-GLITCH ─────────────────────────────────────────────────
+    if (!this._recompiling && Math.random() < 0.03 && this._terminalEl) {
+      const offset = (Math.random() - 0.5) * 6;
+      this._terminalEl.style.transform = `translateX(${offset}px)`;
+      setTimeout(() => {
+        this._terminalEl.style.transform = '';
+      }, 40);
+    }
+
     // ── END CHECK ─────────────────────────────────────────────────────────────
     if (this._timer >= fullDuration) {
       this._deactivate(false);
@@ -360,6 +377,11 @@ export class FractalCascade {
       this._termLines.push('> RECOMPILING PLAYER MODULE...');
       this._termLines.push('> RECOMPILE COMPLETE');
       this._renderTerminal(true); // TRUE = HIGHLIGHT RECOMPILE LINES
+      // ADD RECOMPILE FLASH
+      this._terminalEl.classList.add('recompile-flash');
+      setTimeout(() => {
+        this._terminalEl.classList.remove('recompile-flash');
+      }, 200);
     }
     this.onRecompile?.(); // SFX HOOK
   }
@@ -389,6 +411,7 @@ export class FractalCascade {
     if (this._terminalEl) return;
     const el = document.createElement('div');
     el.id    = 'fractal-terminal';
+    el.classList.add('fractal-terminal'); // ADD SCANLINE OVERLAY
     Object.assign(el.style, {
       position:      'fixed',
       top:           '80px',
@@ -424,7 +447,10 @@ export class FractalCascade {
       .map((l, i) => {
         const isRecompile = finalPass && i >= total - 3;
         const color       = isRecompile ? '#ffffff' : '#00ff44';
-        return `<div style="color:${color}">${l || '\u00A0'}</div>`;
+        const flicker     = Math.random() < 0.08;
+        const opacity     = flicker ? 0.4 : 1;
+        const display     = corruptLine(l);
+        return `<div style="color:${color};opacity:${opacity}">${display || '\u00A0'}</div>`;
       })
       .join('');
   }
