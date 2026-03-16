@@ -1,4 +1,4 @@
-// UPDATED 3/15/26 @ 3AM
+// UPDATED 3/15/26 @ 10PM
 // scenes/openingScene.js
 const TRANSMISSION_LINES = [
   'This is Deep Space Command.',
@@ -37,7 +37,6 @@ export class OpeningScene {
   }
 
   // ======================== PUBLIC API ========================
-
   /**
    * RUN FULL OPENING SEQUENCE
    * @param {boolean} skipFadeIn  
@@ -83,7 +82,6 @@ export class OpeningScene {
   }
 
   // ======================== SEQUENCE ========================
-
   async _runSequence(skipFadeIn = false) {
     // ── PHASE 1: FADE IN STARS + COCKPIT ──
     if (!skipFadeIn) {
@@ -94,14 +92,9 @@ export class OpeningScene {
     this._showTerminal();
     await this._typeAllLines();
 
-    // ── PHASE 3: HOLD ──
-    await this._wait(HOLD_AFTER_MS);
+    // ── PHASE 3-11: TRANSITION SEQUENCE ──
+    await this._runTransitionSequence();
 
-    // ── PHASE 4: FADE OUT ──
-    this._hideTerminal();
-    await this._fadeOut(FADE_DURATION_S);
-
-    // ── DONE ──
     this._stopLoop();
     this._starfield.stop();
     this._stopStatic?.();
@@ -111,48 +104,116 @@ export class OpeningScene {
     this._resolve?.();
   }
 
-  // ======================== FADE HELPERS ========================
-
-  _fadeIn(durationSec) {
-    return new Promise(resolve => {
-      const start = performance.now();
-      const tick  = (now) => {
-        const t = Math.min((now - start) / (durationSec * 1000), 1);
-        this._starfield.opacity = t;
-        if (this._cockpitImg) this._cockpitImg.style.opacity = t;
-        if (t < 1) {
-          requestAnimationFrame(tick);
-        } else {
-          resolve();
-        }
-      };
-      requestAnimationFrame(tick);
-    });
+  async _runTransitionSequence() {
+    await this._signalCorruption();
+    this._activateScanlineGlitch();
+    this._activateCockpitFlicker();
+    await this._starfieldAcceleration();
+    await this._glitchBars();
+    this._activateScreenShake();
+    await this._starfieldCollapse();
+    await this._whiteFlash();
+    this._hideCockpit();
   }
 
-  _fadeOut(durationSec) {
-    return new Promise(resolve => {
-      const canvas = document.getElementById('three-canvas');
-      if (canvas) canvas.classList.add('glitch');
-      this._starfield.speed = 15; // SPEED UP STARS FOR GLITCH EFFECT
+  async _signalCorruption() {
+    const lines = this._terminalText.querySelectorAll('.opening-line');
+    if (lines.length > 0) {
+      const lastLine = lines[lines.length - 1];
+      this._glitchText(lastLine);
+      await this._wait(800);
+    }
+  }
 
+  _activateScanlineGlitch() {
+    const glitchEl = document.getElementById('glitch-lines');
+    if (glitchEl) glitchEl.style.display = 'block';
+  }
 
-      const start = performance.now();
-      const tick  = (now) => {
-        const t = Math.min((now - start) / (durationSec * 1000), 1);
-        this._starfield.opacity = 1 - t;
-        if (this._cockpitImg) this._cockpitImg.style.opacity = 1 - t;
-        if (t < 1) {
-          requestAnimationFrame(tick);
-        } else {
-          if (this._cockpitImg) this._cockpitImg.style.opacity = 0;
-          if (canvas) canvas.classList.remove('glitch');
-          this._starfield.speed = 4; // Reset speed
-          resolve();
-        }
-      };
+  _activateCockpitFlicker() {
+    if (this._cockpitImg) this._cockpitImg.classList.add('power-flicker');
+  }
+
+  async _starfieldAcceleration() {
+    this._starfield.speed = 25;
+    await this._wait(300);
+    this._starfield.speed = 80;
+    await this._wait(500);
+  }
+
+  async _glitchBars() {
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const duration = 1000;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const elapsed = now - start;
+      if (elapsed > duration) return;
+
+      this._drawGlitchBars(ctx, canvas.width, canvas.height);
       requestAnimationFrame(tick);
-    });
+    };
+    requestAnimationFrame(tick);
+    await this._wait(duration);
+  }
+
+  _activateScreenShake() {
+    const canvas = document.getElementById('game-canvas');
+    if (canvas) canvas.classList.add('shake');
+  }
+
+  async _starfieldCollapse() {
+    this._starfield.speed = 150;
+    await this._wait(800);
+  }
+
+  async _whiteFlash() {
+    const canvas = document.getElementById('game-canvas');
+    const originalBg = canvas.style.background;
+    canvas.style.background = 'white';
+    await this._wait(80);
+    canvas.style.background = originalBg;
+  }
+
+  _hideCockpit() {
+    if (this._cockpitImg) this._cockpitImg.style.display = 'none';
+    this._hideTerminal();
+    const glitchEl = document.getElementById('glitch-lines');
+    if (glitchEl) glitchEl.style.display = 'none';
+    const canvas = document.getElementById('game-canvas');
+    if (canvas) canvas.classList.remove('shake');
+  }
+
+  _glitchText(el) {
+    const chars = "!@#$%^&*█▒░<>/\\";
+    const original = el.textContent;
+    let iterations = 0;
+    const interval = setInterval(() => {
+      el.textContent = original
+        .split("")
+        .map(c => Math.random() < 0.25 ? chars[Math.floor(Math.random() * chars.length)] : c)
+        .join("");
+      iterations++;
+      if (iterations > 10) {
+        clearInterval(interval);
+        el.textContent = original;
+      }
+    }, 40);
+  }
+
+  _drawGlitchBars(ctx, width, height) {
+    const bars = Math.floor(Math.random() * 8);
+    for (let i = 0; i < bars; i++) {
+      const y = Math.random() * height;
+      const h = Math.random() * 6 + 2;
+      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.35})`;
+      ctx.fillRect(-20, y, width + 40, h);
+    }
+  }
+
+  _wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   // ======================== TERMINAL ========================

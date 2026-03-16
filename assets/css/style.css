@@ -1,4 +1,4 @@
-/* Updated 3/12/26 @ 2 AM */
+/* Updated 3/12/26 @ 10PM*/
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -975,6 +975,51 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 @keyframes photon-low-pulse {
   from { opacity: 0.6; }
   to   { opacity: 1.0; }
+}
+
+/* ════════════════════════════ OPENING SCENE GLITCH EFFECTS ════════════════════════════ */
+
+.glitch-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.08) 0px,
+    rgba(255,255,255,0.08) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+  animation: scanlineFlicker 0.15s infinite;
+  display: none;
+}
+
+@keyframes scanlineFlicker {
+  0% { opacity: .2; transform: translateY(0px); }
+  50% { opacity: .6; transform: translateY(2px); }
+  100% { opacity: .2; transform: translateY(0px); }
+}
+
+.power-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 1 }
+  50% { opacity: .3 }
+  100% { opacity: 1 }
+}
+
+.shake {
+  animation: shake 0.15s infinite;
+}
+
+@keyframes shake {
+  0% { transform: translate(0,0) }
+  25% { transform: translate(3px,-2px) }
+  50% { transform: translate(-3px,2px) }
+  75% { transform: translate(2px,3px) }
 }
 
 /* ══════════════════════  BOOST COOLDOWN BAR  ══════════════════════ */
