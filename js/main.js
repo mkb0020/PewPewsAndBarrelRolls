@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 3:30PM
+// Updated 3/16/26 @ 2:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -54,7 +54,7 @@ const crosshair         = new Crosshair();
 const muzzleFlash       = new MuzzleFlash();
 const scoreManager      = new ScoreManager();
 const wormBoss          = new WormBoss();
-const babyWormManager   = new BabyWormManager();
+const babyWormManager   = new BabyWormManager(audio);
 const menu              = new Menu();
 const slimeAttack       = new SlimeAttack();
 const ocularPrism       = new OcularPrism();
@@ -302,26 +302,22 @@ ship.onDeathSequenceStart = () => {
   audio.playGlitchOut();
 };
 
-// EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WIRED AFTER A WORMHOLE GAME OVER
-function wireShipOnDeath() {
+function wireShipOnDeath() { // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WIRED AFTER A WORMHOLE GAME OVER
   ship.onDeath = (livesLeft) => {
     audio.stopMusic();
     const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
 
-    // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
-    if (livesLeft <= 0 && inWormBattle) {
+    if (livesLeft <= 0 && inWormBattle) { // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
       babyWormManager.clear(); // CLEAR BABY WORMS BEFORE VORTEX BEGINS SO THEY DON'T LATCH ON POST-RESET
       bossBattleScene.startWormholeGameOver(ship);
       return;
     }
 
-    // BOSS REGULAR DEATH — CLEAR BABY WORMS SO THEY DON'T PERSIST ON THE DIED SCREEN
-    if (inWormBattle) {
+    if (inWormBattle) {     // BOSS REGULAR DEATH — CLEAR BABY WORMS SO THEY DON'T PERSIST ON THE DIED SCREEN
       babyWormManager.clear();
     }
 
-    // GAMEPLAY DEATH (REGULAR OR GAME OVER) — CLEAR ALL ENEMIES AND CANCEL ANY ACTIVE ATTACKS
-    if (!inWormBattle) {
+    if (!inWormBattle) { // GAMEPLAY DEATH (REGULAR OR GAME OVER) — CLEAR ALL ENEMIES AND CANCEL ANY ACTIVE ATTACKS
       enemyManager.clear();
       slimeAttack.reset();
       audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
@@ -452,8 +448,7 @@ transitionScene.onRestart = () => {
   if (currentMode !== 'bossBattle') audio.startWaveMusic(0);
 };
 
-// ==================== WORMHOLE GAME OVER → RESTART FROM WAVE 1 ====================
-// FIRES AFTER THE VORTEX SEQUENCE COMPLETES — FULL RESET, BACK TO WAVE 1
+// ==================== WORMHOLE GAME OVER → RESTART FROM WAVE 1 - FIRES AFTER THE VORTEX SEQUENCE COMPLETES — FULL RESET, BACK TO WAVE 1 ====================
 bossBattleScene.onWormholeGameOver = () => {
   wormBoss.isActive = false;  // HIDE WORM IMMEDIATELY — WILL RE-ACTIVATE WHEN PLAYER REACHES BOSS BATTLE AGAIN
   ship.resetForNewGame();
@@ -466,7 +461,7 @@ bossBattleScene.onWormholeGameOver = () => {
   ocularPrism.active = false;
   ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
   ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
-  enemyDeathManager.clear(); // 💀
+  enemyDeathManager.clear(); 
   gameplayScene.reset();
   resetWaveBadges();          // RESET BADGES BACK TO GREYED-OUT FOR FRESH RUN
   bossBattleScene.reset(ship);
@@ -479,7 +474,7 @@ bossBattleScene.onWormholeGameOver = () => {
   cosmicPrismManager.reset();
   tesseractManager.reset();
   singularityBombManager.reset();
-  wireShipOnDeath(); // RE-WIRE — startWormholeGameOver() nulls ship.onDeath; restore it now
+  wireShipOnDeath(); // RE-WIRE — startWormholeGameOver() NULLS ship.onDeath; RESTORE NOW
 
   gameplayScene.start();
   bossBattleScene.updateHUD();
@@ -488,7 +483,6 @@ bossBattleScene.onWormholeGameOver = () => {
   audio.stop();
   audio.start();
   audio.startWaveMusic(0);
-
   // console.log('★ Wormhole game over — restarting from wave 1');
 };
 
@@ -672,7 +666,7 @@ function gameLoop() {
 
     // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
     if (ship.isBarrelRolling && !_prevBarrelRolling) {
-      const detached = babyWormManager.detachAll();
+      const detached = babyWormManager.detachAll(ship, ship.barrelRollDirection);
       if (detached > 0) audio.playImpact();
     }
     _prevBarrelRolling = ship.isBarrelRolling;

@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 10AM 
+// Updated 3/16/26 @ 2:30AM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -116,6 +116,7 @@ export class AudioManager {
         consumed:    './audio/consumed.m4a',
         warning:     './audio/warning.m4a',
         babyWorms:   './audio/babyWorms.m4a',
+        babyWormDeath:   './audio/babyWormDeath.m4a',
         ouch:        './audio/ouch.m4a',
         splat:       './audio/splat.m4a',
         telegraph:   './audio/telegraph.m4a',
@@ -494,6 +495,7 @@ export class AudioManager {
   playWormDeath3()  { this._playSfx('wormDeath3',    0.9); }
   playConsumed()    { this._playSfx('consumed',      0.9); }
   playBabyWorms()   { this._playSfx('babyWorms',     1.0); }
+  playBabyWormDeath()   { this._playSfx('babyWormDeath',     0.4); }
   playWarning()     { this._playSfx('warning',       0.8); }
   playWaveWormSfx()     { this._playSfx('waveWorms',       0.4); }
   playBossTransition1() { this._playSfx('bossTransition1', 0.9); }

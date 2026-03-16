@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 10AM
+// Updated 3/16/26 @ 2:30AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -127,8 +127,7 @@ class SuctionParticle {
     this.isDead          = false;
   }
 
-  update(dt, targetX, targetY) {
-    // VECTOR FROM PARTICLE TO WORM MOUTH
+  update(dt, targetX, targetY) {  // VECTOR FROM PARTICLE TO WORM MOUTH
     const dx   = targetX - this.x;
     const dy   = targetY - this.y;
     const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;  // GUARD: PREVENT NaN IF PARTICLE LANDS EXACTLY ON MOUTH
@@ -144,12 +143,10 @@ class SuctionParticle {
     const nx = dx / dist;
     const ny = dy / dist;
 
-    // CCW TANGENTIAL: ROTATE RADIAL 90° COUNTER-CLOCKWISE  → (-ny, nx)
-    const tx = -ny;
+    const tx = -ny; // CCW TANGENTIAL: ROTATE RADIAL 90° COUNTER-CLOCKWISE  → (-ny, nx)
     const ty =  nx;
 
-    // VORTEX ACCELERATION: RAMPS UP SMOOTHLY AS PARTICLE CLOSES IN
-    const closeness  = Math.max(0, 1 - dist / SUCTION.VORTEX_RADIUS);
+    const closeness  = Math.max(0, 1 - dist / SUCTION.VORTEX_RADIUS); // VORTEX ACCELERATION: RAMPS UP SMOOTHLY AS PARTICLE CLOSES IN
     const speedScale = 1 + Math.pow(closeness, 3) * SUCTION.VORTEX_ACCEL;  // CUBIC: RAMPS HARDER NEAR MOUTH FOR SATISFYING FINAL SLURP
 
     const vx = (tx * SUCTION.SPIN_STRENGTH + nx * SUCTION.PULL_STRENGTH) * this.speed * speedScale;
@@ -259,7 +256,7 @@ export class WormBoss {
     this.alpha        = WORM.ALPHA_START;
 
     // ATTACK ANIMATION STATE
-    this.attackTimer     = this._rollInterval();  // FIX: WORM.ATTACK_INTERVAL DOESN'T EXIST — ONLY MIN/MAX DO
+    this.attackTimer     = this._rollInterval();  // ATTACK ANIMATION STATE
     this.stunTimer       = 0;   // SINGULARITY BOMB 
     this.isAttacking     = false;
     this.attackPhase     = 'idle';
@@ -289,8 +286,7 @@ export class WormBoss {
     this.onScreenShake    = null;  // CALLBACK(strength, duration) — FIRES ON LUNGE BITE FOR IMPACT FEEDBACK
     this._introFired      = false;
 
-    // RAGE MODE
-    this.isRaging     = false;
+    this.isRaging     = false; // RAGE MODE
     this.onRageStart  = null;
     this.rageBufferTimer = 0;
 
@@ -305,12 +301,10 @@ export class WormBoss {
     this._lungeGrowlFired = false;
     this._lungeSnapFired  = false;
 
-    // BLACK HOLE ORBIT STATE — SET EACH FRAME BY singularityBomb.js WHILE ACTIVE
-    this._orbitScreenX    = null;
+    this._orbitScreenX    = null;     // BLACK HOLE ORBIT STATE — SET EACH FRAME BY singularityBomb.js WHILE ACTIVE
     this._orbitScreenY    = null;
 
-    // DEATH SEQUENCE STATE
-    this.isDying       = false;
+    this.isDying       = false; // DEATH SEQUENCE STATE
     this.dyingTimer    = 0;
     this.dyingSegIndex = 0;  // HOW MANY SEGMENTS HAVE BEEN POPPED SO FAR (TAIL→HEAD)
     this._pauseEndFired = false; // ENSURES onDeathPauseEnd FIRES EXACTLY ONCE
@@ -407,8 +401,7 @@ export class WormBoss {
     if (this.onStunned) this.onStunned(duration);
   }
 
-  // CALLED BY bossBattle.readyForBattle() WHEN THE RISER ENDS AND BOSS MUSIC STARTS
-  // STARTS THE ATTACK COUNTDOWN SO THE FIRST ATTACK NEVER FIRES DURING THE INTRO
+  // CALLED BY bossBattle.readyForBattle() WHEN THE RISER ENDS AND BOSS MUSIC STARTS - STARTS THE ATTACK COUNTDOWN SO THE FIRST ATTACK NEVER FIRES DURING THE INTRO
   enableAttacks() {
     this._attacksEnabled = true;
     this.attackTimer     = this._rollInterval();
@@ -450,7 +443,7 @@ export class WormBoss {
       if (!this.isAttacking) {
         this.enterRageMode();
       } else {
-        this.rageBufferTimer = 1; // 1 second buffer
+        this.rageBufferTimer = 1; // 1 SECOND BUFFER
       }
     }
 
@@ -583,7 +576,7 @@ export class WormBoss {
       if (this.isAttacking) {
         this.isAttacking         = false;
         this.attackPhase         = 'idle';
-        this.attackTimer         = WORM.ATTACK_INTERVAL_MIN * 0.5; // SHORT RECOVERY AFTER STUN
+        this.attackTimer         = WORM.ATTACK_INTERVAL_MIN * 0.5;
         this._babySpawnFired     = false;
         this._babySpitTimer      = 0;
         this._cellularSpawnFired = false;
@@ -621,7 +614,6 @@ export class WormBoss {
           }
 
         } else if (this.attackType === 'babyworm') {
-          // TICK SPIT WINDOW — ANIMATE MOUTH OPEN BRIEFLY WHEN WORMS ARE EXPELLED
           if (this._babySpitTimer > 0) {
             this._babySpitTimer  -= dt;
             this.attackFrameTime += dt;
@@ -655,7 +647,6 @@ export class WormBoss {
           }
 
         } else if (this.attackType === 'cellular') {
-          // ── CELLULAR AUTOMATTACK LOOP ──
           this._cellularSpitTimer += dt;
 
           // ANIMATE MOUTH OPEN DURING SPIT WINDOW
@@ -989,14 +980,12 @@ export class WormBoss {
     // BUILD POOL — HEALTH TIER GATES WHAT'S AVAILABLE
     const pool = [
       { type: 'lunge',    weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
-      { type: 'cellular', weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
+      { type: 'cellular', weight: 1.0 },  
     ];
     if (hp <= WORM.AI_TIER_BABYWORM) pool.push({ type: 'babyworm', weight: 1.0 }); // TIER 2: 80% HP
     if (hp <= WORM.AI_TIER_SUCTION)  pool.push({ type: 'suction',  weight: 1.0 }); // TIER 3: 40% HP
 
-    // WEIGHT MODIFIERS
-    if (this.isRaging) {
-      // Rage mode: prioritize lunge, suction, babyworm; disable cellular
+    if (this.isRaging) { // RAGE MODE PRIORITIZATION: LUNGE > SUCTION > BABYWORM (DISABLE CELLULAR ENTIRELY)
       const rageWeights = {
         lunge: 4.0,
         suction: 3.0,
