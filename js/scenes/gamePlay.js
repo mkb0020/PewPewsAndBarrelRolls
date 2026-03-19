@@ -12,7 +12,7 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 2 — + ZIP ZAP 
     types:      ['BASIC', 'ZIGZAG'],
-    weights:    [0.4,    0.6], //  TESTING
+    weights:    [0.1,    0.9], //  TESTING
     maxEnemies: 6,
   },
   { // WAVE 3 — + PHIL 

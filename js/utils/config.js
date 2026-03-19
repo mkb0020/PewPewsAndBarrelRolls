@@ -1,4 +1,4 @@
-// Updated 3/18/26 @ 7:30PM
+// Updated 3/19/26 @ 8am
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -474,14 +474,14 @@ export const CONFIG = {
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
-    HEALTH:            5,        // TEMPORARY FOR  TESTING
+    HEALTH:            1,        // TEMPORARY FOR  TESTING
 
     FIRST_SPAWN_DELAY_MIN: 10,   // TEMPORARY FOR  TESTING  
     FIRST_SPAWN_DELAY_MAX: 15,   // TEMPORARY FOR  TESTING  
     SPAWN_GAP_MIN:         10,   // TEMPORARY FOR  TESTING  
     SPAWN_GAP_MAX:         20,   // TEMPORARY FOR  TESTING  
 
-    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // TEMPORARY FOR  TESTING   
+    KILLS_PER_WAVE: [1, 3, 3, 3, 3], // TEMPORARY FOR  TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,

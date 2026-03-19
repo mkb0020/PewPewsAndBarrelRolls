@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 3:30PM
+// Updated 3/19/26 @ 8AM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -196,7 +196,7 @@ export class Enemy {
     }
   }
 
-  update(dt, time, curve, playerProgress) {
+  update(dt, time, curve, playerProgress, cascadeAvailable = true) {
     // ─── SPAWN VFX ───
     if (!this.spawnVFX.isDone) this.spawnVFX.update(dt);
 
@@ -328,9 +328,16 @@ export class Enemy {
       if (this.fractalAttackState === 'IDLE') {
         this.fractalTimer -= dt;
         if (this.fractalTimer <= 0) {
-          this.fractalAttackState    = 'TELEGRAPHING';
-          this.fractalTelegraphTimer = 0;
-          this.pendingFractalTelegraph = true;
+          if (cascadeAvailable) {
+            // CASCADE READY — BEGIN TELEGRAPH, HEAD SWAP + SFX WILL FIRE
+            this.fractalAttackState      = 'TELEGRAPHING';
+            this.fractalTelegraphTimer   = 0;
+            this.pendingFractalTelegraph = true;
+          } else {
+            // CASCADE STILL ON COOLDOWN — STAY IDLE, RE-ROLL TIMER, NO HEAD SWAP, NO SFX
+            const FC = CONFIG.FRACTAL_CASCADE;
+            this.fractalTimer = FC.COOLDOWN_MIN + Math.random() * (FC.COOLDOWN_MAX - FC.COOLDOWN_MIN);
+          }
         }
       } else if (this.fractalAttackState === 'TELEGRAPHING') {
         this.fractalTelegraphTimer += dt;
@@ -561,6 +568,10 @@ export class EnemyManager {
     this.onFractalTelegraph = null; // ZIP ZAP FRACTAL CASCADE — TELEGRAPH BEGIN
     this.onFractalCascade   = null; // ZIP ZAP FRACTAL CASCADE — ATTACK FIRE
 
+    // INTERNAL COOLDOWN TRACKING — SET WHEN AN ATTACK FIRES, CHECKED BEFORE ALLOWING NEXT TELEGRAPH.
+    // SELF-CONTAINED: NO EXTERNAL WIRING NEEDED. MIRRORS CONFIG.FRACTAL_CASCADE.COOLDOWN_MS.
+    this._fractalCooldownUntil = 0;
+
     //  WAVE CONTROL  
     this._allowedTypes    = null;   
     this._spawnWeights    = null;  
@@ -634,9 +645,18 @@ export class EnemyManager {
       this.nextSpawnDelay = this.randomSpawnDelay();
     }
 
+    // FRACTAL GATE — PRE-SCAN: IF ANY ZIGZAG IS ALREADY MID-TELEGRAPH, BLOCK ALL OTHERS THIS FRAME.
+    // fractalClaimed IS ALSO SET TO true AS SOON AS ONE ENEMY CLAIMS THE TELEGRAPH WITHIN THE LOOP,
+    // CLOSING THE SAME-FRAME RACE WHERE TWO ENEMIES' TIMERS EXPIRE SIMULTANEOUSLY.
+    let fractalClaimed = this.enemies.some(
+      e => e.type === 'ZIGZAG' && e.fractalAttackState === 'TELEGRAPHING'
+    );
+
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
-      enemy.update(dt, this.time, curve, playerProgress);
+      // COMPUTE ONCE PER ENEMY — PASSED INTO update() SO THE STATE MACHINE CAN GATE ITSELF
+      const cascadeAvailable = !fractalClaimed && Date.now() >= this._fractalCooldownUntil;
+      enemy.update(dt, this.time, curve, playerProgress, cascadeAvailable);
 
       if (enemy.pendingLaser) { // COLLECT ANY LASER THIS ENEMY WANTS TO FIRE THIS FRAME
         const pl = enemy.pendingLaser;
@@ -670,12 +690,16 @@ export class EnemyManager {
       }
 
       // COLLECT FRACTAL CASCADE (ZIGZAG / ZIP ZAP ONLY)
+      // pendingFractalTelegraph IS ONLY EVER SET WHEN cascadeAvailable WAS TRUE (GATED IN enemy.update)
       if (enemy.pendingFractalTelegraph) {
+        fractalClaimed = true; // BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
         this.onFractalTelegraph?.();
         enemy.pendingFractalTelegraph = false;
       }
       if (enemy.pendingFractalCascade) {
         this.onFractalCascade?.();
+        // RECORD WHEN THIS ATTACK FIRED — BLOCKS NEW TELEGRAPHS UNTIL COOLDOWN EXPIRES
+        this._fractalCooldownUntil = Date.now() + CONFIG.FRACTAL_CASCADE.COOLDOWN_MS;
         enemy.pendingFractalCascade = false;
       }
 
@@ -720,6 +744,7 @@ export class EnemyManager {
   clear() {
     this.enemies = [];
     this.lasers  = [];
+    this._fractalCooldownUntil = 0; // RESET ON WAVE CLEAR / GAME RESTART — FRESH SLATE
   }
   getCount()   { return this.enemies.length; }
 }

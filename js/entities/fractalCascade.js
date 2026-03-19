@@ -1,4 +1,4 @@
-// Updated 3/18/26 @ 7PM
+// Updated 3/19/26 @ 8AM
 // fractalCascade.js
 
 import { CONFIG }      from '../utils/config.js';
@@ -119,6 +119,9 @@ export class FractalCascade {
   }
 
   isActive() { return this.active; }
+
+  /** TRUE WHEN NOT ACTIVE AND NOT ON COOLDOWN — USE TO GATE ENEMY SFX BEFORE activate() */
+  isReady() { return !this.active && Date.now() >= this.cooldownUntil; }
 
   /** HARD STOP WITH COOLDOWN RESET - CALL ON SHIP DEATH / WAVE CLEAR / BOSS TRANSITION */
   reset() {

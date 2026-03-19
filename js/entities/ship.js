@@ -1,4 +1,4 @@
-// Updated 3/18/26 @ 7PM
+// Updated 3/19/26 @ 8AM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -257,7 +257,7 @@ export class Ship {
       if (this._boostTimer <= 0) {
         this._boostActive = false;
         this._boostTimer  = 0;
-      } else {
+      } else if (!this.suctionActive) {  // NO NEW PARTICLES WHILE SUCTION SHRINKS THE SHIP
         const [bL, bR] = this._boosterPositions();
         this._particleBoosterToggle = !this._particleBoosterToggle;
         this.particles.spawn(bL.x, bL.y, this._particleBoosterToggle ? 2 : 1);
@@ -292,7 +292,8 @@ export class Ship {
       } else {
         const rollAngle = this.barrelRollProgress * 360 * this.barrelRollDirection;
         this.rotation   = rollAngle * Math.PI / 180;
-        if (this.particles.getCount() < CONFIG.PARTICLES.MAX_COUNT * CONFIG.BARREL_ROLL.PARTICLE_SPAWN_MULTIPLIER) {
+        if (!this.suctionActive &&  // NO NEW PARTICLES WHILE SUCTION SHRINKS THE SHIP
+            this.particles.getCount() < CONFIG.PARTICLES.MAX_COUNT * CONFIG.BARREL_ROLL.PARTICLE_SPAWN_MULTIPLIER) {
           const [bL, bR] = this._boosterPositions();
           this.particles.spawn(bL.x, bL.y);
           this.particles.spawn(bR.x, bR.y);
@@ -353,7 +354,7 @@ export class Ship {
       }
     }
 
-    if (!this.isBarrelRolling) {
+    if (!this.isBarrelRolling && !this.suctionActive) {  // NO NEW PARTICLES WHILE SUCTION SHRINKS THE SHIP
       const [bL, bR] = this._boosterPositions();
       const base  = Math.floor(CONFIG.PARTICLES.SPAWN_RATE / 2);
       const extra = CONFIG.PARTICLES.SPAWN_RATE % 2;
