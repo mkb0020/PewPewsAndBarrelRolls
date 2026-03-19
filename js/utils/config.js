@@ -1,4 +1,4 @@
-// Updated 3/19/26 @ 8am
+// Updated 3/19/26 @ 10am
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -605,3 +605,67 @@ export const CONFIG = {
     SMOKE_SPEED_MAX:    80,     
   },
 };
+
+export function applyMobileScale(factor = 0.82) {
+  const C = CONFIG;
+
+  const PIXEL_KEYS = [
+    'SIZE',
+    'TENTACLE_SEGMENT_LENGTH', 'TENTACLE_BASE_WIDTH',
+    'TENTACLE_ANCHOR_RADIUS',  'TENTACLE_ANCHOR_Y_OFFSET',
+    'TENTACLE_REPEL_RADIUS',   'TENTACLE_TIP_GRAVITY',
+    'TENTACLE_TIP_REPEL_RADIUS', 'TENTACLE_TIP_BIAS',
+    'TENTACLE_ANCHOR_SWAY',
+    'ZIGZAG_AMPLITUDE',
+    'WANDER_X', 'WANDER_Y',   // COMBAT WANDER BOUNDS
+    'ROAM_X',   'ROAM_Y',     // FLIMFLAM ROAM ZONE
+    'BOB_AMPLITUDE',
+  ];
+  for (const type of Object.values(C.ENEMIES.TYPES)) {
+    for (const k of PIXEL_KEYS) {
+      if (k in type) type[k] *= factor;
+    }
+  }
+
+  // ── SHIP ──────────────────────────────────────────────────────────────────
+  C.SHIP.WIDTH  *= factor;
+  C.SHIP.HEIGHT *= factor;
+  C.PARTICLES.RADIUS           *= factor;
+  C.PARTICLES.BOOSTER_OFFSET_X *= factor;
+
+  // ── POWER-UPS ─────────────────────────────────────────────────────────────
+  C.COSMIC_PRISM.RADIUS               *= factor;
+  C.COSMIC_PRISM.COLLECT_RADIUS       *= factor;
+  C.TESSERACT_FRAGMENT.RADIUS         *= factor;
+  C.TESSERACT_FRAGMENT.COLLECT_RADIUS *= factor;
+  C.SINGULARITY_BOMB.RADIUS           *= factor;
+  C.SINGULARITY_BOMB.COLLECT_RADIUS   *= factor;
+  C.SINGULARITY_BOMB.BH_MAX_RADIUS    *= factor;
+
+  // ── BABY WORM ─────────────────────────────────────────────────────────────
+  C.BABY_WORM.HEAD_SIZE          *= factor;
+  C.BABY_WORM.LATCH_RADIUS       *= factor;
+  C.BABY_WORM.LATCH_ORBIT_DIST   *= factor;
+  C.BABY_WORM.SEGMENT_SPACING    *= factor;
+  C.BABY_WORM.TRAIL_MAX_SIZE     *= factor;
+
+  // ── WAVE WORM ─────────────────────────────────────────────────────────────
+  C.WAVE_WORM.HEAD_SIZE       *= factor;
+  C.WAVE_WORM.SEGMENT_SPACING *= factor;
+
+  // ── GOO PROJECTILE ────────────────────────────────────────────────────────
+  C.GOO_PROJECTILE.BLOB_RADIUS  *= factor;
+  C.GOO_PROJECTILE.HIT_RADIUS   *= factor;
+  C.GOO_PROJECTILE.SIZZLE_SIZE  *= factor;
+
+  // ── EXPLOSIONS ────────────────────────────────────────────────────────────
+  C.EXPLOSIONS.BAM_SIZE  *= factor;
+  C.EXPLOSIONS.BOOM_SIZE *= factor;
+
+  // ── SHIP DEATH SEQUENCE ───────────────────────────────────────────────────
+  C.SHIP_DEATH.KABAM_SIZE         *= factor;
+  C.SHIP_DEATH.PIECE_HOVER_SPREAD *= factor;
+  C.SHIP_DEATH.PIECE_SPREAD       *= factor;
+
+  // console.log(`✔ Mobile scale applied: ${factor}x`);
+}

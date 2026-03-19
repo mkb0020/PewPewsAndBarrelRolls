@@ -1,4 +1,4 @@
-// Updated 3/19/26 @ 8AM
+// Updated 3/19/26 @ 11:45am
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -644,8 +644,7 @@ export class Ship {
       this._dsPhase = 'fragments';
       this._dsKabamTimer = 0;
       this._dsKabamFrame = 0;
-      this._launchDeathFragments(); 
-      this._spawnDeathSmoke();
+      this._launchDeathFragments();
     }
 
     if (this._dsPhase === 'fragments') {
@@ -657,19 +656,6 @@ export class Ship {
         f.y       += f.vy * dt;
         f.vy      += 35 * dt; 
         f.rotation += f.rotSpeed * dt;
-      }
-
-      for (let i = this._dsSmoke.length - 1; i >= 0; i--) {
-        const s = this._dsSmoke[i];
-        s.x          += s.vx * dt;
-        s.y          += s.vy * dt;
-        s.vy         -= 18 * dt; 
-        s.frameTimer += dt;
-        if (s.frameTimer >= 1 / CFG.SMOKE_FPS) {
-          s.frameTimer = 0;
-          s.frame++;
-        }
-        if (s.frame >= CFG.SMOKE_FRAMES) this._dsSmoke.splice(i, 1);
       }
 
       if (this._dsKabamFrame >= CFG.KABAM_FRAMES) {
@@ -752,7 +738,6 @@ export class Ship {
     }
 
     if (this._dsPhase === 'fragments') {
-      this._drawDeathSmoke(ctx);
       this._drawDeathFragments(ctx, false);
       this._drawKabam(ctx);
     }

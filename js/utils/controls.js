@@ -1,7 +1,7 @@
 // controls.js
-// Updated 3/6/26 @ 12:00AM
+// Updated 3/19/26 @ 10am
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
-import { CONFIG } from './config.js';
+import { CONFIG, applyMobileScale } from './config.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // AUTO-DETECT AS INITIAL DEFAULT — OVERRIDDEN BY setMobileMode() AFTER DEVICE SELECT
@@ -26,6 +26,7 @@ export let analogInput = { x: 0, y: 0 };
 // ======================= DEVICE MODE =======================
 export function setMobileMode(val) {
   isMobile = val;
+  if (val) applyMobileScale(0.82);  // SCALE DOWN ALL VISUAL PIXEL CONSTANTS FOR MOBILE
   console.log(`✔ Device mode set: ${val ? 'MOBILE' : 'DESKTOP'}`);
 }
 
