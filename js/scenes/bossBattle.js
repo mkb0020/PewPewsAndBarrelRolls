@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 7PM
+// Updated 3/18/26 @ 7:30PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -280,6 +280,33 @@ export class BossBattleScene {
     wormBoss.onLungeGrowl = () => audio.playWormGrowl();  // REAR-BACK TELEGRAPH
     wormBoss.onLungeSnap  = () => audio.playWormSnap();   // BITE LANDS
 
+    wormBoss.onLungeBite = (hx, hy, biteRadius) => {  // DAMAGE CHECK — FIRES AT PEAK LUNGE REACH
+      const ship = this.ship;
+      if (!ship?.isAlive || ship.isInvincible) return;
+      const dx = ship.x - hx;
+      const dy = ship.y - hy;
+      if (dx * dx + dy * dy < biteRadius * biteRadius) {
+        ship.takeDamage(CONFIG.WORM_BOSS.LUNGE_DAMAGE);
+        audio.playOuch();
+      }
+    };
+
+    wormBoss.onScreenShake = (strength, duration) => {  // CANVAS SHAKE — FIRES ON LUNGE BITE IMPACT
+      const canvas = document.getElementById('game-canvas');
+      if (!canvas) return;
+      const start = performance.now();
+      const tick = (now) => {
+        const elapsed = (now - start) / 1000;
+        if (elapsed >= duration) { canvas.style.transform = ''; return; }
+        const decay = 1 - elapsed / duration;
+        const dx = (Math.random() - 0.5) * strength * decay;
+        const dy = (Math.random() - 0.5) * strength * decay;
+        canvas.style.transform = `translate(${dx}px, ${dy}px)`;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
     wormBoss.onRageStart = () => {
       this.enterRageSequence();
     };
@@ -352,6 +379,7 @@ export class BossBattleScene {
 
 
     wormBoss.onDeath = () => {
+      SessionRecorder.log('boss_battle_end'); 
       this.updateHUD(); // SNAP BAR TO 0
       transitionScene.showBossDefeated();
 
@@ -380,9 +408,6 @@ enterRageSequence() {
   this.audio.startRageMusic();
   this.ship.setRageSuction(true);
   this.tunnel.setRageCrumble(1.0);
-  setTimeout(() => {
-    this.tunnel.setBossFlash(1.0);
-  }, 2500); // SLIGHTLY LESS THAN rageDuration FROM audio.js
   setTimeout(() => {
     this.tunnel.setRageBlackout(1.0);
     this.wormBoss.freeze = false;

@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 7PM
+// Updated 3/18/26 @ 7PM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -431,7 +431,7 @@ export class Ship {
     const stx = -sny;
     const sty =  snx;
 
-    const rawForce = SC.BASE_FORCE * rageMul * Math.pow(closeness, SC.RAMP_EXPONENT * rageMul);
+    const rawForce = SC.BASE_FORCE * rageMul * Math.pow(closeness, SC.RAMP_EXPONENT); // NOTE: RAMP_EXPONENT IS NOT MULTIPLIED — RAGE SHOULD BE UNIFORMLY STRONGER, NOT JUST CLOSE-RANGE
     const forceMag = Math.min(rawForce, SC.MAX_FORCE * rageMul);
 
     const rolling  = this.isBarrelRolling;

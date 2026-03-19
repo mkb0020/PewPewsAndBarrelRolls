@@ -8,6 +8,7 @@ const TRANSMISSION_LINES = [
   'We\'ve lost all communication...',
 ];
 
+
 // TYPING SPEED - AND PAUSE BETWEEN LINES
 const CHAR_DELAY_MS   = 42;
 const LINE_PAUSE_MS   = 520;

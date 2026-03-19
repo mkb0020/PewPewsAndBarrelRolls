@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 7PM
+// Updated 3/18/26 @ 7PM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -40,8 +40,10 @@ const WORM = {
   ATTACK_FPS:         7,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, // POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
-  AI_TIER_BABYWORM: 0.80, // BELOW THIS HEALTH → BABY WORM ATTACK UNLOCKED
-  AI_TIER_SUCTION:   0.40, // BELOW THIS HEALTH → SUCTION ATTACK UNLOCKED
+  AI_TIER_BABYWORM: 0.80, // BELOW THIS HEALTH → BABY WORM ATTACK UNLOCKED (80% HP)
+  AI_TIER_SUCTION:   0.50, // BELOW THIS HEALTH → SUCTION ATTACK UNLOCKED (50% HP)
+  AI_TIER_DISABLE_CELLULAR: 0.40, // BELOW THIS HEALTH → CELLULAR ATTACK DISABLED (40% HP — PRE-RAGE WIND-DOWN)
+  AI_TIER_DISABLE_ALL:      0.33, // BELOW THIS HEALTH → ALL NEW ATTACKS GATED OFF (33% HP — CLEARS FIELD BEFORE RAGE)
   AI_DIST_CLOSE:    180,   // PIXELS — BELOW THIS: STRONGLY PREFER LUNGE
   AI_DIST_FAR:      400,   // PIXELS — ABOVE THIS: PREFER RANGED ATTACKS
   CELLULAR_SPIT_DURATION: 1, // SECONDS MOUTH STAYS OPEN AFTER SEED FIRES
@@ -289,6 +291,8 @@ export class WormBoss {
     this.isRaging     = false; // RAGE MODE
     this.onRageStart  = null;
     this.rageBufferTimer = 0;
+    this._rageWaitingForHit = false; // TRUE WHEN HP HITS 30% MID-ATTACK — ARMS HIT-TRIGGER
+    this._rageOnNextHit     = false; // TRUE WHEN ATTACK ENDS AND RAGE IS STILL PENDING — FIRES ON FIRST PLAYER HIT
     this.freeze = false;
 
     // LUNGE ATTACK STATE
@@ -381,6 +385,8 @@ export class WormBoss {
 
     this.isRaging = false;
     this.rageBufferTimer = 0;
+    this._rageWaitingForHit = false;
+    this._rageOnNextHit     = false;
 
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { // RESET ALL SEGMENTS
       const seg    = this.segments[i];
@@ -467,20 +473,19 @@ export class WormBoss {
     this.baseScale = WORM.FOCAL_LENGTH / (WORM.FOCAL_LENGTH + this.z);
 
     // ============= RAGE MODE TRIGGER =============
-    if (!this.isRaging && this.health / this.maxHealth <= WORM.RAGE_TRIGGER_THRESHOLD) {
+    if (!this.isRaging && !this._rageWaitingForHit && this.health / this.maxHealth <= WORM.RAGE_TRIGGER_THRESHOLD) {
       if (!this.isAttacking) {
-        this.enterRageMode();
+        this.enterRageMode();                 // IDLE — FIRE IMMEDIATELY
       } else {
-        this.rageBufferTimer = 1; // 1 SECOND BUFFER
+        this._rageWaitingForHit = true;       // MID-ATTACK — WAIT FOR ATTACK TO END, THEN ARM HIT-TRIGGER
       }
     }
 
-    // ============= RAGE BUFFER TIMER =============
-    if (this.rageBufferTimer > 0) {
-      this.rageBufferTimer -= dt;
-      if (this.rageBufferTimer <= 0 && !this.isAttacking) {
-        this.enterRageMode();
-      }
+    // ============= RAGE ON NEXT HIT — ARMS ONCE PENDING ATTACK COMPLETES =============
+    // WHEN THE ATTACK THAT WAS RUNNING AT 30% HP FINALLY ENDS, WE SWITCH FROM
+    // "WAITING FOR ATTACK" → "WAITING FOR PLAYER HIT" — checkProjectileHit() PULLS THE TRIGGER
+    if (this._rageWaitingForHit && !this.isAttacking && !this._rageOnNextHit) {
+      this._rageOnNextHit = true;
     }
 
     // ============= DYING SEQUENCE — HEAD STAYS PUT, RIPPLE WAVE DOWN THE BODY =============
@@ -769,7 +774,7 @@ export class WormBoss {
     } else {
       if (this._attacksEnabled) { // WAIT FOR RISER TO FINISH BEFORE FIRST ATTACK
         this.attackTimer -= dt;
-        if (this.attackTimer <= 0 && this.alpha > 0.8) {
+        if (this.attackTimer <= 0 && this.alpha > 0.8 && this.getHealthPercent() > WORM.AI_TIER_DISABLE_ALL) { // GATE: NO NEW ATTACKS BELOW 33% HP — CLEARS FIELD BEFORE RAGE
           this._attackIndex++;
           this.attackType      = this._pickNextAttack();  // AI — HEALTH-TIERED, DISTANCE-WEIGHTED SELECTION
           this._lastAttackType = this.attackType;
@@ -969,6 +974,14 @@ export class WormBoss {
         ws.health    -= damage;
 
         this.health  -= damage;
+
+        // RAGE ON NEXT HIT — FIRES WHEN: 30% HP WAS HIT MID-ATTACK → ATTACK ENDED → PLAYER LANDED THIS SHOT
+        if (this._rageOnNextHit && !this.isRaging) {
+          this._rageOnNextHit     = false;
+          this._rageWaitingForHit = false;
+          this.enterRageMode();
+        }
+
         const killed  = this.health <= 0;
         if (killed) {
           this.isDying      = true;
@@ -1008,10 +1021,10 @@ export class WormBoss {
     // BUILD POOL — HEALTH TIER GATES WHAT'S AVAILABLE
     const pool = [
       { type: 'lunge',    weight: 1.0 },  // TIER 1: ALWAYS AVAILABLE
-      { type: 'cellular', weight: 1.0 },  
     ];
-    if (hp <= WORM.AI_TIER_BABYWORM) pool.push({ type: 'babyworm', weight: 1.0 }); // TIER 2: 80% HP
-    if (hp <= WORM.AI_TIER_SUCTION)  pool.push({ type: 'suction',  weight: 1.0 }); // TIER 3: 40% HP
+    if (hp > WORM.AI_TIER_DISABLE_CELLULAR) pool.push({ type: 'cellular', weight: 1.0 }); // DISABLED BELOW 40% HP
+    if (hp <= WORM.AI_TIER_BABYWORM) pool.push({ type: 'babyworm', weight: 1.0 }); // TIER 2: UNLOCKED BELOW 80% HP
+    if (hp <= WORM.AI_TIER_SUCTION)  pool.push({ type: 'suction',  weight: 1.0 }); // TIER 3: UNLOCKED BELOW 50% HP
 
     if (this.isRaging) { // RAGE MODE PRIORITIZATION: LUNGE > SUCTION > BABYWORM (DISABLE CELLULAR ENTIRELY)
       const rageWeights = {

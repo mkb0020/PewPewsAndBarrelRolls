@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 10:30PM
+// Updated 3/18/26 @ 7PM
 // fractalCascade.js
 
 import { CONFIG }      from '../utils/config.js';
@@ -440,7 +440,6 @@ export class FractalCascade {
    * @param {boolean} finalPass — colors the last 3 lines as recompile success
    */
   _renderTerminal(finalPass) {
-    console.count('_renderTerminal'); 
     if (!this._terminalEl) return;
     const total = this._termLines.length;
     this._terminalEl.innerHTML = this._termLines
