@@ -1,4 +1,4 @@
-// Updated 3/19/26 @ 8AM
+// Updated 3/19/26 @ 8:30am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -196,7 +196,7 @@ export class Enemy {
     }
   }
 
-  update(dt, time, curve, playerProgress, cascadeAvailable = true) {
+  update(dt, time, curve, playerProgress, cascadeAvailable = true, prismAvailable = true, slimeAvailable = true) {
     // ─── SPAWN VFX ───
     if (!this.spawnVFX.isDone) this.spawnVFX.update(dt);
 
@@ -291,9 +291,16 @@ export class Enemy {
       this.ffAttackTimer -= dt;
 
       if (this.ffAttackState === 'IDLE' && this.ffAttackTimer <= 0) {
-        this.ffAttackState   = 'TELEGRAPHING';
-        this.ffAttackTimer   = cfg.PRISM_TELEGRAPH;
-        this.pendingTelegraph = true;
+        if (prismAvailable) {
+          // PRISM READY — BEGIN TELEGRAPH, HEAD SWAP + SFX WILL FIRE
+          this.ffAttackState    = 'TELEGRAPHING';
+          this.ffAttackTimer    = cfg.PRISM_TELEGRAPH;
+          this.pendingTelegraph = true;
+        } else {
+          // PRISM STILL ACTIVE OR ON COOLDOWN — RE-ROLL TIMER, NO HEAD SWAP, NO SFX
+          this.ffAttackTimer = cfg.PRISM_COOLDOWN_MIN
+                             + Math.random() * (cfg.PRISM_COOLDOWN_MAX - cfg.PRISM_COOLDOWN_MIN);
+        }
       } else if (this.ffAttackState === 'TELEGRAPHING' && this.ffAttackTimer <= 0) {
         this.pendingOcularPrism = true;
         this.ffAttackState      = 'IDLE';
@@ -315,10 +322,16 @@ export class Enemy {
       } else {
         this.slimeTimer -= dt;
         if (this.slimeTimer <= 0) {
-          this.slimeTimer            = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
-          this.slimeTelegraphActive  = true;
-          this.slimeTelegraphTimer   = CONFIG.SLIME_ATTACK.TELEGRAPH_DURATION;
-          this.pendingSlimeTelegraph = true;
+          if (slimeAvailable) {
+            // SLIME READY — BEGIN TELEGRAPH, GREEN GLOW + SFX WILL FIRE
+            this.slimeTimer            = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
+            this.slimeTelegraphActive  = true;
+            this.slimeTelegraphTimer   = CONFIG.SLIME_ATTACK.TELEGRAPH_DURATION;
+            this.pendingSlimeTelegraph = true;
+          } else {
+            // SLIME STILL ACTIVE OR ON COOLDOWN — RE-ROLL TIMER, NO GLOW, NO SFX
+            this.slimeTimer = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
+          }
         }
       }
     }
@@ -525,7 +538,7 @@ export class Enemy {
       ctx.globalAlpha = barAlpha;
       ctx.fillStyle   = 'rgba(0,0,0,0.65)';
       ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
-      const barColor  = pct > 0.55 ? this.glowColor : (pct > 0.28 ? '#ffcc00' : '#ff2200');
+      const barColor  = pct > 0.28 ? '#ff3333' : '#ff2200';
       ctx.fillStyle   = barColor;
       ctx.fillRect(barX, barY, barW * pct, barH);
       ctx.restore();
@@ -571,6 +584,8 @@ export class EnemyManager {
     // INTERNAL COOLDOWN TRACKING — SET WHEN AN ATTACK FIRES, CHECKED BEFORE ALLOWING NEXT TELEGRAPH.
     // SELF-CONTAINED: NO EXTERNAL WIRING NEEDED. MIRRORS CONFIG.FRACTAL_CASCADE.COOLDOWN_MS.
     this._fractalCooldownUntil = 0;
+    this._prismCooldownUntil   = 0;  // BLOCKS NEW FLIMFLAM TELEGRAPHS WHILE PRISM IS ACTIVE
+    this._slimeCooldownUntil   = 0;  // BLOCKS NEW TANK TELEGRAPHS WHILE SLIME ATTACK IS ACTIVE
 
     //  WAVE CONTROL  
     this._allowedTypes    = null;   
@@ -645,18 +660,26 @@ export class EnemyManager {
       this.nextSpawnDelay = this.randomSpawnDelay();
     }
 
-    // FRACTAL GATE — PRE-SCAN: IF ANY ZIGZAG IS ALREADY MID-TELEGRAPH, BLOCK ALL OTHERS THIS FRAME.
-    // fractalClaimed IS ALSO SET TO true AS SOON AS ONE ENEMY CLAIMS THE TELEGRAPH WITHIN THE LOOP,
-    // CLOSING THE SAME-FRAME RACE WHERE TWO ENEMIES' TIMERS EXPIRE SIMULTANEOUSLY.
+    // ATTACK GATE — PRE-SCAN: IF ANY ENEMY IS ALREADY MID-TELEGRAPH FOR A GLOBAL ATTACK,
+    // BLOCK ALL OTHERS THIS FRAME. *Claimed FLAGS ARE ALSO SET WITHIN THE LOOP TO CLOSE
+    // SAME-FRAME RACES WHERE TWO ENEMIES' TIMERS EXPIRE SIMULTANEOUSLY.
     let fractalClaimed = this.enemies.some(
       e => e.type === 'ZIGZAG' && e.fractalAttackState === 'TELEGRAPHING'
+    );
+    let prismClaimed = this.enemies.some(
+      e => e.type === 'FLIMFLAM' && e.ffAttackState === 'TELEGRAPHING'
+    );
+    let slimeClaimed = this.enemies.some(
+      e => e.type === 'TANK' && e.slimeTelegraphActive
     );
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
       // COMPUTE ONCE PER ENEMY — PASSED INTO update() SO THE STATE MACHINE CAN GATE ITSELF
       const cascadeAvailable = !fractalClaimed && Date.now() >= this._fractalCooldownUntil;
-      enemy.update(dt, this.time, curve, playerProgress, cascadeAvailable);
+      const prismAvailable   = !prismClaimed   && Date.now() >= this._prismCooldownUntil;
+      const slimeAvailable   = !slimeClaimed   && Date.now() >= this._slimeCooldownUntil;
+      enemy.update(dt, this.time, curve, playerProgress, cascadeAvailable, prismAvailable, slimeAvailable);
 
       if (enemy.pendingLaser) { // COLLECT ANY LASER THIS ENEMY WANTS TO FIRE THIS FRAME
         const pl = enemy.pendingLaser;
@@ -668,17 +691,21 @@ export class EnemyManager {
       // FLIM FLAM OCULAR PRISM — FIRE WHEN TELEGRAPHING COMPLETES
       if (enemy.pendingOcularPrism) {
         this.onOcularPrism?.(window.innerWidth, window.innerHeight);
+        // BLOCK NEW PRISM TELEGRAPHS UNTIL THE PRISM'S ACTIVE DURATION EXPIRES
+        this._prismCooldownUntil = Date.now() + (CONFIG.OCULAR_PRISM.DURATION + CONFIG.OCULAR_PRISM.FADE_DURATION) * 1000;
         enemy.pendingOcularPrism = false;
       }
 
       // FLIM FLAM TELEGRAPH — FIRES WHEN TELEGRAPHING BEGINS
       if (enemy.pendingTelegraph) {
+        prismClaimed = true; // BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
         this.onTelegraph?.();
         enemy.pendingTelegraph = false;
       }
 
       // SLIME TELEGRAPH START — FIRES WHEN GREEN GLOW BEGINS
       if (enemy.pendingSlimeTelegraph) {
+        slimeClaimed = true; // BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
         this.onSlimeTelegraph?.();
         enemy.pendingSlimeTelegraph = false;
       }
@@ -686,6 +713,8 @@ export class EnemyManager {
       // COLLECT SLIME ATTACK (TANK / GLORK ONLY)
       if (enemy.pendingSlime) {
         this.onSlimeAttack?.(enemy.x, enemy.y);
+        // BLOCK NEW SLIME TELEGRAPHS UNTIL WARP + RECOVER + COOLDOWN EXPIRES (7.2 + 1.8 + 5.0s)
+        this._slimeCooldownUntil = Date.now() + 14000;
         enemy.pendingSlime = false;
       }
 
@@ -745,6 +774,8 @@ export class EnemyManager {
     this.enemies = [];
     this.lasers  = [];
     this._fractalCooldownUntil = 0; // RESET ON WAVE CLEAR / GAME RESTART — FRESH SLATE
+    this._prismCooldownUntil   = 0;
+    this._slimeCooldownUntil   = 0;
   }
   getCount()   { return this.enemies.length; }
 }
