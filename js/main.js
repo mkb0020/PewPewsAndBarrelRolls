@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 7PM
+// Updated 3/20/26 @ 3:30AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -31,6 +31,8 @@ import { SingularityBombManager }                    from './entities/singularit
 import { EnemyDeathManager }                         from './visuals/enemyDeath.js';
 import { FractalCascade }                            from './entities/fractalCascade.js';
 import { DevTools, SessionRecorder }                  from './temp/devTools.js';
+import { BotPlayer }                                 from './temp/botPlayer.js';  // FIX 1: was '../temp/botPlayer.js'
+
 
 // console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 // ==================== CANVAS ====================
@@ -74,6 +76,10 @@ const gameplayScene     = new GameplayScene({
   singularityBombManager,
 });
 const transitionScene   = new TransitionScene();
+const bot = new BotPlayer();
+bot.onRequestContinue = () => transitionScene._handleContinue();
+bot.onRequestRestart  = () => transitionScene._handleRestart();
+window.bot = bot;
 const starfield         = new StarfieldScene(tunnel.renderer);
 const openingScene      = new OpeningScene(starfield, audio);
 const bossTransmission  = new BossTransmission();
@@ -514,6 +520,7 @@ transitionScene.onContinue = () => {
 };
 
 transitionScene.onGameOver = () => audio.playGameOver1();
+
 // ==================== GAME STATE ====================
 let isPaused           = false;
 let isMuted            = false;
@@ -523,6 +530,7 @@ let _bossTracerTarget    = 0;
 let _screenShakeTimer    = 0;   // CANVAS-LEVEL SCREEN SHAKE — COUNTS DOWN FROM DURATION
 let _screenShakeStrength = 0;   // PEAK PIXEL DISPLACEMENT
 let _screenShakeDuration = 1;   // TOTAL SHAKE DURATION (STORED FOR DECAY CALCULATION)
+let _totalElapsed        = 0;   // RUNNING GAME-TIME CLOCK IN SECONDS — USED BY BOT FOR RUN TIMING
 
 let currentMode       = 'bossBattle'; 
 let currentEnemyCount = 5;
@@ -608,6 +616,8 @@ function gameLoop() {
   lastTime  = now;
 
   if (!isPaused && !transitionScene.isBlocking) {
+    _totalElapsed += dt; // ADVANCE GAME-TIME CLOCK — USED BY BOT FOR PER-RUN SURVIVAL TIMING
+
     const enemies = enemyManager.getEnemies(); // SINGLE CALL PER FRAME — REUSED THROUGHOUT LOOP
 
     //  THREE.JS BACKGROUND 
@@ -633,6 +643,41 @@ function gameLoop() {
       ship.setSlimeHeaviness(slimeAttack.getSlimeIntensity());
 
       ship.update(dt);
+
+      // ==================== BOT UPDATE ====================
+      if (bot.enabled) {
+        const intent = bot.update(dt, {
+          ship: {
+            x:            ship.x,
+            y:            ship.y,
+            hp:           ship.hp,
+            maxHP:        ship.maxHP,
+            lives:        ship.lives,
+            isAlive:      ship.isAlive,
+            isInvincible: ship.isInvincible,
+            suctionScale: ship.suctionScale,
+          },
+          enemies:         enemies,
+          enemyLasers:     enemyManager.lasers,
+          gooProjectiles:  waveWormManager.worm?.goos ?? [],
+          waveWorm:        waveWormManager.worm,
+          wormBoss:        wormBoss,
+          babyWorms:       babyWormManager.worms,
+          pickups: {
+            prisms:           cosmicPrismManager.prisms,
+            tesseracts:       tesseractManager.fragments,
+            singularityItems: singularityBombManager._items,
+          },
+          score:        scoreManager.score,
+          elapsed:      _totalElapsed,
+          inBossBattle: wormBoss.isActive && !wormBoss.isDead,
+        });
+        if (intent) {
+          crosshair.setMouseInput(intent.aimNX, intent.aimNY);
+          if (intent.shouldShoot) doShoot();
+        }
+      }
+
       crosshair.update(shipOffset.x, shipOffset.y, dt, enemies);
       enemyManager.update(dt, ship.x, ship.y);
       gameplayScene.update(dt, ship.x, ship.y);
@@ -756,20 +801,20 @@ function gameLoop() {
   ctx.translate(shakeX, shakeY);
  
   projectileManager.draw(ctx); // ALWAYS DRAW — EXPLOSIONS MUST SURVIVE INTO CLOSING SCENE
-    if (!closingScene.isActive()) {
-      wormBoss.draw(ctx);
-      bossBattleScene.drawCellular(ctx); // 🧬 CELLULAR INFECTION — ABOVE WORM, BELOW EVERYTHING ELSE
-      babyWormManager.draw(ctx);
-      crosshair.draw(ctx);
-      gameplayScene.drawBehindEnemies(ctx);
-      singularityBombManager.drawBlackHole(ctx); // 💣 BLACK HOLE BEHIND ENEMIES
-      enemyManager.draw(ctx);
-      enemyDeathManager.draw(ctx); // 💀 MELT EFFECTS — DRAWN OVER ENEMY LAYER
-      gameplayScene.drawAboveEnemies(ctx);
-      if (gameplayScene.isActive()) cosmicPrismManager.draw(ctx); // 🔮 PRISMS ABOVE ENEMIES, BELOW SHIP
-      if (gameplayScene.isActive()) tesseractManager.drawItems(ctx); // ◈ TESSERACT FRAGMENTS
-      if (gameplayScene.isActive()) singularityBombManager.drawItems(ctx); // 💣 SPINOR COLLECTIBLES
-      if (gameplayScene.isActive()) fractalCascade.drawEchoes(ctx, ship.x, ship.y); // 🌀 FRACTAL ECHOES BEHIND SHIP
+  if (!closingScene.isActive()) {
+    wormBoss.draw(ctx);
+    bossBattleScene.drawCellular(ctx); // 🧬 CELLULAR INFECTION — ABOVE WORM, BELOW EVERYTHING ELSE
+    babyWormManager.draw(ctx);
+    crosshair.draw(ctx);
+    gameplayScene.drawBehindEnemies(ctx);
+    singularityBombManager.drawBlackHole(ctx); // 💣 BLACK HOLE BEHIND ENEMIES
+    enemyManager.draw(ctx);
+    enemyDeathManager.draw(ctx); // 💀 MELT EFFECTS — DRAWN OVER ENEMY LAYER
+    gameplayScene.drawAboveEnemies(ctx);
+    if (gameplayScene.isActive()) cosmicPrismManager.draw(ctx); // 🔮 PRISMS ABOVE ENEMIES, BELOW SHIP
+    if (gameplayScene.isActive()) tesseractManager.drawItems(ctx); // ◈ TESSERACT FRAGMENTS
+    if (gameplayScene.isActive()) singularityBombManager.drawItems(ctx); // 💣 SPINOR COLLECTIBLES
+    if (gameplayScene.isActive()) fractalCascade.drawEchoes(ctx, ship.x, ship.y); // 🌀 FRACTAL ECHOES BEHIND SHIP
   }
 
   slimeAttack.drawScreenSlime(ctx);
@@ -947,6 +992,7 @@ async function startup() {
 
   // DEV TOOLS (SLIDERS + SESSION RECORDER)
   DevTools.init();
+  bot.mountToDevPanel(DevTools.panel);
 
   // REVEAL HUD AND MOBILE CONTROLS AFTER OPENING SCENE
   document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden'));
@@ -973,7 +1019,6 @@ async function startup() {
     () => ship.activateBoost(),   // X BUTTON — BOOST (was: playPowerUp1 placeholder)
     () => deployBomb()            // Y BUTTON — SINGULARITY BOMB
   );
-
 
   lastTime = performance.now();
   // console.log('=== Starting game loop ===');

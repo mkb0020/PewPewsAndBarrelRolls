@@ -1,4 +1,4 @@
-/* Updated 3/15/26 @ 10:30PM*/
+/* Updated 3/19/26 @ 10am*/
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -2381,4 +2381,49 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   50% { filter: hue-rotate(180deg) contrast(0.5) saturate(0.5); }
   75% { filter: hue-rotate(270deg) contrast(2) saturate(1.5); }
   100% { filter: hue-rotate(360deg) contrast(1) saturate(1); }
+}
+
+
+/* ── PORTRAIT MODE OVERLAY ──────────────────────────────────────────────── */
+#portrait-overlay {
+  display: none;          
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #0a0015;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.portrait-icon {
+  font-size: clamp(52px, 18vw, 88px);
+  color: #a66bff;
+  line-height: 1;
+  animation: portrait-nudge 2.2s ease-in-out infinite;
+  display: inline-block;
+}
+
+.portrait-message {
+  font-family: 'Orbitron', 'Courier New', monospace;
+  font-size: clamp(13px, 4vw, 19px);
+  color: #c8a0ff;
+  text-align: center;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.7;
+  margin: 0;
+  text-shadow: 0 0 18px rgba(166, 107, 255, 0.6);
+}
+
+@keyframes portrait-nudge {
+  0% { transform: rotate(0deg);   }
+  100%       { transform: rotate(360deg); }
+}
+
+@media (orientation: portrait) and (max-width: 1024px) {
+  #portrait-overlay { display: flex; }
 }
