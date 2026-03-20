@@ -1,4 +1,4 @@
-// UPDATED 3/19/26 @ 3:30am
+// Updated 3/20/26 @ 7AM
 // JS/TEMP/BOTPLAYER.JS
 //
 // ─── PLAYTEST BOT — AUTOMATED PLAYER FOR BALANCE SIMULATION ─────────────────
@@ -48,7 +48,7 @@
 //     IF (INTENT) {
 //       CROSSHAIR.SETMOUSEINPUT(INTENT.AIMNX, INTENT.AIMNY);
 //       // IN YOUR SHOOT BLOCK, REPLACE THE FIRE CONDITION WITH:
-//       // IF (INTENT.SHOOTSHOOT && SHIP.CANSHOOT && SHIP.ISALIVE) { ...FIRE... }
+//       // IF (INTENT.SHOULDSHOOT && SHIP.CANSHOOT && SHIP.ISALIVE) { ...FIRE... }
 //     }
 //   }
 //
@@ -70,9 +70,9 @@ const BOT = {
   EVADE_LOOKAHEAD_S:        0.20,   // SECONDS AHEAD TO PREDICT THREAT POSITIONS
   LASER_THREAT_RADIUS:      95,     // px — EVASION BUBBLE AROUND INCOMING LASER
   GOO_THREAT_RADIUS:        105,    // px — GOO ARC PREDICTION BUBBLE
-  ENEMY_BODY_RADIUS:        115,    // px — 
+  ENEMY_BODY_RADIUS:        115,    // px
   BABY_WORM_RADIUS:          60,    // px
-  BOSS_SUCTION_THRESHOLD:    0.72,  // SUCTION SCALE - BELOW THIS EVADETHE WORM HEAD
+  BOSS_SUCTION_THRESHOLD:    0.72,  // SUCTION SCALE — BELOW THIS EVADE THE WORM HEAD
   EDGE_MARGIN:               70,    // px — KEEP SHIP INSIDE THIS BORDER
   EVADE_RANGE:              225,    // px — HOW FAR TO PROJECT THE EVADE TARGET
 
@@ -87,8 +87,8 @@ const BOT = {
 
   MOVE_DEADZONE:             26,    // px — STOP STEERING IF ALREADY THIS CLOSE TO TARGET
 
-  DEFAULT_BATCH:             30,    //DEFAULT NUMBER OF RUNS PER BATCH
-  RESET_DELAY_S:             1.3,   // SECONFS TO PAUSE AFTER DEATH BEFORE TRIGGERING RESTART
+  DEFAULT_BATCH:             30,    // DEFAULT NUMBER OF RUNS PER BATCH
+  RESET_DELAY_S:             1.3,   // SECONDS TO PAUSE AFTER DEATH BEFORE TRIGGERING RESTART
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,15 +97,20 @@ export class BotPlayer {
   constructor() {
     this.enabled = false;
 
-    
-    this._batchActive  = false;
-    this._batchTarget  = BOT.DEFAULT_BATCH;
-    this._runStats     = [];
-    this._currentRun   = null;
-    this._resetPending = false;
-    this._resetTimer   = 0;
+    // WAVE-ONLY MODE — STOP EACH RUN CLEANLY WHEN THE BOSS BATTLE BEGINS
+    // RATHER THAN WAITING FOR THE BOT TO DIE IN THE BOSS. THIS KEEPS
+    // WAVE 1–5 BALANCE DATA CLEAN AND UNCONTAMINATED BY BOSS MECHANICS.
+    this.waveOnlyMode = true;
 
-    // CALLBACKS — wire in main.js 
+    this._batchActive    = false;
+    this._batchTarget    = BOT.DEFAULT_BATCH;
+    this._runStats       = [];
+    this._currentRun     = null;
+    this._resetPending   = false;
+    this._resetTimer     = 0;
+    this._prevInBoss     = false;  // EDGE-DETECT: FALSE → TRUE TRANSITION
+
+    // CALLBACKS — wire in main.js
     this.onRequestContinue = null;  // () => transitionScene._handleContinue()
     this.onRequestRestart  = null;  // () => transitionScene._handleRestart()
 
@@ -134,8 +139,8 @@ export class BotPlayer {
 
   /**
    * Start an automated batch of N full games.
-   * Bot auto-continues/restarts after each death until N runs complete,
-   * then stops. Results available via getResults() / exportResults().
+   * In waveOnlyMode (default) each run ends when the boss battle begins —
+   * giving clean wave 1–5 data without boss deaths contaminating the stats.
    * @param {number} size
    */
   startBatch(size = BOT.DEFAULT_BATCH) {
@@ -144,8 +149,10 @@ export class BotPlayer {
     this._runStats     = [];
     this._currentRun   = null;
     this._resetPending = false;
+    this._prevInBoss   = false;
     this.enable();
-    console.log(`🤖 Batch started — ${size} runs queued`);
+    const modeLabel = this.waveOnlyMode ? 'waves 1–5 only' : 'full game';
+    console.log(`🤖 Batch started — ${size} runs queued (${modeLabel})`);
   }
 
   stopBatch() {
@@ -164,7 +171,7 @@ export class BotPlayer {
    * Returns control intent for main.js to act on; null if bot is idle / waiting.
    *
    * @param {number} dt
-   * @param {object} snap  
+   * @param {object} snap
    * @returns {{ aimNX: number, aimNY: number, shouldShoot: boolean } | null}
    */
   update(dt, snap) {
@@ -182,8 +189,25 @@ export class BotPlayer {
       this._currentRun = { startTime: elapsed, startLives: ship.lives, startScore: score };
     }
 
+    // ── WAVE-ONLY MODE: TREAT BOSS BATTLE ENTRY AS A CLEAN RUN END ───────
+    // DETECTS THE FRAME inBossBattle FIRST BECOMES TRUE — THAT'S THE END OF WAVE 5.
+    // WE FINISH THE RUN IMMEDIATELY AND RESTART WITHOUT WAITING FOR THE BOT TO DIE.
+    if (this.waveOnlyMode && inBossBattle && !this._prevInBoss && this._currentRun && !this._resetPending) {
+      this._finishRun(elapsed, score, ship.lives, true /* bossReached */);
+      if (this._batchActive) {
+        if (this._runStats.length >= this._batchTarget) {
+          this.stopBatch();
+        } else {
+          this._resetPending = true;
+          this._resetTimer   = BOT.RESET_DELAY_S;
+        }
+      }
+    }
+    this._prevInBoss = inBossBattle;
+
+    // ── NORMAL DEATH HANDLING (FIRES WHEN BOT DIES DURING WAVES 1–5) ─────
     if (this._currentRun && !ship.isAlive) {
-      this._finishRun(elapsed, score, ship.lives);
+      this._finishRun(elapsed, score, ship.lives, false);
       if (this._batchActive) {
         if (this._runStats.length >= this._batchTarget) {
           this.stopBatch();
@@ -202,14 +226,26 @@ export class BotPlayer {
         this._resetTimer -= dt;
         if (this._resetTimer <= 0) {
           this._resetPending = false;
+          this._prevInBoss   = false;  // RESET EDGE DETECTOR FOR NEXT RUN
           const last = this._runStats[this._runStats.length - 1];
-          if ((last?.livesAtEnd ?? 0) > 0) {
-            this.onRequestContinue?.();
-          } else {
+          // ALWAYS FULL RESTART — WAVE-ONLY RUNS END AT BOSS ENTRY (LIVES STILL FULL)
+          // SO onRequestContinue WOULD DROP BACK INTO THE BOSS, NOT WAVE 1.
+          // onRequestRestart ALWAYS RESETS BACK TO WAVE 1 WHICH IS WHAT WE WANT.
+          if (this.waveOnlyMode || (last?.livesAtEnd ?? 0) <= 0) {
             this.onRequestRestart?.();
+          } else {
+            this.onRequestContinue?.();
           }
         }
       }
+      this._updateOverlay();
+      return null;
+    }
+
+    // ── IN BOSS BATTLE AND NOT WAVE-ONLY — JUST DRIFT TO CENTER AND SHOOT ─
+    // (BASIC PLACEHOLDER; NOT USED IN WAVEONLY MODE BY DEFAULT)
+    if (inBossBattle && this.waveOnlyMode) {
+      this._clearKeys();
       this._updateOverlay();
       return null;
     }
@@ -273,7 +309,7 @@ export class BotPlayer {
         fx: l.x + l.dirX * l.speed * la,
         fy: l.y + l.dirY * l.speed * la,
         r:  BOT.LASER_THREAT_RADIUS,
-        w:  1.3,   //SLIGHTLY HIGHER WEIGHT — FAST AND ACCURATE
+        w:  1.3,   // SLIGHTLY HIGHER WEIGHT — FAST AND ACCURATE
       });
     }
 
@@ -422,7 +458,7 @@ export class BotPlayer {
       if (score > bestScore) { bestScore = score; best = { x: e.x, y: e.y }; }
     }
 
-    // HIGH-PRIORITY
+    // HIGH-PRIORITY: WAVE WORM
     if (waveWorm && !waveWorm.isDead && waveWorm.scale >= BOT.MIN_WORM_SCALE_TO_SHOOT) {
       const dx    = waveWorm.x - ship.x;
       const dy    = waveWorm.y - ship.y;
@@ -436,7 +472,13 @@ export class BotPlayer {
 
   // ── RUN TRACKING ──────────────────────────────────────────────────────────
 
-  _finishRun(elapsed, score, livesAtEnd) {
+  /**
+   * @param {number}  elapsed
+   * @param {number}  score
+   * @param {number}  livesAtEnd
+   * @param {boolean} bossReached  TRUE WHEN RUN ENDED BY REACHING BOSS (WAVE-ONLY MODE SUCCESS)
+   */
+  _finishRun(elapsed, score, livesAtEnd, bossReached = false) {
     if (!this._currentRun) return;
     const r = this._currentRun;
     this._runStats.push({
@@ -445,6 +487,7 @@ export class BotPlayer {
       score:        Math.max(0, score - r.startScore),
       livesLost:    Math.max(0, r.startLives - livesAtEnd),
       livesAtEnd,
+      bossReached,   // USEFUL FOR FILTERING: TRUE = MADE IT THROUGH ALL 5 WAVES
     });
     this._currentRun = null;
   }
@@ -492,18 +535,21 @@ export class BotPlayer {
       return;
     }
 
+    const modeTag  = this.waveOnlyMode ? ' [waves 1–5]' : '';
     const bStr     = this._batchActive ? ` / ${this._batchTarget}` : '';
     const avgSurv  = (this._runStats.reduce((s, r) => s + r.survivalTime, 0) / n).toFixed(1);
     const avgScore = Math.round(this._runStats.reduce((s, r) => s + r.score, 0) / n);
     const avgLost  = (this._runStats.reduce((s, r) => s + r.livesLost, 0) / n).toFixed(1);
+    const bossHits = this._runStats.filter(r => r.bossReached).length;
     const last     = this._runStats[n - 1];
     const inProg   = this._currentRun ? `\nRun ${n + 1} — in progress` : '';
 
     this._statsEl.textContent =
-      `Runs:      ${n}${bStr}\n` +
+      `Runs:      ${n}${bStr}${modeTag}\n` +
       `Avg surv:  ${avgSurv}s\n` +
       `Avg score: ${avgScore}\n` +
       `Avg lives: ${avgLost} lost\n` +
+      `Boss reach:${bossHits} / ${n}\n` +
       `──────────────────\n` +
       `Last: ${last.survivalTime}s  ${last.score}pts\n` +
       `      ×${last.livesLost} lives lost` +
@@ -558,8 +604,29 @@ export class BotPlayer {
     batchLabel.textContent = 'Batch size:';
     batchLabel.style.cssText = 'font-size:11px; opacity:0.7;';
 
+    // WAVE-ONLY MODE TOGGLE
+    const waveOnlyRow = document.createElement('div');
+    waveOnlyRow.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:11px;';
+    const waveOnlyCheck = document.createElement('input');
+    waveOnlyCheck.type    = 'checkbox';
+    waveOnlyCheck.checked = this.waveOnlyMode;
+    waveOnlyCheck.style.cursor = 'pointer';
+    waveOnlyCheck.addEventListener('change', () => {
+      this.waveOnlyMode = waveOnlyCheck.checked;
+    });
+    const waveOnlyLabel = document.createElement('label');
+    waveOnlyLabel.textContent = 'Waves 1–5 only';
+    waveOnlyLabel.style.cssText = 'cursor:pointer; opacity:0.85;';
+    waveOnlyLabel.addEventListener('click', () => {
+      waveOnlyCheck.checked = !waveOnlyCheck.checked;
+      this.waveOnlyMode = waveOnlyCheck.checked;
+    });
+    waveOnlyRow.appendChild(waveOnlyCheck);
+    waveOnlyRow.appendChild(waveOnlyLabel);
+
     row.appendChild(batchLabel);
     row.appendChild(batchSizeInput);
+    row.appendChild(waveOnlyRow);
     row.appendChild(makeBtn('Toggle Bot  [F8]',       () => this.toggle()));
     row.appendChild(makeBtn('▶ Start Batch',           () => this.startBatch(parseInt(batchSizeInput.value, 10) || BOT.DEFAULT_BATCH)));
     row.appendChild(makeBtn('⏹ Stop Batch',            () => this.stopBatch()));
@@ -581,22 +648,34 @@ export class BotPlayer {
     const avgSurv  = +(this._runStats.reduce((s, r) => s + r.survivalTime, 0) / n).toFixed(1);
     const avgScore = Math.round(this._runStats.reduce((s, r) => s + r.score, 0) / n);
     const avgLives = +(this._runStats.reduce((s, r) => s + r.livesLost, 0) / n).toFixed(2);
+    const bossReachRate = +(this._runStats.filter(r => r.bossReached).length / n * 100).toFixed(1);
+
     const payload  = {
       meta: {
-        generatedAt: new Date().toISOString(),
-        totalRuns:   n,
+        generatedAt:   new Date().toISOString(),
+        totalRuns:     n,
+        waveOnlyMode:  this.waveOnlyMode,
       },
       summary: {
-        avgSurvivalTime: avgSurv,
+        avgSurvivalTime:  avgSurv,
         avgScore,
-        avgLivesLost: avgLives,
+        avgLivesLost:     avgLives,
+        bossReachRatePct: bossReachRate,  // % OF RUNS THAT MADE IT THROUGH ALL 5 WAVES
       },
       runs: this._runStats,
     };
+
+    // FIX: ANCHOR MUST BE APPENDED TO DOM BEFORE .click() OR SOME BROWSERS SILENTLY IGNORE IT
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    a.href     = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+    a.href     = url;
     a.download = `bot_results_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);  // FREE MEMORY AFTER CLICK
+
     console.log(`🤖 Exported ${n} runs.`);
   }
 }

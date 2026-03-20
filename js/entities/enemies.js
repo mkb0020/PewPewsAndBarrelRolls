@@ -1,4 +1,4 @@
-// Updated 3/19/26 @ 8:30am
+// Updated 3/20/26@ 9am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -216,7 +216,7 @@ export class Enemy {
 
     //  PHASE: APPROACH
     if (this.phase === 'APPROACH') {
-      const moveSpeed = 0.05;
+      const moveSpeed = 0.09; // TESTING TO SEE IF THIS ALLOWS ENEMIES A CHANCE TO FIRE SPECIAL ATTACKS
       this.curveProgress -= moveSpeed * dt;
       if (this.curveProgress < 0) this.curveProgress += 1;
       if (this.curveProgress > 1) this.curveProgress -= 1;
@@ -637,7 +637,7 @@ export class EnemyManager {
     if (this.enemies.length >= maxCount) return;
 
     const playerProgress = (this.tunnel.getTime() * CONFIG.TUNNEL.SPEED) % 1;
-    const spawnProgress  = (playerProgress + 0.3) % 1;
+    const spawnProgress  = (playerProgress + 0.2) % 1; // SPAWN OFFSET - TESTING REDUCED VALUE FROM 0.3 TO SEE IF THAT HELPS GIVE ENEMIES A CHANCE TO FIRE SPECIAL ATTACKS BEFORE PLAYER CAN REACH THEM
     const x    = window.innerWidth  / 2;
     const y    = window.innerHeight / 2;
     const type = this.getRandomEnemyType();
