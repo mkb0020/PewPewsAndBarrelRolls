@@ -43,7 +43,7 @@ const WORM = {
   AI_TIER_BABYWORM: 0.80, // BELOW THIS HEALTH → BABY WORM ATTACK UNLOCKED (80% HP)
   AI_TIER_SUCTION:   0.50, // BELOW THIS HEALTH → SUCTION ATTACK UNLOCKED (50% HP)
   AI_TIER_DISABLE_CELLULAR: 0.40, // BELOW THIS HEALTH → CELLULAR ATTACK DISABLED (40% HP — PRE-RAGE WIND-DOWN)
-  AI_TIER_DISABLE_ALL:      0.33, // BELOW THIS HEALTH → ALL NEW ATTACKS GATED OFF (33% HP — CLEARS FIELD BEFORE RAGE)
+  AI_TIER_DISABLE_ALL:      0.31, // BELOW THIS HEALTH → ALL NEW ATTACKS GATED OFF (33% HP — CLEARS FIELD BEFORE RAGE)
   AI_DIST_CLOSE:    180,   // PIXELS — BELOW THIS: STRONGLY PREFER LUNGE
   AI_DIST_FAR:      400,   // PIXELS — ABOVE THIS: PREFER RANGED ATTACKS
   CELLULAR_SPIT_DURATION: 1, // SECONDS MOUTH STAYS OPEN AFTER SEED FIRES
@@ -69,7 +69,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           300, // NOT FINALIZED
+  HEALTH:           50, // NOT FINALIZED
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
   RAGE_TRIGGER_THRESHOLD: 0.3,
@@ -774,7 +774,9 @@ export class WormBoss {
     } else {
       if (this._attacksEnabled) { // WAIT FOR RISER TO FINISH BEFORE FIRST ATTACK
         this.attackTimer -= dt;
-        if (this.attackTimer <= 0 && this.alpha > 0.8 && this.getHealthPercent() > WORM.AI_TIER_DISABLE_ALL) { // GATE: NO NEW ATTACKS BELOW 33% HP — CLEARS FIELD BEFORE RAGE
+
+        if (this.attackTimer <= 0 && this.alpha > 0.8 && (this.isRaging || this.getHealthPercent() > WORM.AI_TIER_DISABLE_ALL)) {
+          
           this._attackIndex++;
           this.attackType      = this._pickNextAttack();  // AI — HEALTH-TIERED, DISTANCE-WEIGHTED SELECTION
           this._lastAttackType = this.attackType;

@@ -308,7 +308,7 @@ export class AudioManager {
     this._stopMusicSource();  // STOPS BOSS MUSIC
     this.playWormRage();
     //const rageDuration = this._sfxBuffers['wormRage'] ? this._sfxBuffers['wormRage'].duration : 2.0; // COMMENTED OUT TO TEST HARD CODING DURATION AFTER BOSS MUSIC STOPS  AND BEFORE RAGE MUSIC STARTS
-    const rageDuration = 2.56; // @ 90 BPM + 4:4 TIME SIGNATURE, 1 BEAT = 0.667s - TESTING SKIPPING 4 BEATS HERE
+    const rageDuration = 5.23; // @ 90 BPM + 4:4 TIME SIGNATURE, 1 BEAT = 0.667s - TESTING SKIPPING 4 BEATS HERE
     this._rageTimeout = setTimeout(() => {
       this.playWormRageDrop(); 
       this._musicGain.gain.setValueAtTime(this.RAGE_MUSIC_VOLUME, this.context.currentTime); // START RAGE MUSIC LOOP

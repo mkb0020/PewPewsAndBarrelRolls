@@ -1,3 +1,4 @@
+// Updated 3/22/26 @ 11PM
 // visuals/starfieldScene.js
 import * as THREE from 'three';
 
@@ -29,7 +30,16 @@ export class StarfieldScene {
 
     // GRADIENT BACKGROUND
     this._baseHue      = 260;
-    this._hueShiftSpeed = 0.015; 
+    this._hueShiftSpeed = 0.015;
+
+    // GRADIENT TEXTURE CACHE — REUSED ACROSS FRAMES; ONLY REDRAWN WHEN INTEGER HUE CHANGES
+    // ELIMINATES per-frame document.createElement('canvas') + new THREE.CanvasTexture() allocation
+    this._gradCanvas  = document.createElement('canvas');
+    this._gradCanvas.width  = 1;
+    this._gradCanvas.height = 512;
+    this._gradCtx     = this._gradCanvas.getContext('2d');
+    this._gradTexture = null;   // CREATED ONCE ON FIRST USE, REUSED VIA needsUpdate
+    this._lastHue     = null;   // INTEGER-BUCKETED HUE KEY — ONLY REDRAW WHEN THIS CHANGES
 
     // STARS
     this._starCount    = DEFAULT_STAR_COUNT;
@@ -78,9 +88,15 @@ export class StarfieldScene {
 
     this._starMaterial.opacity = this.opacity; // SYNC MATERIAL OPACITY WITH MASTER FADE
 
-    this._baseHue += this._hueShiftSpeed; 
+    this._baseHue += this._hueShiftSpeed;
 
-    this._scene.background = this._makeGradientTexture(this._baseHue);
+    // ONLY REBUILD THE GRADIENT WHEN THE INTEGER-ROUNDED HUE CHANGES (~1x EVERY 15 FRAMES)
+    // PREVIOUSLY: new HTMLCanvasElement + new CanvasTexture every single frame (60x/s GC pressure)
+    const hueKey = Math.round(this._baseHue);
+    if (hueKey !== this._lastHue) {
+      this._lastHue = hueKey;
+      this._scene.background = this._makeGradientTexture(this._baseHue);
+    }
 
     const positions = this._starGeometry.attributes.position.array;
     const camZ      = this._camera.position.z;
@@ -125,6 +141,7 @@ export class StarfieldScene {
     window.removeEventListener('resize', this._onResize);
     this._starGeometry.dispose();
     this._starMaterial.dispose();
+    this._gradTexture?.dispose();
     if (this._stars) this._scene.remove(this._stars);
   }
 
@@ -151,17 +168,26 @@ export class StarfieldScene {
     this._scene.add(this._stars);
   }
 
+  /**
+   * REUSES A SINGLE CACHED CANVAS + CanvasTexture ACROSS ALL CALLS.
+   * MARKS needsUpdate = true SO THREE.JS UPLOADS THE NEW PIXELS WITHOUT ALLOCATING A NEW TEXTURE.
+   */
   _makeGradientTexture(hue) {
-    const canvas = document.createElement('canvas');
-    canvas.width  = 1;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
+    const ctx = this._gradCtx;
     const g   = ctx.createLinearGradient(0, 0, 0, 512);
     g.addColorStop(0,   `hsl(${hue},     100%, 0%)`);
     g.addColorStop(0.5, `hsl(${hue + 3}, 100%, 0.7%)`);
     g.addColorStop(1,   `hsl(${hue + 5}, 100%, 1.5%)`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 1, 512);
-    return new THREE.CanvasTexture(canvas);
+
+    if (!this._gradTexture) {
+      // FIRST CALL ONLY — CREATE THE TEXTURE OBJECT ONCE
+      this._gradTexture = new THREE.CanvasTexture(this._gradCanvas);
+    } else {
+      // SUBSEQUENT CALLS — REUSE THE SAME OBJECT, JUST FLAG FOR GPU UPLOAD
+      this._gradTexture.needsUpdate = true;
+    }
+    return this._gradTexture;
   }
 }

@@ -413,11 +413,11 @@ enterRageSequence() {
     this.wormBoss.freeze = false;
     this.ship.canShoot = true;
     this.tunnel.setRageCrumble(0.25);
-  }, 2666); // MATCHES rageDuration FROM audio.js
+  }, 5336); // MATCHES rageDuration FROM audio.js
   // START SUCTION ATTACK AFTER SEQUENCE
   setTimeout(() => {
     this.wormBoss.startSuctionAttack();
-  }, 2666); // MATCHES rageDuration FROM audio.js
+  }, 5400); // MATCHES rageDuration FROM audio.js
 }
 
   //  PRIVATE — SUCTION PHYSICS
