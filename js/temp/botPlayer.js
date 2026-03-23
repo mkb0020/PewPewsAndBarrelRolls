@@ -1,4 +1,4 @@
-// Updated 3/20/26 @ 7AM
+// Updated 3/22/26 @ 10PM
 // JS/TEMP/BOTPLAYER.JS
 //
 // ─── PLAYTEST BOT — AUTOMATED PLAYER FOR BALANCE SIMULATION ─────────────────
@@ -88,7 +88,8 @@ const BOT = {
   MOVE_DEADZONE:             26,    // px — STOP STEERING IF ALREADY THIS CLOSE TO TARGET
 
   DEFAULT_BATCH:             30,    // DEFAULT NUMBER OF RUNS PER BATCH
-  RESET_DELAY_S:             1.3,   // SECONDS TO PAUSE AFTER DEATH BEFORE TRIGGERING RESTART
+  RESET_DELAY_S:             4.5,   // MUST OUTLAST FULL SHIP DEATH ANIMATION (freeze 0.2s + glitch 2.4s + kabam 0.8s = ~3.4s)
+                                    // FIRING TOO EARLY MEANS _handleContinue() SEES isDeadScreen=false AND SILENTLY BAILS
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -164,6 +165,31 @@ export class BotPlayer {
     );
   }
 
+  /**
+   * Called every frame from main.js OUTSIDE the transitionScene.isBlocking gate.
+   * Ticks the reset-pending countdown so it always drains even while the died/
+   * gameover overlay is visible (at which point bot.update() stops being called).
+   * @param {number} dt
+   */
+  tickBlocked(dt) {
+    if (!this.enabled || !this._resetPending) return;
+    this._resetTimer -= dt;
+    if (this._resetTimer <= 0) {
+      this._resetPending = false;
+      this._prevInBoss   = false;  // RESET EDGE DETECTOR FOR NEXT RUN
+      const last = this._runStats[this._runStats.length - 1];
+      // RESTART RULES:
+      //   bossReached=true  → ALWAYS RESTART (RUN ENDED CLEANLY AT BOSS ENTRY; RESET TO WAVE 1)
+      //   livesAtEnd=0      → ALWAYS RESTART (GAME OVER)
+      //   died w/ lives left → CONTINUE (RESPAWN ON CURRENT WAVE, USE REMAINING LIVES)
+      if ((last?.bossReached) || (last?.livesAtEnd ?? 0) <= 0) {
+        this.onRequestRestart?.();
+      } else {
+        this.onRequestContinue?.();
+      }
+    }
+  }
+
   // ── MAIN FRAME UPDATE ──────────────────────────────────────────────────────
 
   /**
@@ -194,27 +220,32 @@ export class BotPlayer {
     // WE FINISH THE RUN IMMEDIATELY AND RESTART WITHOUT WAITING FOR THE BOT TO DIE.
     if (this.waveOnlyMode && inBossBattle && !this._prevInBoss && this._currentRun && !this._resetPending) {
       this._finishRun(elapsed, score, ship.lives, true /* bossReached */);
-      if (this._batchActive) {
-        if (this._runStats.length >= this._batchTarget) {
-          this.stopBatch();
-        } else {
-          this._resetPending = true;
-          this._resetTimer   = BOT.RESET_DELAY_S;
-        }
+      if (this._batchActive && this._runStats.length >= this._batchTarget) {
+        this.stopBatch();
+      } else {
+        this._resetPending = true;
+        this._resetTimer   = BOT.RESET_DELAY_S;
       }
     }
     this._prevInBoss = inBossBattle;
 
     // ── NORMAL DEATH HANDLING (FIRES WHEN BOT DIES DURING WAVES 1–5) ─────
+    // A "run" spans all 3 lives — only finalize it when lives hit 0 (game over).
+    // Mid-run deaths just set _resetPending so tickBlocked() fires onRequestContinue.
     if (this._currentRun && !ship.isAlive) {
-      this._finishRun(elapsed, score, ship.lives, false);
-      if (this._batchActive) {
-        if (this._runStats.length >= this._batchTarget) {
+      if (ship.lives <= 0) {
+        // GAME OVER — THIS RUN IS TRULY DONE
+        this._finishRun(elapsed, score, ship.lives, false);
+        if (this._batchActive && this._runStats.length >= this._batchTarget) {
           this.stopBatch();
         } else {
           this._resetPending = true;
           this._resetTimer   = BOT.RESET_DELAY_S;
         }
+      } else {
+        // MID-RUN DEATH — CONTINUE WITH REMAINING LIVES, DON'T END THE RUN
+        this._resetPending = true;
+        this._resetTimer   = BOT.RESET_DELAY_S;
       }
     }
 
@@ -228,10 +259,11 @@ export class BotPlayer {
           this._resetPending = false;
           this._prevInBoss   = false;  // RESET EDGE DETECTOR FOR NEXT RUN
           const last = this._runStats[this._runStats.length - 1];
-          // ALWAYS FULL RESTART — WAVE-ONLY RUNS END AT BOSS ENTRY (LIVES STILL FULL)
-          // SO onRequestContinue WOULD DROP BACK INTO THE BOSS, NOT WAVE 1.
-          // onRequestRestart ALWAYS RESETS BACK TO WAVE 1 WHICH IS WHAT WE WANT.
-          if (this.waveOnlyMode || (last?.livesAtEnd ?? 0) <= 0) {
+          // RESTART RULES:
+          //   bossReached=true  → ALWAYS RESTART (RUN ENDED CLEANLY AT BOSS ENTRY; RESET TO WAVE 1)
+          //   livesAtEnd=0      → ALWAYS RESTART (GAME OVER)
+          //   died w/ lives left → CONTINUE (RESPAWN ON CURRENT WAVE, USE REMAINING LIVES)
+          if ((last?.bossReached) || (last?.livesAtEnd ?? 0) <= 0) {
             this.onRequestRestart?.();
           } else {
             this.onRequestContinue?.();

@@ -1,4 +1,4 @@
-// Updated 3/20/26 @ 3:30AM
+// Updated 3/22/26 @ 10pm
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -791,6 +791,7 @@ function gameLoop() {
   if (!closingScene.shouldHideTunnel) tunnel.render();
 
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
+  if (bot.enabled) bot.tickBlocked(dt); // MUST RUN EVEN WHEN isBlocking — DRAINS RESET TIMER WHILE DIED SCREEN IS UP
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
   // CANVAS SCREEN SHAKE — TRANSLATES THE ENTIRE DRAW PASS FOR IMPACT FEEL
@@ -960,7 +961,8 @@ function gameLoop() {
     ocularPrism.render(ctx);
   }
 
-  closingScene.renderFlash(ctx);
+  if (closingScene.isActive()) closingScene.renderWhale(ctx); 
+closingScene.renderFlash(ctx);
   ctx.restore(); // END SCREEN SHAKE TRANSLATE
 }
 

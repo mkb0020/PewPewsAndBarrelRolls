@@ -1,4 +1,4 @@
-// Updated 3/20/26 @ 9am
+// Updated 3/22/26 @ 10pm
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -118,7 +118,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 7, //  TESTING
+        HEALTH: 10, //  TESTING
         SCORE: 10,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
@@ -136,7 +136,7 @@ export const CONFIG = {
         SPEED: 120,
         COLOR: '#FF0000',
         GLOW_COLOR: '#b444a3',
-        HEALTH: 7,
+        HEALTH: 11,
         SCORE: 20,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 11,
@@ -154,7 +154,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10,
+        HEALTH: 14,
         SCORE: 50,
 
         SPRITE_FRAMES: 6,      
@@ -197,7 +197,7 @@ export const CONFIG = {
         SPEED: 90,
         COLOR: '#FF0000',
         GLOW_COLOR: '#7097eb',
-        HEALTH: 7,
+        HEALTH: 12,
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 70,
         ZIGZAG_FREQUENCY: 2,
@@ -242,7 +242,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#6786c9',
-        HEALTH: 10,
+        HEALTH: 15,
         SCORE: 50,
 
         SPRITE_FRAMES: 6,  
@@ -367,7 +367,7 @@ export const CONFIG = {
     BOLT_LENGTH:    22,     
     BOLT_WIDTH:     3,
     GLOW_BLUR:      12,
-    FIRST_SHOT_MIN: 1.0,
+    FIRST_SHOT_MIN: 0.5,
     FIRST_SHOT_MAX: 1.5,
   },
 
@@ -481,7 +481,7 @@ export const CONFIG = {
     SPAWN_GAP_MIN:         10,   // TEMPORARY FOR  TESTING  
     SPAWN_GAP_MAX:         20,   // TEMPORARY FOR  TESTING  
 
-    KILLS_PER_WAVE: [3, 4, 4, 5, 5], // TEMPORARY FOR  TESTING   
+    KILLS_PER_WAVE: [3, 3, 3, 3, 3], // TEMPORARY FOR  TESTING   
     
     GOO_FIRST_SHOT_MIN: 1.5,
     GOO_FIRST_SHOT_MAX: 1.7,
@@ -537,7 +537,7 @@ export const CONFIG = {
   },
 
   CELLULAR_ATTACK: {
-    CELL_SIZE_DESKTOP:      15,    
+    CELL_SIZE_DESKTOP:     12,    
     CELL_SIZE_MOBILE:       8,    
     GRID_COVERAGE_X:       0.7,  
     GRID_COVERAGE_Y:       0.8,  
@@ -551,12 +551,12 @@ export const CONFIG = {
     BREAK_AGE:             9,     //  SHOOTABLE BREAK NODE
     DOOM_AGE:              16,    // RED — HARDENED, STILL SHOOTABLE, FASTER PULSE
 
-    BREAK_NODES_TO_WIN:    15,    // BREAK NODES PLAYER MUST DESTROY TO WIN - VALUE NOT FINALIZED - TESTING STILL NEEDED
+    BREAK_NODES_TO_WIN:    10,    // BREAK NODES PLAYER MUST DESTROY TO WIN - VALUE NOT FINALIZED - TESTING STILL NEEDED
     SEED_RADIUS_CELLS:     6,     // RADIUS OF EACH SEED CLUSTER (CELLS)
     SEED_CLUSTER_COUNT:    5,     // NUMBER OF CLUSTERS SPRAYED FROM WORM MOUTH
     SEED_SPREAD_CELLS:     15,     // SCATTER RADIUS AROUND MOUTH (CELLS)
 
-    ATTACK_DURATION:       7,    
+    ATTACK_DURATION:       5,    
     SUCCESS_FADE_DURATION: 1,
     COLLAPSE_BURST_COUNT:  75,
     SUCCESS_BURST_COUNT:   120,   
@@ -572,10 +572,10 @@ export const CONFIG = {
     DISTORT_ACCEL_MULT:    0.75,  // MOVEMENT SLOWDOWN 
     DISTORT_DAMP_MULT:     0.90,  //  VELOCITY DRAG 
 
-    GLOW_HARMLESS:         0, // WAS 8 - TESTING TO SEE IF THIS HELPS PERFORMANCE
-    GLOW_DAMAGING:         0, // WAS 12 - TESTING TO SEE IF THIS HELPS PERFORMANCE
-    GLOW_BREAK:            0, // WAS 15 - TESTING TO SEE IF THIS HELPS PERFORMANCE
-    GLOW_DOOM:             0, // WAS 18 - TESTING TO SEE IF THIS HELPS PERFORMANCE
+    GLOW_HARMLESS:         5,
+    GLOW_DAMAGING:         9, 
+    GLOW_BREAK:            13, 
+    GLOW_DOOM:            15, 
     BREAK_PULSE_HZ:        1.2,
     DOOM_PULSE_HZ:         2.2,
   },

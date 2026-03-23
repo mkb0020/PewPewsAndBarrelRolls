@@ -1,4 +1,4 @@
-// Updated 3/15/26 @ 2am
+// Updated 3/22/26 @ 10om
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -33,7 +33,10 @@ const MANIFEST = {
   kabam:      { path: 'kabam.png'      },               // 5 FRAMES — SHIP EXPLOSION
   shipPieces: { path: 'shipPieces.png' },               // 3 FRAMES — L WING / BODY / R WING
   smoke:      { path: 'smoke.png'      },               // 9 FRAMES — SMOKE BLOBS
-};
+
+  spaceWhale:  { path: 'spaceWhale.png'      }, // 12 FRAMES
+  whaleTail:   { path: 'whaleTail.png'      }, // 1 FRAME
+  };
 
 
 export const ENEMY_SPRITE = {
