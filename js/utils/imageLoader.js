@@ -1,4 +1,4 @@
-// Updated 3/22/26 @ 10om
+// Updated 3/24/26 @ 2AM
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -6,6 +6,7 @@ const MANIFEST = {
 
   ship:         { path: 'spaceship.png' },
   worm:         { path: 'worm.png' }, // NOW 14 FRAMES
+  wormRage:     { path: 'wormRage.png' },      // INSIDE-OUT RAGE SPRITE — SAME FRAME ORDER, COLORED AS INTERNALS
   babyWorm:     { path: 'babyWorm.png' },
   phil:         { path: 'phil.png' },         // 11 FRAMES — JELLYFISH (FAST TYPE)
   glipGlop:     { path: 'glipGlop.png' },     // 11 FRAMES — JELLYFISH (BASIC TYPE)
