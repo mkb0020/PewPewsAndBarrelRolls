@@ -1,4 +1,4 @@
-// Updated 3/18/26 @ 7:30PM
+// Updated 3/24/26 @2AM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -402,22 +402,26 @@ enterRageSequence() {
   this.rageStarted = true;
   this.tunnel.setBossFlash(1.0);
   this.wormBoss.forceNeutralHead();
+  this.wormBoss.startRageTransform();  // RAGE HEAD PEEKS OUT DURING FREEZE; BODY CRAWLS OUT AFTER
   this.ship.canShoot = false;
   this.wormBoss.freeze = true;
   this.wormBoss.isRaging = true;
   this.audio.startRageMusic();
   this.ship.setRageSuction(true);
   this.tunnel.setRageCrumble(1.0);
+
+  // BAR 1 END (2.667s = 1 bar @ 90BPM) — FREEZE LIFTS, TRANSFORMATION CRAWL BEGINS
   setTimeout(() => {
     this.tunnel.setRageBlackout(1.0);
     this.wormBoss.freeze = false;
     this.ship.canShoot = true;
     this.tunnel.setRageCrumble(0.25);
-  }, 5336); // MATCHES rageDuration FROM audio.js
-  // START SUCTION ATTACK AFTER SEQUENCE
+  }, 2667);
+
+  // BAR 4 / THE DROP (10.667s = 4 bars @ 90BPM) — TRANSFORMATION COMPLETE, SUCTION ATTACK FIRES
   setTimeout(() => {
     this.wormBoss.startSuctionAttack();
-  }, 5400); // MATCHES rageDuration FROM audio.js
+  }, 10667);
 }
 
   //  PRIVATE — SUCTION PHYSICS
