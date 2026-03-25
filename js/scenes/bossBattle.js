@@ -1,4 +1,4 @@
-// Updated 3/24/26 @2AM
+// Updated 3/25/26 @1PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -232,8 +232,7 @@ export class BossBattleScene {
     ship._consumedDeathFired = false;
     ship.suctionScale        = Math.max(ship.suctionScale, 0.7); // ENSURE VISIBLE PULL-IN
 
-    // WHEN CONSUMED ANIMATION COMPLETES → LAUNCH VORTEX
-    ship.onConsumedComplete = () => {
+    ship.onConsumedComplete = () => { // WHEN CONSUMED ANIMATION COMPLETES → LAUNCH VORTEX
       ship.onConsumedComplete  = null;
       this.wormBoss.isActive   = false;  // SHIP IS IN THE MOUTH — WORM GONE BEFORE VORTEX BEGINS
       import('../visuals/wormholeVortex.js').then(({ WormholeVortex }) => {
@@ -323,13 +322,11 @@ export class BossBattleScene {
       babyWormManager.triggerSlimeSplat(w, h);
     };
 
-    // CELLULAR AUTOMATTACK — WORM SPITS THE SEED; INFECTION BEGINS
-    wormBoss.onSpawnCellular = (mx, my) => {
+    wormBoss.onSpawnCellular = (mx, my) => { // CELLULAR AUTOMATTACK — WORM SPITS THE SEED; INFECTION BEGINS
       audio.playCellularSeed();
       this.cellularAttack.start(mx, my);
 
-      // SUCCESS — PLAYER DESTROYED ENOUGH BREAK NODES
-      this.cellularAttack.onAttackEnd = (didSucceed) => {
+      this.cellularAttack.onAttackEnd = (didSucceed) => { // SUCCESS — PLAYER DESTROYED ENOUGH BREAK NODES
         if (didSucceed) {
           audio.playCellularSuccess();
           scoreManager.addScore(300, window.innerWidth * 0.5, window.innerHeight * 0.5);
@@ -337,19 +334,15 @@ export class BossBattleScene {
         wormBoss.endCellularAttack(); // RETURN WORM TO NORMAL ATTACK CYCLE
       };
 
-      // FAILURE — CONTAINMENT OVERRUN, BURST FIRES
-      this.cellularAttack.onCollapseBurst = (positions) => {
+      this.cellularAttack.onCollapseBurst = (positions) => { // FAILURE — CONTAINMENT OVERRUN, BURST FIRES
         audio.playCellularCollapse();
-        // STAGGER EXPLOSIONS ACROSS ~550ms — PIXEL SUPERNOVA
-        const step = CONFIG.CELLULAR_ATTACK.COLLAPSE_BURST_MS / Math.max(1, positions.length);
+        const step = CONFIG.CELLULAR_ATTACK.COLLAPSE_BURST_MS / Math.max(1, positions.length);  // STAGGER EXPLOSIONS ACROSS ~550ms — PIXEL SUPERNOVA
         positions.forEach(({ x, y }, i) => {
           setTimeout(() => {
             projectileManager.createExplosion(x, y, 'bam');
           }, i * step);
         });
-        // FLAT DAMAGE HIT TO SHIP ON COLLAPSE
-        // (SHIP DAMAGE IS APPLIED DIRECTLY HERE — OUTSIDE THE NORMAL LOOP — SO USE THE STORED SHIP REF)
-        // NOTE: ship is not directly in scope — damage is applied via the callback chain wired in main.js
+        // FLAT DAMAGE HIT TO SHIP ON COLLAPSE - (SHIP DAMAGE IS APPLIED DIRECTLY HERE — OUTSIDE THE NORMAL LOOP — SO USE THE STORED SHIP REF)
         this.onCollapseHit?.();
       };
     };
@@ -397,12 +390,12 @@ export class BossBattleScene {
     };
   }
 
-enterRageSequence() {
+enterRageSequence() {  
   if (this.rageStarted) return;
-  this.rageStarted = true;
+  this.rageStarted = true; 
+  this.wormBoss.disableAllAttacks();
   this.tunnel.setBossFlash(1.0);
-  this.wormBoss.forceNeutralHead();
-  this.wormBoss.startRageTransform();  // RAGE HEAD PEEKS OUT DURING FREEZE; BODY CRAWLS OUT AFTER
+  this.wormBoss.startRageTransform();  
   this.ship.canShoot = false;
   this.wormBoss.freeze = true;
   this.wormBoss.isRaging = true;
@@ -414,13 +407,14 @@ enterRageSequence() {
   setTimeout(() => {
     this.tunnel.setRageBlackout(1.0);
     this.wormBoss.freeze = false;
-    this.ship.canShoot = true;
     this.tunnel.setRageCrumble(0.25);
   }, 2667);
 
   // BAR 4 / THE DROP (10.667s = 4 bars @ 90BPM) — TRANSFORMATION COMPLETE, SUCTION ATTACK FIRES
   setTimeout(() => {
-    this.wormBoss.startSuctionAttack();
+      this.wormBoss.startSuctionAttack();   // FORCE FIRST POST-RAGE ATTACK
+      this.wormBoss.enableAllAttacks();     // IMMEDIATELY UNLOCK AI AFTER
+      this.ship.canShoot = true;
   }, 10667);
 }
 

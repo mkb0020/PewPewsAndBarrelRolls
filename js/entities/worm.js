@@ -1,7 +1,47 @@
-// Updated 3/18/26 @ 7PM
+// Updated 3/25/26 @ 1PM
 // WORM.JS
+// NOTES:  FOR RAGE TRANSFORMATION:
+//    Worm is hit by laser that drops it to rage threshold
+//    All of these happen at the same time:
+//1. Normal Worm Freezes (correct), 
+// 2. Normal Mouth open (ideally it should be shut in the freeze stage, but not a huge deal), 
+// 3. Tunnel does it's thing (correct)
+// 4. All normal worm segments are still normal worm segments (correct at this phase - problem 1 solved!)
+// 5. Audio fires correctly
+
+//After the freeze (4 beats), Here's what happens (these events are sequential):
+//1. Normal worm head stretches (correct)
+//2. Normal worm head doesn't begin fade out (correct - problem 2 solved!)
+//3. Rage worm head fades in (Mouth Closed - correct) 
+//4. Rage worm head has initial pop movement as red liquid drips (correct).  
+//5. The rage worm head continues moving forward (correct) as normal worm segments start to disappear starting with the tail (correct - probolem 3 solved!) and rage worm segments are drawn for each movement of the rage head (correct!).  Little problem here which should be easy to fix:  is that the rage segments are being drawn behind the normal worm's head.  They should be drawn on top of the normal worm's head but under the rage worm's head. 
+//6. Normal worm head starts to fade out with good timing (problem 4 solved!)
+//7. Once the rage worm is fully emerged, the suction attack is initiated (correct) buuuut it looks like the center of the attack is firing from where the normal worm's head was before it faded out (in other words, at the rage worm's tail since it's fullt emerged) and the rage worm's head frame doesn't swap to the mouth open frame for the rage attack.
+
+// RAGE TRANSFORMATION SHOULD LOOK LIKE THIS:
+// - = Unit of distance
+// ] = Normal worm head
+// @ = normal worm segment
+// } = Rage worm head
+// # = Rage worm segment
+
+//  ------------]@@@@@@@@@@ // 0% INTO TRANSFORMATION: FULL NORMAL WORM
+//  -----------}]@@@@@@@@@  // 1% INTO TRANSFORMATION: RAGE WORM HEAD EMERGES
+//  ----------}#]@@@@@@@@
+//  ---------}##]@@@@@@@
+//  --------}###]@@@@@@
+//  -------}####]@@@@@
+//  ------}#####]@@@@  // AROUND 50-69 % INTO TANSFORMATION, START FADING OUT NORMAL WORM'S HEAD
+//  -----}######]@@@
+//  ----}#######]@@
+//  ---}########]@
+//  --}#########]     // TRANSFORMATION ALMOST 100% COMPLETED: NORMAL WORM'S HEAD 99% FADED OUT
+//  -}#########      // 100% COMPLETED TRANSFORMATION: FULL RAGE WORM
+
+
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
-import { CONFIG } from '../utils/config.js';
+import { CONFIG }      from '../utils/config.js';
+import { ImageLoader } from '../utils/imageLoader.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 function organicNoise(t, layers) { 
@@ -272,6 +312,7 @@ export class WormBoss {
     this._babySpawnFired = false;      // ENSURES onSpawnBabyWorms FIRES EXACTLY ONCE PER ATTACK
     this._babySpitTimer  = 0;          // COUNTDOWN — MOUTH OPEN BRIEFLY WHEN WORMS ARE EXPELLED
     this._attacksEnabled = false;      // GATED UNTIL readyForBattle() — PREVENTS ATTACKS DURING RISER
+    this._attacksLocked = false;       // HARD LOCK
     this._cellularSpawnFired = false;  // ENSURES onSpawnCellular FIRES EXACTLY ONCE PER ATTACK
     this._cellularSpitTimer  = 0;      // TRACKS TIME SINCE CELLULAR LOOP STARTED (FOR SPIT ANIMATION)
 
@@ -294,7 +335,6 @@ export class WormBoss {
     this._rageWaitingForHit = false; // TRUE WHEN HP HITS 30% MID-ATTACK — ARMS HIT-TRIGGER
     this._rageOnNextHit     = false; // TRUE WHEN ATTACK ENDS AND RAGE IS STILL PENDING — FIRES ON FIRST PLAYER HIT
     this.freeze = false;
-
     // LUNGE ATTACK STATE
     this._shipScreenX     = 0;    // UPDATED EACH FRAME BY bossBattle.js VIA setShipPosition()
     this._shipScreenY     = 0;
@@ -346,6 +386,32 @@ export class WormBoss {
     };
 
     this.suctionParticles = new SuctionParticleSystem();
+
+    // ── INSIDE-OUT RAGE TRANSFORMATION — 
+    const _n = WORM.NUM_SEGMENTS;
+    this._rageTransform = {
+      active:       false,
+      segCount:     0,          // HOW MANY RAGE SEGMENTS HAVE BEEN REVEALED (HEAD FIRST)
+      timer:        0,          // ACCUMULATOR FOR NEXT REVEAL (only ticks when NOT frozen)
+      segInterval:  0.4,        // SECONDS PER SEGMENT — 20 × 0.4s = 8s FULL CRAWL
+      shinePulse:   0,          // RUNNING CLOCK FOR WET SHEEN ANIMATION
+      rageAlphas:   new Float32Array(_n),           // PER-SEGMENT FADE-IN (0→1)
+      normalAlphas: new Float32Array(_n).fill(1),   // PER-SEGMENT FADE-OUT (1→0)
+      rageSegs:     Array.from({ length: _n }, () => ({ x: 0, y: 0, screenX: 0, screenY: 0 })),
+      drips:        [],         // BLOOD/SLIME DRIP PARTICLES AT EACH EMERGENCE POINT
+      emerged:      false,      // TRUE WHEN ALL SEGMENTS FULLY TRANSITIONED
+      headAlphaNormal: 1.0, 
+      headAlphaRage: 0.0,
+      headSwapProgress: 0,
+      normalHeadStartX: 0, 
+      normalHeadStartY: 0, 
+      forwardX: 0,
+      forwardY: 0, 
+      maxOffset: 150,   
+      initialPopOffset: 80,          //HOW FAR THE HEAD POPS DURING OPENING
+      stepPerSegment: WORM.SEGMENT_SPACING * 0.55, // HOW MUCH HEAD ADVANCES PER NEW SEGMENT
+      normalFadeCount: 0,   // HOW MANY NORMAL SEGMENTS (FROM TAIL) HAVE STARTED FADING
+    };
     // console.log('✔ WormBoss initialized');
   }
 
@@ -388,6 +454,7 @@ export class WormBoss {
     this._rageWaitingForHit = false;
     this._rageOnNextHit     = false;
 
+
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) { // RESET ALL SEGMENTS
       const seg    = this.segments[i];
       seg.isDead   = false;
@@ -400,8 +467,24 @@ export class WormBoss {
     }
 
     this.suctionParticles.clear();
-    this._introFired = false;
-  }
+      const _rt = this._rageTransform;
+      _rt.active = false; 
+      _rt.segCount = 0; 
+      _rt.timer = 0; 
+      _rt.shinePulse = 0;
+      _rt.rageAlphas.fill(0); 
+      _rt.normalAlphas.fill(1); 
+      _rt.drips = []; 
+      _rt.emerged = false;
+      _rt.normalFadeCount = 0;           
+      for (let _i = 0; _i < WORM.NUM_SEGMENTS; _i++) {
+        _rt.rageSegs[_i].x = WORM.SPAWN_OFFSET_X;
+        _rt.rageSegs[_i].y = WORM.SPAWN_OFFSET_Y;
+        _rt.rageSegs[_i].screenX = 0;
+        _rt.rageSegs[_i].screenY = 0;
+      }
+      this._introFired = false;
+    }
 
   applyBlackHoleStun(duration) {
     this.stunTimer = Math.max(this.stunTimer, duration); 
@@ -415,10 +498,226 @@ export class WormBoss {
     this.attackTimer     = this._rollInterval();
   }
 
-  forceNeutralHead() { // FUNCTION TO SHUT WORMS MOUTH
+
+  disableAllAttacks() { // FOR WORM RAGE TRANSFORMATION
+    this._attacksLocked = true;
+    this.isAttacking = false;
+    this.attackPhase = 'idle';
+  }
+
+  enableAllAttacks() { // FOR WORM RAGE TRANSFORMATION
+    this._attacksLocked = false;
+}
+
+
+  forceNeutralHead() { 
     this.headFrame = WORM.FRAME_HEAD;
     this.headFrameTime = 0;
   }
+  // ======================= INSIDE-OUT RAGE TRANSFORM =======================
+    startRageTransform() {
+      const rt = this._rageTransform;
+      const hx = this.segments[0].x;
+      const hy = this.segments[0].y;
+      rt.active = true;
+      rt.segCount  = 1;
+      rt.timer     = 0;
+      rt.shinePulse = 0;
+      rt.rageAlphas.fill(0);
+      rt.normalAlphas.fill(1);
+      rt.drips  = [];
+      rt.emerged = false;
+      rt.normalFadeCount = 0;               
+
+      rt.headAlphaNormal = 1.0;
+      rt.headAlphaRage = 0.0;
+      rt.headSwapProgress = 0;
+      rt.headSwapStarted = false;
+
+      rt.normalHeadStartX = hx;
+      rt.normalHeadStartY = hy;
+
+      if (this.segments.length > 1) {
+        const dx = this.segments[0].x - this.segments[1].x;
+        const dy = this.segments[0].y - this.segments[1].y;
+        const len = Math.hypot(dx, dy);
+        if (len > 0.001) {
+          rt.forwardX = dx / len;
+          rt.forwardY = dy / len;
+        } else {
+          rt.forwardX = 0;
+          rt.forwardY = -1;
+        }
+      } else {
+        rt.forwardX = 0;
+        rt.forwardY = -1;
+      }
+
+      for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
+        rt.rageSegs[i].x = hx;
+        rt.rageSegs[i].y = hy;
+        rt.rageSegs[i].screenX = this.segments[0].screenX;
+        rt.rageSegs[i].screenY = this.segments[0].screenY;
+      }
+      ImageLoader.load('wormRage');
+    }
+
+    _updateRageTransform(dt) {
+      const rt = this._rageTransform;
+      const n  = WORM.NUM_SEGMENTS;
+      const bs = this.baseScale || 0.001;
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+
+      rt.shinePulse += dt * 5;
+
+      // HEAD SWAP ANIMATION 
+      if (rt.active && !rt.emerged && !this.freeze) {
+        if (!rt.headSwapStarted) {
+          rt.headSwapStarted = true;
+          rt.headSwapProgress = 0;
+        }
+        rt.headSwapProgress = Math.min(1.0, rt.headSwapProgress + dt * 0.9);
+        const easeInOut = rt.headSwapProgress < 0.5
+          ? 2 * rt.headSwapProgress * rt.headSwapProgress
+          : 1 - Math.pow(-2 * rt.headSwapProgress + 2, 2) / 2;
+
+        const rageStart = 0.2;
+        rt.headAlphaRage = Math.min(1, Math.max(0, (easeInOut - rageStart) / (1 - rageStart)));
+
+
+      rt.rageAlphas[0] = rt.headAlphaRage;
+
+      // ─── NORMAL HEAD LINGERS UNTIL ~55% OF FULL TRANSFORMATION ───
+      if (rt.active && !rt.emerged) {
+        const overallProgress = Math.min(1, rt.segCount / n);
+        if (overallProgress > 0.55) {
+          const fadeStart = 0.55;
+          const fadeProgress = (overallProgress - fadeStart) / (1 - fadeStart);
+          rt.headAlphaNormal = Math.max(0, 1 - fadeProgress * 1.8);
+        } else {
+          rt.headAlphaNormal = 1.0;
+        }
+      }
+
+
+
+      }
+
+      // LOCK NORMAL HEAD POSITION
+      if (rt.active && !rt.emerged) {
+        this.headX = rt.normalHeadStartX;
+        this.headY = rt.normalHeadStartY;
+      }
+
+      // RAGE HEAD MOVEMENT (SLITHERING OUT)
+      if (!rt.emerged) {
+        let offset = 0;
+        if (rt.active) {
+          const popProgress = Math.min(1, rt.headSwapProgress);
+          const popOffset = popProgress * rt.initialPopOffset;
+          const segmentAdvance = (rt.segCount - 1) * rt.stepPerSegment;
+          offset = popOffset + segmentAdvance;
+        }
+        const rageHeadX = rt.normalHeadStartX + rt.forwardX * offset;
+        const rageHeadY = rt.normalHeadStartY + rt.forwardY * offset;
+        rt.rageSegs[0].x = rageHeadX;
+        rt.rageSegs[0].y = rageHeadY;
+        rt.rageSegs[0].screenX = cx + rageHeadX * bs;
+        rt.rageSegs[0].screenY = cy + rageHeadY * bs;
+      }
+
+      // RAGE IK CHAIN
+      for (let k = 1; k < rt.segCount; k++) {
+        const prev = rt.rageSegs[k - 1];
+        const curr = rt.rageSegs[k];
+        const dx = curr.x - prev.x;
+        const dy = curr.y - prev.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > WORM.SEGMENT_SPACING && dist > 0) {
+          const ratio = WORM.SEGMENT_SPACING / dist;
+          curr.x = prev.x + dx * ratio;
+          curr.y = prev.y + dy * ratio;
+        }
+        curr.screenX = cx + curr.x * bs;
+        curr.screenY = cy + curr.y * bs;
+      }
+
+      // DRIP PHYSICS
+      for (let i = rt.drips.length - 1; i >= 0; i--) {
+        const d = rt.drips[i];
+        d.x += d.vx * dt;
+        d.y += d.vy * dt;
+        d.vy += 300 * dt;
+        d.life -= dt;
+        if (d.life <= 0) rt.drips.splice(i, 1);
+      }
+
+      if (rt.emerged) return;
+
+      // FADE IN RAGE SEGMENTS 
+      for (let i = 1; i < rt.segCount; i++) {
+        rt.rageAlphas[i] = Math.min(1, rt.rageAlphas[i] + dt * 4.0);
+      }
+
+      // FADE OUT NORMAL SEGMENTS — ONE-BY-ONE FROM TAIL - SYNCED 
+      for (let k = 0; k < rt.normalFadeCount; k++) {
+        const j = n - 1 - k;
+        rt.normalAlphas[j] = Math.max(0, rt.normalAlphas[j] - dt * 2.5);
+      }
+
+      // SEGMENT REVEAL — ADVANCES THE NORMAL FADE COUNT
+      if (!this.freeze) {
+        rt.timer += dt;
+        while (rt.timer >= rt.segInterval && rt.segCount < n) {
+          rt.timer -= rt.segInterval;
+          const k = rt.segCount;
+          rt.segCount++;
+          rt.normalFadeCount = Math.min(n, rt.normalFadeCount + 1);   // ← SYNC: ONE NORMAL SEGMENT FADES PER RAGE SEGMENT REVEALED
+
+          const mouth = this.segments[0];
+          rt.rageSegs[k].x = mouth.x;
+          rt.rageSegs[k].y = mouth.y;
+          rt.rageSegs[k].screenX = mouth.screenX;
+          rt.rageSegs[k].screenY = mouth.screenY;
+
+          const count = 4 + Math.floor(Math.random() * 4);
+          for (let d = 0; d < count; d++) {
+            const life = 0.5 + Math.random() * 0.7;
+            const sz = mouth.drawSize;
+            rt.drips.push({
+              x: mouth.screenX + (Math.random() - 0.5) * sz * 0.45,
+              y: mouth.screenY + (Math.random() - 0.5) * sz * 0.15,
+              vx: (Math.random() - 0.5) * 55,
+              vy: 20 + Math.random() * 65,
+              size: 2 + Math.random() * 5,
+              life,
+              maxLife: life,
+            });
+          }
+        }
+      }
+
+      // COMPLETION CHECK — FULL HAND-OFF
+      if (rt.segCount >= n && rt.normalAlphas[0] <= 0 && !rt.emerged) {
+        rt.emerged = true;
+        rt.rageAlphas.fill(1);
+        rt.normalAlphas.fill(0);
+        rt.headAlphaNormal = 0;
+        rt.headAlphaRage = 1;
+        rt.normalFadeCount = n;
+
+        this.headX = rt.rageSegs[0].x;
+        this.headY = rt.rageSegs[0].y;
+        for (let i = 0; i < n; i++) {
+          this.segments[i].x = rt.rageSegs[i].x;
+          this.segments[i].y = rt.rageSegs[i].y;
+        }
+
+        rt.active = false;
+        rt.drips = [];
+      }
+    }
 
   enterRageMode() {
     this.isRaging = true;
@@ -460,6 +759,10 @@ export class WormBoss {
   // ======================= UPDATE =======================
   update(dt) {
     if (!this.isActive || this.isDead) return;
+
+    // RAGE TRANSFORM RUNS BEFORE THE FREEZE CHECK — IT IS THE VISUAL PAYLOAD OF THE FREEZE WINDOW
+    if (this._rageTransform.active) this._updateRageTransform(dt);
+
     if (this.freeze) return;
 
     this.time += dt;
@@ -510,8 +813,7 @@ export class WormBoss {
         }
       }
 
-      // UPDATE SCREEN POSITIONS
-      // cx / cy CACHED AT TOP OF update()
+      // UPDATE SCREEN POSITIONS cx / cy CACHED AT TOP OF update()
       const bs = this.baseScale;
       for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
         const seg = this.segments[i];
@@ -595,7 +897,6 @@ export class WormBoss {
 
     // ============= FADE IN =============
     this.alpha += (WORM.ALPHA_FULL - this.alpha) * WORM.ALPHA_SPEED;
-    // FIRE INTRO SOUND ONCE WORM IS CLEARLY VISIBLE
     if (!this._introFired && this.alpha >= 0.15) {
       this._introFired = true;
       if (this.onIntro) this.onIntro();
@@ -629,6 +930,12 @@ export class WormBoss {
         }
 
       } else if (this.attackPhase === 'loop') {
+
+      if (this._attacksLocked) {
+        this.isAttacking = false;
+        this.attackPhase = 'idle';
+        return;
+}
 
         if (this.attackType === 'suction') {
           this.attackFrameTime += dt;
@@ -759,7 +1066,6 @@ export class WormBoss {
             this._lungePhase = 'snap';
 
           } else {
-            // ── DONE — RETURN HEAD TO ORIGIN, HAND BACK TO WIGGLE ──
             this.headX           = this._lungeOriginX;
             this.headY           = this._lungeOriginY;
             this.isAttacking     = false;
@@ -780,14 +1086,13 @@ export class WormBoss {
           this._attackIndex++;
           this.attackType      = this._pickNextAttack();  // AI — HEALTH-TIERED, DISTANCE-WEIGHTED SELECTION
           this._lastAttackType = this.attackType;
-          this._attackHistory.push(this.attackType);        // ROLLING 3-ATTACK MEMORY
+          this._attackHistory.push(this.attackType);     
           if (this._attackHistory.length > 3) this._attackHistory.shift();
           this.isAttacking     = true;
           this.attackProgress  = 0;
           this._cellularSpitTimer = 0;
 
           if (this.attackType === 'lunge') {
-            // SKIP transIn — LUNGE STARTS IMMEDIATELY IN LOOP PHASE
             this.attackPhase = 'loop';
             this._initLunge();
           } else {
@@ -801,8 +1106,7 @@ export class WormBoss {
 
     // ============= ORGANIC HEAD MOVEMENT =============
     if (this._orbitScreenX !== null) {
-      // ── BLACK HOLE ORBIT ──
-      // cx / cy CACHED AT TOP OF update()
+      // ── BLACK HOLE ORBIT (cx / cy CACHED AT TOP OF update()) ──
       const bs = this.baseScale || 0.001;
       const worldTargetX = (this._orbitScreenX - cx) / bs;
       const worldTargetY = (this._orbitScreenY - cy) / bs;
@@ -869,67 +1173,116 @@ export class WormBoss {
   // ======================= DRAW =======================
   draw(ctx) {
     if (!this.isActive || this.isDead) return;
-    this.suctionParticles.draw(ctx);  // SUCTION PARTICLES DRAW BEHIND THE WORM
+    this.suctionParticles.draw(ctx);
 
-    ctx.save(); // DRAW TAIL FIRST →  SO HEAD RENDERS ON TOP
+    ctx.save();
     ctx.globalAlpha = this.alpha;
+
+    const rt = this._rageTransform;
+    const rageSprite = (rt.active || this.isRaging) ? ImageLoader.get('wormRage') : null;
+    const rageFrameW = rageSprite ? rageSprite.width / WORM.SPRITE_FRAMES : 0;
+
     for (let i = WORM.NUM_SEGMENTS - 1; i >= 0; i--) {
-      const seg  = this.segments[i];
-      if (seg.isDead) continue;          
+      const seg = this.segments[i];
+      if (seg.isDead) continue;
       const size = seg.drawSize;
       if (size < 1) continue;
 
-      let frame;  // SPRITE FRAME SELECTION
+      let frame;
       if (i === 0) {
         if (this.attackPhase === 'loop') {
           if (this.attackType === 'cellular') {
-            // USE ATTACK FRAMES ONLY DURING SPIT WINDOW, THEN RETURN TO NEUTRAL HEAD
             frame = (this._cellularSpitTimer < WORM.CELLULAR_SPIT_DURATION)
               ? this.attackFrame
               : WORM.FRAME_HEAD;
           } else if (this.attackType === 'lunge') {
-            // OPEN MOUTH (FRAME 4) ONLY DURING THE FORWARD STRIKE PHASE; IDLE OTHERWISE
             frame = (this._lungePhase === 'lunge') ? WORM.FRAME_ATTACK_START : WORM.FRAME_HEAD;
           } else {
             frame = this.attackFrame;
           }
         }
         else if (this.attackPhase === 'transIn') frame = WORM.FRAME_TRANSITION;
-        else                                     frame = WORM.FRAME_HEAD;
+        else frame = WORM.FRAME_HEAD;
       } else if (i === WORM.NUM_SEGMENTS - 1) {
         frame = WORM.FRAME_TAIL;
       } else {
         frame = WORM.FRAME_SEGMENT;
       }
 
-      ctx.save();
-      ctx.translate(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0));
+      const normalAlpha = rt.active ? rt.normalAlphas[i] : (this.isRaging ? 0.0 : 1.0);
+      const rageAlpha = (rt.active && i < rt.segCount) ? rt.rageAlphas[i] : (rt.emerged && this.isRaging ? 1.0 : 0.0);
+      const rsx = rt.active && i < rt.segCount ? rt.rageSegs[i].screenX : seg.screenX;
+      const rsy = rt.active && i < rt.segCount ? rt.rageSegs[i].screenY : seg.screenY;
 
-      if (i === 0) {  // ROTATION - HEAD: TINY ALIVE WIGGLE
-        const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
-        ctx.rotate(wiggle);
-        // SCALE DOWN HEAD IF ON AN ATTACK FRAME (FRAMES 4-14 ARE SLIGHTLY OVERSIZED)
-        if (frame >= WORM.FRAME_ATTACK_START) {
-          ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
+      // ── CAVITY VOID ──
+      if (rt.active && normalAlpha < 0.85 && normalAlpha > 0) {
+        const cavityA = (0.85 - normalAlpha) / 0.85 * 0.72 * this.alpha;
+        if (cavityA > 0.01) {
+          ctx.save();
+          ctx.globalAlpha = cavityA;
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0),
+            size * 0.46, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
-      } else {  // BODY/TAIL: POINT TOWARD SEGMENT AHEAD
-        const prev = this.segments[i - 1];
-        const dx   = prev.screenX - seg.screenX;
-        const dy   = prev.screenY - seg.screenY;
-        ctx.rotate(Math.atan2(dy, dx) - Math.PI / 2);
       }
 
-      if (seg.flashTimer > 0) { // HIT FLASH
+  // ── NORMAL SEGMENT ──
+  if (normalAlpha > 0.01) {
+    ctx.save();
+    
+    const headBlendAlpha = (i === 0 && rt.active) ? rt.headAlphaNormal : 1.0;
+    ctx.globalAlpha = this.alpha * normalAlpha * headBlendAlpha;
+
+    ctx.translate(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0));
+
+    if (i === 0) {
+      const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
+      ctx.rotate(wiggle);
+      
+      let normalHeadFrame = frame;
+      
+      if (rt.active && !rt.emerged && rt.headAlphaNormal > 0.1) {
+        let openAmount;
+        
+        if (rt.headSwapProgress < 0.3) {
+          openAmount = rt.headSwapProgress / 0.3;
+        } else {
+          openAmount = 1.0;
+        }
+        
+        const frameIndex = Math.floor(openAmount * (WORM.FRAME_ATTACK_END - WORM.FRAME_ATTACK_START + 1));
+        normalHeadFrame = WORM.FRAME_ATTACK_START + Math.min(frameIndex, WORM.FRAME_ATTACK_END - WORM.FRAME_ATTACK_START);
+        
+        const stretchX = 1 + openAmount * 0.3; // TESTING
+        const stretchY = 1 - openAmount * 0.3; // TESTING
+        ctx.scale(stretchX, stretchY);
+        
+      } else if (frame >= WORM.FRAME_ATTACK_START) {
+        ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
+      }
+      
+      if (this.spriteLoaded && this.frameWidth > 0) {
+        ctx.drawImage(this.sprite, normalHeadFrame * this.frameWidth, 0, 
+          this.frameWidth, this.sprite.height,
+          -size / 2, -size / 2, size, size);
+      }
+    } else {
+      const prev = this.segments[i - 1];
+      const dx = prev.screenX - seg.screenX;
+      const dy = prev.screenY - seg.screenY;
+      ctx.rotate(Math.atan2(dy, dx) - Math.PI / 2);
+      
+      if (seg.flashTimer > 0) {
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = 0.6 * normalAlpha * headBlendAlpha;
       }
 
-      if (this.spriteLoaded && this.frameWidth > 0) {  // DRAW SPRITE (OR FALLBACK CIRCLES)
-        ctx.drawImage(
-          this.sprite,
-          frame * this.frameWidth, 0, this.frameWidth, this.sprite.height,
-          -size / 2, -size / 2, size, size
-        );
+      if (this.spriteLoaded && this.frameWidth > 0) {
+        ctx.drawImage(this.sprite, frame * this.frameWidth, 0, this.frameWidth, this.sprite.height,
+          -size / 2, -size / 2, size, size);
       } else {
         const colors = ['#ff00aa', '#cc00ff', '#8800cc'];
         ctx.fillStyle = colors[frame] || '#ff00aa';
@@ -937,14 +1290,121 @@ export class WormBoss {
         ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
         ctx.fill();
       }
+    }
+    ctx.restore(); 
+  }
 
-      ctx.restore();
+      // ── RAGE SEGMENT ──
+      if (rageAlpha > 0.01 && rageSprite && rageFrameW > 0) {
+        
+        const headBlendAlpha = (i === 0 && rt.active) ? rt.headAlphaRage : 1.0;
+        
+        // Debug log for rage head
+        if (i === 0 && rt.active && !rt.emerged) {
+          // console.log(`Rage: alpha=${rageAlpha.toFixed(2)}, blend=${rt.headAlphaRage.toFixed(2)}, total=${(this.alpha * rageAlpha * rt.headAlphaRage).toFixed(2)}`);
+        }
+        
+        // ── CHROMATIC FRINGE ──
+        if (rageAlpha < 0.6) {
+          const fringeA = (0.6 - rageAlpha) / 0.6 * 0.35 * this.alpha * headBlendAlpha;
+          if (fringeA > 0.01) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.globalAlpha = fringeA;
+            ctx.translate(rsx, rsy);
+            if (i === 0) {
+              const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
+              ctx.rotate(wiggle);
+            } else if (i < rt.segCount) {
+              const rprev = rt.rageSegs[i - 1];
+              ctx.rotate(Math.atan2(rprev.screenY - rsy, rprev.screenX - rsx) - Math.PI / 2);
+            }
+            ctx.drawImage(rageSprite, frame * rageFrameW, 0, rageFrameW, rageSprite.height,
+              -size / 2 - 5, -size / 2, size, size);
+            ctx.restore();
+          }
+        }
 
-      const tintStrength = (1 - Math.min(1, this.alpha * 3)) * 0.85; 
+        // ── MAIN RAGE SPRITE ──
+        ctx.save();
+        ctx.globalAlpha = this.alpha * rageAlpha * headBlendAlpha;
+        ctx.translate(rsx, rsy);
+        
+        if (i === 0) {
+          const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
+          ctx.rotate(wiggle);
+          
+          let rageHeadFrame;
+          
+          if (rt.emerged) {
+            rageHeadFrame = (frame >= WORM.FRAME_ATTACK_START) ? frame : WORM.FRAME_HEAD;
+            if (frame >= WORM.FRAME_ATTACK_START) {
+              ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
+            }
+          } else {
+            rageHeadFrame = WORM.FRAME_HEAD;
+          }
+          
+          ctx.drawImage(rageSprite, rageHeadFrame * rageFrameW, 0, rageFrameW, rageSprite.height,
+            -size / 2, -size / 2, size, size);
+          } else if (i < WORM.NUM_SEGMENTS) {
+            const rprev = rt.active ? rt.rageSegs[i - 1] : this.segments[i - 1];
+            ctx.rotate(Math.atan2(rprev.screenY - rsy, rprev.screenX - rsx) - Math.PI / 2);
+          
+          if (seg.flashTimer > 0) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.6 * rageAlpha * headBlendAlpha;
+          }
+          
+          ctx.drawImage(rageSprite, frame * rageFrameW, 0, rageFrameW, rageSprite.height,
+            -size / 2, -size / 2, size, size);
+        }
+        ctx.restore();
+
+        // ── WET SPECULAR SHEEN ──
+        const shineA = (0.11 + Math.sin(rt.shinePulse + i * 0.55) * 0.07) * rageAlpha * this.alpha * headBlendAlpha;
+        if (shineA > 0.005) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
+          const shineGrad = ctx.createRadialGradient(
+            rsx - size * 0.17, rsy - size * 0.22, size * 0.03,
+            rsx + size * 0.05, rsy + size * 0.05, size * 0.55
+          );
+          shineGrad.addColorStop(0, `rgba(255, 245, 230, ${shineA})`);
+          shineGrad.addColorStop(0.35, `rgba(230, 110, 80, ${shineA * 0.4})`);
+          shineGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = shineGrad;
+          ctx.beginPath();
+          ctx.arc(rsx, rsy, size * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // ── EMERGENCE GLOW ──
+        if (i === rt.segCount - 1 && !rt.emerged) {
+          const pulseG = (0.28 + Math.sin(rt.shinePulse * 4.5) * 0.18) * rageAlpha * this.alpha * headBlendAlpha;
+          if (pulseG > 0.01) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const eGrad = ctx.createRadialGradient(rsx, rsy, 0, rsx, rsy, size * 1.4);
+            eGrad.addColorStop(0, `rgba(255, 55, 10, ${pulseG})`);
+            eGrad.addColorStop(0.4, `rgba(160, 8, 0, ${pulseG * 0.45})`);
+            eGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = eGrad;
+            ctx.beginPath();
+            ctx.arc(rsx, rsy, size * 1.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      }
+
+      // ── APPROACH TINT OVERLAY ──
+      const tintStrength = (1 - Math.min(1, this.alpha * 3)) * 0.85;
       if (tintStrength > 0.01) {
         ctx.save();
         ctx.globalAlpha = tintStrength;
-        ctx.fillStyle   = '#000000';
+        ctx.fillStyle = '#000000';
         ctx.beginPath();
         ctx.arc(
           seg.screenX + (seg.rippleX || 0),
@@ -954,6 +1414,24 @@ export class WormBoss {
         ctx.fill();
         ctx.restore();
       }
+    }
+
+    // ── SLIME DRIPS ──
+    if (rt.active && rt.drips.length > 0) {
+      ctx.save();
+      ctx.shadowColor = '#990000';
+      ctx.shadowBlur = 5;
+      for (const d of rt.drips) {
+        const t = Math.max(0, 1 - d.life / d.maxLife);
+        const alpha = Math.max(0, (1 - t * 1.05)) * 0.88 * this.alpha;
+        if (alpha < 0.01) continue;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#5a0000';
+        ctx.beginPath();
+        ctx.ellipse(d.x, d.y, d.size * 0.55, d.size * (1 + t * 0.8), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     ctx.restore();
@@ -998,7 +1476,6 @@ export class WormBoss {
   }
 
   // ======================= AI — ATTACK SELECTION =======================
-
   // RETURNS A RANDOMIZED WAIT TIME BETWEEN ATTACKS (5–10s BY DEFAULT)
   _rollInterval() {
     let interval = WORM.ATTACK_INTERVAL_MIN
@@ -1086,7 +1563,6 @@ export class WormBoss {
   }
 
   // ======================= CELLULAR ATTACK END =======================
-
   // CALLED BY bossBattle.js VIA cellularAttack.onAttackEnd — ENDS THE CELLULAR LOOP CLEANLY
   endCellularAttack() { this._endCellularAttackInternal(); }
 
