@@ -1,43 +1,7 @@
-// Updated 3/25/26 @ 1PM
+// Updated 3/25/26 @ 7pm
 // WORM.JS
-// NOTES:  FOR RAGE TRANSFORMATION:
-//    Worm is hit by laser that drops it to rage threshold
-//    All of these happen at the same time:
-//1. Normal Worm Freezes (correct), 
-// 2. Normal Mouth open (ideally it should be shut in the freeze stage, but not a huge deal), 
-// 3. Tunnel does it's thing (correct)
-// 4. All normal worm segments are still normal worm segments (correct at this phase - problem 1 solved!)
-// 5. Audio fires correctly
 
-//After the freeze (4 beats), Here's what happens (these events are sequential):
-//1. Normal worm head stretches (correct)
-//2. Normal worm head doesn't begin fade out (correct - problem 2 solved!)
-//3. Rage worm head fades in (Mouth Closed - correct) 
-//4. Rage worm head has initial pop movement as red liquid drips (correct).  
-//5. The rage worm head continues moving forward (correct) as normal worm segments start to disappear starting with the tail (correct - probolem 3 solved!) and rage worm segments are drawn for each movement of the rage head (correct!).  Little problem here which should be easy to fix:  is that the rage segments are being drawn behind the normal worm's head.  They should be drawn on top of the normal worm's head but under the rage worm's head. 
-//6. Normal worm head starts to fade out with good timing (problem 4 solved!)
-//7. Once the rage worm is fully emerged, the suction attack is initiated (correct) buuuut it looks like the center of the attack is firing from where the normal worm's head was before it faded out (in other words, at the rage worm's tail since it's fullt emerged) and the rage worm's head frame doesn't swap to the mouth open frame for the rage attack.
-
-// RAGE TRANSFORMATION SHOULD LOOK LIKE THIS:
-// - = Unit of distance
-// ] = Normal worm head
-// @ = normal worm segment
-// } = Rage worm head
-// # = Rage worm segment
-
-//  ------------]@@@@@@@@@@ // 0% INTO TRANSFORMATION: FULL NORMAL WORM
-//  -----------}]@@@@@@@@@  // 1% INTO TRANSFORMATION: RAGE WORM HEAD EMERGES
-//  ----------}#]@@@@@@@@
-//  ---------}##]@@@@@@@
-//  --------}###]@@@@@@
-//  -------}####]@@@@@
-//  ------}#####]@@@@  // AROUND 50-69 % INTO TANSFORMATION, START FADING OUT NORMAL WORM'S HEAD
-//  -----}######]@@@
-//  ----}#######]@@
-//  ---}########]@
-//  --}#########]     // TRANSFORMATION ALMOST 100% COMPLETED: NORMAL WORM'S HEAD 99% FADED OUT
-//  -}#########      // 100% COMPLETED TRANSFORMATION: FULL RAGE WORM
-
+// TO-DO:  scale rage worm head smaller when it first appears and then lerp it to normal size  (reaching normal size at the end of the pop)
 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -109,7 +73,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           50, // NOT FINALIZED
+  HEALTH:           300, // NOT FINALIZED
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
   RAGE_TRIGGER_THRESHOLD: 0.3,
@@ -562,6 +526,30 @@ export class WormBoss {
       ImageLoader.load('wormRage');
     }
 
+  // CALLED BY startSuctionAttack() — INSTANTLY FINALISES THE TRANSFORM IF THE TIMING GAP BETWEEN
+  // THE LAST SEGMENT REVEAL AND normalAlphas[0] REACHING 0 WOULD LEAVE SEGMENTS[0] AT THE WRONG POSITION.
+  // SAFE TO CALL WHEN ALREADY EMERGED (NO-OP).
+  _forceCompleteRageTransform() {
+    const rt = this._rageTransform;
+    if (!rt.active) return;
+    const n = WORM.NUM_SEGMENTS;
+    rt.segCount = n;
+    rt.rageAlphas.fill(1);
+    rt.normalAlphas.fill(0);
+    rt.headAlphaNormal = 0;
+    rt.headAlphaRage   = 1;
+    rt.normalFadeCount = n;
+    rt.emerged         = true;
+    this.headX         = rt.rageSegs[0].x;
+    this.headY         = rt.rageSegs[0].y;
+    for (let i = 0; i < n; i++) {
+      this.segments[i].x = rt.rageSegs[i].x;
+      this.segments[i].y = rt.rageSegs[i].y;
+    }
+    rt.active = false;
+    rt.drips  = [];
+  }
+
     _updateRageTransform(dt) {
       const rt = this._rageTransform;
       const n  = WORM.NUM_SEGMENTS;
@@ -591,8 +579,8 @@ export class WormBoss {
       // ─── NORMAL HEAD LINGERS UNTIL ~55% OF FULL TRANSFORMATION ───
       if (rt.active && !rt.emerged) {
         const overallProgress = Math.min(1, rt.segCount / n);
-        if (overallProgress > 0.55) {
-          const fadeStart = 0.55;
+        if (overallProgress > 0.8) {
+          const fadeStart = 0.8;
           const fadeProgress = (overallProgress - fadeStart) / (1 - fadeStart);
           rt.headAlphaNormal = Math.max(0, 1 - fadeProgress * 1.8);
         } else {
@@ -725,6 +713,9 @@ export class WormBoss {
   }
 
   startSuctionAttack() {
+    // FORCE-COMPLETE RAGE TRANSFORM IF STILL IN PROGRESS — PREVENTS SUCTION TARGETING
+    // THE LOCKED NORMAL-HEAD POSITION (AT THE RAGE WORM'S TAIL) INSTEAD OF THE RAGE HEAD
+    if (this._rageTransform.active) this._forceCompleteRageTransform();
     this.isAttacking     = true;
     this.attackType      = 'suction';
     this.attackPhase     = 'loop';
@@ -1178,49 +1169,47 @@ export class WormBoss {
     ctx.save();
     ctx.globalAlpha = this.alpha;
 
-    const rt = this._rageTransform;
+    const rt         = this._rageTransform;
     const rageSprite = (rt.active || this.isRaging) ? ImageLoader.get('wormRage') : null;
     const rageFrameW = rageSprite ? rageSprite.width / WORM.SPRITE_FRAMES : 0;
 
+    // PRE-COMPUTE ATTACK HEAD FRAME — SHARED BY BOTH DRAW PASSES
+    let headFrame;
+    if (this.attackPhase === 'loop') {
+      if (this.attackType === 'cellular') {
+        headFrame = (this._cellularSpitTimer < WORM.CELLULAR_SPIT_DURATION)
+          ? this.attackFrame : WORM.FRAME_HEAD;
+      } else if (this.attackType === 'lunge') {
+        headFrame = (this._lungePhase === 'lunge') ? WORM.FRAME_ATTACK_START : WORM.FRAME_HEAD;
+      } else {
+        headFrame = this.attackFrame;
+      }
+    } else if (this.attackPhase === 'transIn') {
+      headFrame = WORM.FRAME_TRANSITION;
+    } else {
+      headFrame = WORM.FRAME_HEAD;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PASS 1: NORMAL WORM — tail → head
+    // Drawing all normal segments first ensures the rage body segments in pass 2
+    // are layered ON TOP of the normal head (not behind it).
+    // ════════════════════════════════════════════════════════════════════════
     for (let i = WORM.NUM_SEGMENTS - 1; i >= 0; i--) {
       const seg = this.segments[i];
       if (seg.isDead) continue;
       const size = seg.drawSize;
       if (size < 1) continue;
 
-      let frame;
-      if (i === 0) {
-        if (this.attackPhase === 'loop') {
-          if (this.attackType === 'cellular') {
-            frame = (this._cellularSpitTimer < WORM.CELLULAR_SPIT_DURATION)
-              ? this.attackFrame
-              : WORM.FRAME_HEAD;
-          } else if (this.attackType === 'lunge') {
-            frame = (this._lungePhase === 'lunge') ? WORM.FRAME_ATTACK_START : WORM.FRAME_HEAD;
-          } else {
-            frame = this.attackFrame;
-          }
-        }
-        else if (this.attackPhase === 'transIn') frame = WORM.FRAME_TRANSITION;
-        else frame = WORM.FRAME_HEAD;
-      } else if (i === WORM.NUM_SEGMENTS - 1) {
-        frame = WORM.FRAME_TAIL;
-      } else {
-        frame = WORM.FRAME_SEGMENT;
-      }
-
       const normalAlpha = rt.active ? rt.normalAlphas[i] : (this.isRaging ? 0.0 : 1.0);
-      const rageAlpha = (rt.active && i < rt.segCount) ? rt.rageAlphas[i] : (rt.emerged && this.isRaging ? 1.0 : 0.0);
-      const rsx = rt.active && i < rt.segCount ? rt.rageSegs[i].screenX : seg.screenX;
-      const rsy = rt.active && i < rt.segCount ? rt.rageSegs[i].screenY : seg.screenY;
 
-      // ── CAVITY VOID ──
+      // ── CAVITY VOID — darkens interior as normal segment fades out ──
       if (rt.active && normalAlpha < 0.85 && normalAlpha > 0) {
         const cavityA = (0.85 - normalAlpha) / 0.85 * 0.72 * this.alpha;
         if (cavityA > 0.01) {
           ctx.save();
           ctx.globalAlpha = cavityA;
-          ctx.fillStyle = '#000000';
+          ctx.fillStyle   = '#000000';
           ctx.beginPath();
           ctx.arc(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0),
             size * 0.46, 0, Math.PI * 2);
@@ -1229,81 +1218,122 @@ export class WormBoss {
         }
       }
 
-  // ── NORMAL SEGMENT ──
-  if (normalAlpha > 0.01) {
-    ctx.save();
-    
-    const headBlendAlpha = (i === 0 && rt.active) ? rt.headAlphaNormal : 1.0;
-    ctx.globalAlpha = this.alpha * normalAlpha * headBlendAlpha;
+      // ── NORMAL SEGMENT ──
+      if (normalAlpha > 0.01) {
+        ctx.save();
+        const headBlendAlpha = (i === 0 && rt.active) ? rt.headAlphaNormal : 1.0;
+        ctx.globalAlpha = this.alpha * normalAlpha * headBlendAlpha;
+        ctx.translate(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0));
 
-    ctx.translate(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0));
+        if (i === 0) {
+          const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
+          ctx.rotate(wiggle);
 
-    if (i === 0) {
-      const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
-      ctx.rotate(wiggle);
-      
-      let normalHeadFrame = frame;
-      
-      if (rt.active && !rt.emerged && rt.headAlphaNormal > 0.1) {
-        let openAmount;
-        
-        if (rt.headSwapProgress < 0.3) {
-          openAmount = rt.headSwapProgress / 0.3;
+          let normalHeadFrame = headFrame;
+          if (rt.active && !rt.emerged && rt.headAlphaNormal > 0.1) {
+            let openAmount;
+            if (rt.headSwapProgress < 0.3) {
+              openAmount = rt.headSwapProgress / 0.3;
+            } else {
+              openAmount = 1.0;
+            }
+            const frameIndex = Math.floor(openAmount * (WORM.FRAME_ATTACK_END - WORM.FRAME_ATTACK_START + 1));
+            normalHeadFrame = WORM.FRAME_ATTACK_START + Math.min(frameIndex, WORM.FRAME_ATTACK_END - WORM.FRAME_ATTACK_START);
+            ctx.scale(1 + openAmount * 0.3, 1 - openAmount * 0.3);
+          } else if (headFrame >= WORM.FRAME_ATTACK_START) {
+            ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
+          }
+          if (this.spriteLoaded && this.frameWidth > 0) {
+            ctx.drawImage(this.sprite, normalHeadFrame * this.frameWidth, 0,
+              this.frameWidth, this.sprite.height,
+              -size / 2, -size / 2, size, size);
+          }
+
         } else {
-          openAmount = 1.0;
+          const bodyFrame = (i === WORM.NUM_SEGMENTS - 1) ? WORM.FRAME_TAIL : WORM.FRAME_SEGMENT;
+          const prev = this.segments[i - 1];
+          ctx.rotate(Math.atan2(prev.screenY - seg.screenY, prev.screenX - seg.screenX) - Math.PI / 2);
+          if (seg.flashTimer > 0) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.6 * normalAlpha * headBlendAlpha;
+          }
+          if (this.spriteLoaded && this.frameWidth > 0) {
+            ctx.drawImage(this.sprite, bodyFrame * this.frameWidth, 0,
+              this.frameWidth, this.sprite.height,
+              -size / 2, -size / 2, size, size);
+          } else {
+            const colors = ['#ff00aa', '#cc00ff', '#8800cc'];
+            ctx.fillStyle = colors[bodyFrame] || '#ff00aa';
+            ctx.beginPath();
+            ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
-        
-        const frameIndex = Math.floor(openAmount * (WORM.FRAME_ATTACK_END - WORM.FRAME_ATTACK_START + 1));
-        normalHeadFrame = WORM.FRAME_ATTACK_START + Math.min(frameIndex, WORM.FRAME_ATTACK_END - WORM.FRAME_ATTACK_START);
-        
-        const stretchX = 1 + openAmount * 0.3; // TESTING
-        const stretchY = 1 - openAmount * 0.3; // TESTING
-        ctx.scale(stretchX, stretchY);
-        
-      } else if (frame >= WORM.FRAME_ATTACK_START) {
-        ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
-      }
-      
-      if (this.spriteLoaded && this.frameWidth > 0) {
-        ctx.drawImage(this.sprite, normalHeadFrame * this.frameWidth, 0, 
-          this.frameWidth, this.sprite.height,
-          -size / 2, -size / 2, size, size);
-      }
-    } else {
-      const prev = this.segments[i - 1];
-      const dx = prev.screenX - seg.screenX;
-      const dy = prev.screenY - seg.screenY;
-      ctx.rotate(Math.atan2(dy, dx) - Math.PI / 2);
-      
-      if (seg.flashTimer > 0) {
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.6 * normalAlpha * headBlendAlpha;
+        ctx.restore();
       }
 
-      if (this.spriteLoaded && this.frameWidth > 0) {
-        ctx.drawImage(this.sprite, frame * this.frameWidth, 0, this.frameWidth, this.sprite.height,
-          -size / 2, -size / 2, size, size);
-      } else {
-        const colors = ['#ff00aa', '#cc00ff', '#8800cc'];
-        ctx.fillStyle = colors[frame] || '#ff00aa';
+      // ── APPROACH TINT ──
+      const tintStrength = (1 - Math.min(1, this.alpha * 3)) * 0.85;
+      if (tintStrength > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = tintStrength;
+        ctx.fillStyle   = '#000000';
         ctx.beginPath();
-        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+        ctx.arc(seg.screenX + (seg.rippleX || 0), seg.screenY + (seg.rippleY || 0),
+          size * 0.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
       }
     }
-    ctx.restore(); 
-  }
 
-      // ── RAGE SEGMENT ──
-      if (rageAlpha > 0.01 && rageSprite && rageFrameW > 0) {
-        
+    // ── SLIME DRIPS —  ──
+    if (rt.active && rt.drips.length > 0) {
+      ctx.save();
+      ctx.shadowColor = '#990000';
+      ctx.shadowBlur  = 5;
+      for (const d of rt.drips) {
+        const t     = Math.max(0, 1 - d.life / d.maxLife);
+        const alpha = Math.max(0, (1 - t * 1.05)) * 0.88 * this.alpha;
+        if (alpha < 0.01) continue;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle   = '#5a0000';
+        ctx.beginPath();
+        ctx.ellipse(d.x, d.y, d.size * 0.55, d.size * (1 + t * 0.8), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PASS 2: RAGE WORM — tail → head, drawn above ALL normal segments
+    // Rage body segments now correctly layer on top of the normal worm's head.
+    // ════════════════════════════════════════════════════════════════════════
+    if (rageSprite && rageFrameW > 0) {
+      for (let i = WORM.NUM_SEGMENTS - 1; i >= 0; i--) {
+        const seg = this.segments[i];
+        if (seg.isDead) continue;
+        const size = seg.drawSize;
+        if (size < 1) continue;
+
+        const rageAlpha = (rt.active && i < rt.segCount)
+          ? rt.rageAlphas[i]
+          : (rt.emerged && this.isRaging ? 1.0 : 0.0);
+        if (rageAlpha <= 0.01) continue;
+
         const headBlendAlpha = (i === 0 && rt.active) ? rt.headAlphaRage : 1.0;
-        
-        // Debug log for rage head
-        if (i === 0 && rt.active && !rt.emerged) {
-          // console.log(`Rage: alpha=${rageAlpha.toFixed(2)}, blend=${rt.headAlphaRage.toFixed(2)}, total=${(this.alpha * rageAlpha * rt.headAlphaRage).toFixed(2)}`);
+        const rsx = (rt.active && i < rt.segCount) ? rt.rageSegs[i].screenX : seg.screenX;
+        const rsy = (rt.active && i < rt.segCount) ? rt.rageSegs[i].screenY : seg.screenY;
+
+        // PER-SEGMENT RAGE FRAME
+        let rageFrame;
+        if (i === 0) {
+          rageFrame = rt.emerged
+            ? ((headFrame >= WORM.FRAME_ATTACK_START) ? headFrame : WORM.FRAME_HEAD)
+            : WORM.FRAME_HEAD;
+        } else {
+          rageFrame = (i === WORM.NUM_SEGMENTS - 1) ? WORM.FRAME_TAIL : WORM.FRAME_SEGMENT;
         }
-        
+
         // ── CHROMATIC FRINGE ──
         if (rageAlpha < 0.6) {
           const fringeA = (0.6 - rageAlpha) / 0.6 * 0.35 * this.alpha * headBlendAlpha;
@@ -1313,13 +1343,12 @@ export class WormBoss {
             ctx.globalAlpha = fringeA;
             ctx.translate(rsx, rsy);
             if (i === 0) {
-              const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
-              ctx.rotate(wiggle);
-            } else if (i < rt.segCount) {
-              const rprev = rt.rageSegs[i - 1];
+              ctx.rotate(Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08);
+            } else {
+              const rprev = (rt.active && i < rt.segCount) ? rt.rageSegs[i - 1] : this.segments[i - 1];
               ctx.rotate(Math.atan2(rprev.screenY - rsy, rprev.screenX - rsx) - Math.PI / 2);
             }
-            ctx.drawImage(rageSprite, frame * rageFrameW, 0, rageFrameW, rageSprite.height,
+            ctx.drawImage(rageSprite, rageFrame * rageFrameW, 0, rageFrameW, rageSprite.height,
               -size / 2 - 5, -size / 2, size, size);
             ctx.restore();
           }
@@ -1329,40 +1358,26 @@ export class WormBoss {
         ctx.save();
         ctx.globalAlpha = this.alpha * rageAlpha * headBlendAlpha;
         ctx.translate(rsx, rsy);
-        
         if (i === 0) {
-          const wiggle = Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08;
-          ctx.rotate(wiggle);
-          
-          let rageHeadFrame;
-          
-          if (rt.emerged) {
-            rageHeadFrame = (frame >= WORM.FRAME_ATTACK_START) ? frame : WORM.FRAME_HEAD;
-            if (frame >= WORM.FRAME_ATTACK_START) {
-              ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
-            }
-          } else {
-            rageHeadFrame = WORM.FRAME_HEAD;
+          ctx.rotate(Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08);
+          if (headFrame >= WORM.FRAME_ATTACK_START && rt.emerged) {
+            ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
           }
-          
-          ctx.drawImage(rageSprite, rageHeadFrame * rageFrameW, 0, rageFrameW, rageSprite.height,
-            -size / 2, -size / 2, size, size);
-          } else if (i < WORM.NUM_SEGMENTS) {
-            const rprev = rt.active ? rt.rageSegs[i - 1] : this.segments[i - 1];
-            ctx.rotate(Math.atan2(rprev.screenY - rsy, rprev.screenX - rsx) - Math.PI / 2);
-          
+        } else {
+          const rprev = (rt.active && i < rt.segCount) ? rt.rageSegs[i - 1] : this.segments[i - 1];
+          ctx.rotate(Math.atan2(rprev.screenY - rsy, rprev.screenX - rsx) - Math.PI / 2);
           if (seg.flashTimer > 0) {
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = 0.6 * rageAlpha * headBlendAlpha;
           }
-          
-          ctx.drawImage(rageSprite, frame * rageFrameW, 0, rageFrameW, rageSprite.height,
-            -size / 2, -size / 2, size, size);
         }
+        ctx.drawImage(rageSprite, rageFrame * rageFrameW, 0, rageFrameW, rageSprite.height,
+          -size / 2, -size / 2, size, size);
         ctx.restore();
 
         // ── WET SPECULAR SHEEN ──
-        const shineA = (0.11 + Math.sin(rt.shinePulse + i * 0.55) * 0.07) * rageAlpha * this.alpha * headBlendAlpha;
+        const shineA = (0.11 + Math.sin(rt.shinePulse + i * 0.55) * 0.07)
+          * rageAlpha * this.alpha * headBlendAlpha;
         if (shineA > 0.005) {
           ctx.save();
           ctx.globalCompositeOperation = 'screen';
@@ -1370,9 +1385,9 @@ export class WormBoss {
             rsx - size * 0.17, rsy - size * 0.22, size * 0.03,
             rsx + size * 0.05, rsy + size * 0.05, size * 0.55
           );
-          shineGrad.addColorStop(0, `rgba(255, 245, 230, ${shineA})`);
-          shineGrad.addColorStop(0.35, `rgba(230, 110, 80, ${shineA * 0.4})`);
-          shineGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          shineGrad.addColorStop(0,    `rgba(255, 245, 230, ${shineA})`);
+          shineGrad.addColorStop(0.35, `rgba(230, 110, 80,  ${shineA * 0.4})`);
+          shineGrad.addColorStop(1,    'rgba(0, 0, 0, 0)');
           ctx.fillStyle = shineGrad;
           ctx.beginPath();
           ctx.arc(rsx, rsy, size * 0.55, 0, Math.PI * 2);
@@ -1380,16 +1395,17 @@ export class WormBoss {
           ctx.restore();
         }
 
-        // ── EMERGENCE GLOW ──
-        if (i === rt.segCount - 1 && !rt.emerged) {
-          const pulseG = (0.28 + Math.sin(rt.shinePulse * 4.5) * 0.18) * rageAlpha * this.alpha * headBlendAlpha;
+        // ── EMERGENCE GLOW — frontier segment only ──
+        if (rt.active && i === rt.segCount - 1 && !rt.emerged) {
+          const pulseG = (0.28 + Math.sin(rt.shinePulse * 4.5) * 0.18)
+            * rageAlpha * this.alpha * headBlendAlpha;
           if (pulseG > 0.01) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             const eGrad = ctx.createRadialGradient(rsx, rsy, 0, rsx, rsy, size * 1.4);
-            eGrad.addColorStop(0, `rgba(255, 55, 10, ${pulseG})`);
-            eGrad.addColorStop(0.4, `rgba(160, 8, 0, ${pulseG * 0.45})`);
-            eGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            eGrad.addColorStop(0,   `rgba(255, 55, 10, ${pulseG})`);
+            eGrad.addColorStop(0.4, `rgba(160, 8, 0,   ${pulseG * 0.45})`);
+            eGrad.addColorStop(1,   'rgba(0, 0, 0, 0)');
             ctx.fillStyle = eGrad;
             ctx.beginPath();
             ctx.arc(rsx, rsy, size * 1.4, 0, Math.PI * 2);
@@ -1398,40 +1414,6 @@ export class WormBoss {
           }
         }
       }
-
-      // ── APPROACH TINT OVERLAY ──
-      const tintStrength = (1 - Math.min(1, this.alpha * 3)) * 0.85;
-      if (tintStrength > 0.01) {
-        ctx.save();
-        ctx.globalAlpha = tintStrength;
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(
-          seg.screenX + (seg.rippleX || 0),
-          seg.screenY + (seg.rippleY || 0),
-          size * 0.5, 0, Math.PI * 2
-        );
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-
-    // ── SLIME DRIPS ──
-    if (rt.active && rt.drips.length > 0) {
-      ctx.save();
-      ctx.shadowColor = '#990000';
-      ctx.shadowBlur = 5;
-      for (const d of rt.drips) {
-        const t = Math.max(0, 1 - d.life / d.maxLife);
-        const alpha = Math.max(0, (1 - t * 1.05)) * 0.88 * this.alpha;
-        if (alpha < 0.01) continue;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = '#5a0000';
-        ctx.beginPath();
-        ctx.ellipse(d.x, d.y, d.size * 0.55, d.size * (1 + t * 0.8), 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
     }
 
     ctx.restore();
