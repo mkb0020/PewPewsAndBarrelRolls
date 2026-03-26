@@ -1,4 +1,4 @@
-// Updated 3/22/26 @ 10pm
+// Updated 3/26/26 @ 5pm
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -118,7 +118,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10, //  TESTING
+        HEALTH: 7, //  TESTING
         SCORE: 10,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
@@ -136,7 +136,7 @@ export const CONFIG = {
         SPEED: 120,
         COLOR: '#FF0000',
         GLOW_COLOR: '#b444a3',
-        HEALTH: 11,
+        HEALTH: 9,
         SCORE: 20,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 11,
@@ -154,7 +154,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 14,
+        HEALTH: 10,
         SCORE: 50,
 
         SPRITE_FRAMES: 6,      
@@ -197,7 +197,7 @@ export const CONFIG = {
         SPEED: 90,
         COLOR: '#FF0000',
         GLOW_COLOR: '#7097eb',
-        HEALTH: 12,
+        HEALTH: 8,
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 70,
         ZIGZAG_FREQUENCY: 2,
@@ -242,7 +242,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#6786c9',
-        HEALTH: 15,
+        HEALTH: 10,
         SCORE: 50,
 
         SPRITE_FRAMES: 6,  
@@ -442,7 +442,7 @@ export const CONFIG = {
     SHARD_MIN:       3,     
     SHARD_MAX:       5,     
     PUPIL_RADIUS:   68,     
-    PUPIL_HEALTH:    3,     
+    PUPIL_HEALTH:    5,     
     ICHOR_COUNT:    55,     
     PUPIL_HIT_SCORE: 25,    
     PUPIL_KILL_SCORE: 200,  
@@ -474,7 +474,7 @@ export const CONFIG = {
     HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
-    HEALTH:            7,        // TEMPORARY FOR  TESTING
+    HEALTH:            5,        // TEMPORARY FOR  TESTING
 
     FIRST_SPAWN_DELAY_MIN: 10,   // TEMPORARY FOR  TESTING  
     FIRST_SPAWN_DELAY_MAX: 15,   // TEMPORARY FOR  TESTING  
@@ -557,7 +557,7 @@ export const CONFIG = {
     SEED_SPREAD_CELLS:     15,     // SCATTER RADIUS AROUND MOUTH (CELLS)
 
     ATTACK_DURATION:       5,    
-    SUCCESS_FADE_DURATION: 1,
+    SUCCESS_FADE_DURATION: 0.5,
     COLLAPSE_BURST_COUNT:  75,
     SUCCESS_BURST_COUNT:   120,   
 

@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 4:30PM
+// Updated 3/26/26 @ 5PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';

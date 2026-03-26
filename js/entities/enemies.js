@@ -1,4 +1,4 @@
-// Updated 3/22/26 @ 10PM
+// Updated 3/26/26 @ 5PM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -216,7 +216,7 @@ export class Enemy {
 
     //  PHASE: APPROACH
     if (this.phase === 'APPROACH') {
-      const moveSpeed = 0.3; // TESTING TO SEE IF THIS ALLOWS ENEMIES A CHANCE TO FIRE SPECIAL ATTACKS
+      const moveSpeed = 0.35; // TESTING TO SEE IF THIS ALLOWS ENEMIES A CHANCE TO FIRE SPECIAL ATTACKS
       this.curveProgress -= moveSpeed * dt;
       if (this.curveProgress < 0) this.curveProgress += 1;
       if (this.curveProgress > 1) this.curveProgress -= 1;
