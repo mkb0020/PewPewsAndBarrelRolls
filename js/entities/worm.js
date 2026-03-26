@@ -1,8 +1,5 @@
-// Updated 3/25/26 @ 7pm
+// Updated 3/26/26 @ 10AM
 // WORM.JS
-
-// TO-DO:  scale rage worm head smaller when it first appears and then lerp it to normal size  (reaching normal size at the end of the pop)
-
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
 import { ImageLoader } from '../utils/imageLoader.js';
@@ -73,7 +70,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           300, // NOT FINALIZED
+  HEALTH:           50, // For Testing
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
   RAGE_TRIGGER_THRESHOLD: 0.3,
@@ -1190,11 +1187,7 @@ export class WormBoss {
       headFrame = WORM.FRAME_HEAD;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // PASS 1: NORMAL WORM — tail → head
-    // Drawing all normal segments first ensures the rage body segments in pass 2
-    // are layered ON TOP of the normal head (not behind it).
-    // ════════════════════════════════════════════════════════════════════════
+    // PASS 1: NORMAL WORM — TAIL → HEAD, DRAWING ALL NORMAL SEGMENTS FIRST SO RAGE WORM IS LAYERED ON TOP
     for (let i = WORM.NUM_SEGMENTS - 1; i >= 0; i--) {
       const seg = this.segments[i];
       if (seg.isDead) continue;
@@ -1203,7 +1196,7 @@ export class WormBoss {
 
       const normalAlpha = rt.active ? rt.normalAlphas[i] : (this.isRaging ? 0.0 : 1.0);
 
-      // ── CAVITY VOID — darkens interior as normal segment fades out ──
+      // ── CAVITY VOID ──
       if (rt.active && normalAlpha < 0.85 && normalAlpha > 0) {
         const cavityA = (0.85 - normalAlpha) / 0.85 * 0.72 * this.alpha;
         if (cavityA > 0.01) {
@@ -1304,10 +1297,7 @@ export class WormBoss {
       ctx.restore();
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // PASS 2: RAGE WORM — tail → head, drawn above ALL normal segments
-    // Rage body segments now correctly layer on top of the normal worm's head.
-    // ════════════════════════════════════════════════════════════════════════
+    // PASS 2: RAGE WORM — TAIL → HEAD, DRAWN ABOVE ALL NORMAL SEGMENTS
     if (rageSprite && rageFrameW > 0) {
       for (let i = WORM.NUM_SEGMENTS - 1; i >= 0; i--) {
         const seg = this.segments[i];
@@ -1358,9 +1348,16 @@ export class WormBoss {
         ctx.save();
         ctx.globalAlpha = this.alpha * rageAlpha * headBlendAlpha;
         ctx.translate(rsx, rsy);
+
+
         if (i === 0) {
           ctx.rotate(Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08);
-          if (headFrame >= WORM.FRAME_ATTACK_START && rt.emerged) {
+          if (rt.active && !rt.emerged) {
+            // SCALE UP FROM SMALL AS THE HEAD POPS OUT — STARTS AT 30%, REACHES 100% WHEN POP COMPLETES
+            const eased = rt.headSwapProgress * rt.headSwapProgress * (3 - 2 * rt.headSwapProgress); // SMOOTHSTEP
+            const rageHeadScale = 0.30 + eased * 0.70;
+            ctx.scale(rageHeadScale, rageHeadScale);
+          } else if (headFrame >= WORM.FRAME_ATTACK_START && rt.emerged) {
             ctx.scale(WORM.ATTACK_HEAD_SCALE, WORM.ATTACK_HEAD_SCALE);
           }
         } else {
@@ -1395,7 +1392,7 @@ export class WormBoss {
           ctx.restore();
         }
 
-        // ── EMERGENCE GLOW — frontier segment only ──
+        // ── EMERGENCE GLOW  ──
         if (rt.active && i === rt.segCount - 1 && !rt.emerged) {
           const pulseG = (0.28 + Math.sin(rt.shinePulse * 4.5) * 0.18)
             * rageAlpha * this.alpha * headBlendAlpha;
