@@ -1,4 +1,4 @@
-// Updated 3/24/26 @ 2AM
+// Updated 3/26/2026 @ 4:30PM
 // imageLoader.js
 
 const BASE_PATH = './images/';
@@ -37,6 +37,7 @@ const MANIFEST = {
 
   spaceWhale:  { path: 'spaceWhale.png'      }, // 12 FRAMES
   whaleTail:   { path: 'whaleTail.png'      }, // 1 FRAME
+  larva: { path: 'larva.png', lazy: true }, // FRAMES 1-4 = WIGGLING, FRAMES 5-11 = POPPING
   };
 
 

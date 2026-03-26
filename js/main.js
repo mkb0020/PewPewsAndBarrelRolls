@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 10AM
+// Updated 3/26/26 @ 4:30PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -810,6 +810,7 @@ function gameLoop() {
   projectileManager.draw(ctx); // ALWAYS DRAW — EXPLOSIONS MUST SURVIVE INTO CLOSING SCENE
   if (!closingScene.isActive()) {
     wormBoss.draw(ctx);
+    bossBattleScene.drawLarvae(ctx);
     bossBattleScene.drawCellular(ctx); // 🧬 CELLULAR INFECTION — ABOVE WORM, BELOW EVERYTHING ELSE
     babyWormManager.draw(ctx);
     crosshair.draw(ctx);

@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 10AM
+// Updated 3/26/26 @ 4:30PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -6,6 +6,92 @@ import { ImageLoader } from '../utils/imageLoader.js';
 import { CellularAttack } from '../entities/cellularAttack.js';
 import { SessionRecorder } from '../temp/devTools.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ── LARVA SYSTEM ─────────────────────────────────────────────────────────────
+const LARVA = {
+  TOTAL_FRAMES: 11, WIGGLE_START_FRAME: 0, WIGGLE_FRAMES_COUNT: 4,
+  EXPLODE_FRAMES_COUNT: 7, WIGGLE_FRAME_DUR: 0.12, EXPLODE_FRAME_DUR: 0.085,
+  BASE_WIGGLE_DURATION: 8.0, STAGGER_MIN: -0.35, STAGGER_MAX: 0.65,
+  FADE_IN_DURATION: 0.75, COUNT: 30, MIN_SCALE: 0.18, MAX_SCALE: 0.38,
+  OUTWARD_SPEED: 40, SPAWN_RADIUS: 15,
+};
+
+class LarvaSystem {
+  constructor() { this._larvae = []; this._active = false; }
+
+  spawn(screenX, screenY) {
+    const sprite = ImageLoader.get('larva');
+    if (!sprite) return;
+    const fw = sprite.width / LARVA.TOTAL_FRAMES;
+    const fh = sprite.height;
+    const now = performance.now();
+    this._larvae = [];
+    this._active = true;
+    for (let i = 0; i < LARVA.COUNT; i++) {
+      const scale   = LARVA.MIN_SCALE + Math.random() * (LARVA.MAX_SCALE - LARVA.MIN_SCALE);
+      const angle   = Math.random() * Math.PI * 2;
+      const oAngle  = Math.random() * Math.PI * 2;
+      const oRad    = Math.random() * LARVA.SPAWN_RADIUS;
+      const stagger = LARVA.STAGGER_MIN + Math.random() * (LARVA.STAGGER_MAX - LARVA.STAGGER_MIN);
+      this._larvae.push({
+        x: screenX + Math.cos(oAngle) * oRad - fw * scale / 2,
+        y: screenY + Math.sin(oAngle) * oRad - fh * scale / 2,
+        vx: Math.cos(angle) * LARVA.OUTWARD_SPEED,
+        vy: Math.sin(angle) * LARVA.OUTWARD_SPEED,
+        scale, angle, creationTime: now, stagger,
+        explosionStartTime: now + (LARVA.BASE_WIGGLE_DURATION + stagger) * 1000,
+        phase: 'wiggle', explosionFrameStart: null, active: true,
+      });
+    }
+  }
+
+  update(dt) {
+    if (!this._active) return;
+    const now = performance.now();
+    for (const l of this._larvae) {
+      if (!l.active) continue;
+      l.x += l.vx * dt;
+      l.y += l.vy * dt;
+      if (l.phase === 'wiggle' && now >= l.explosionStartTime) {
+        l.phase = 'explode';
+        l.explosionFrameStart = l.explosionStartTime;
+      }
+    }
+    this._larvae = this._larvae.filter(l => l.active);
+    if (!this._larvae.length) this._active = false;
+  }
+
+  draw(ctx) {
+    if (!this._active) return;
+    const sprite = ImageLoader.get('larva');
+    if (!sprite) return;
+    const fw  = sprite.width / LARVA.TOTAL_FRAMES;
+    const fh  = sprite.height;
+    const now = performance.now();
+    for (const l of this._larvae) {
+      if (!l.active) continue;
+      let fi;
+      if (l.phase === 'wiggle') {
+        fi = (Math.floor((now - l.creationTime) / 1000 / LARVA.WIGGLE_FRAME_DUR) % LARVA.WIGGLE_FRAMES_COUNT) + LARVA.WIGGLE_START_FRAME;
+      } else {
+        fi = Math.floor((now - l.explosionFrameStart) / 1000 / LARVA.EXPLODE_FRAME_DUR);
+        if (fi >= LARVA.EXPLODE_FRAMES_COUNT) { l.active = false; continue; }
+        fi += LARVA.WIGGLE_FRAMES_COUNT;
+      }
+      const alpha = Math.min(1, (now - l.creationTime) / 1000 / LARVA.FADE_IN_DURATION);
+      const dw = fw * l.scale, dh = fh * l.scale;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(l.x + dw / 2, l.y + dh / 2);
+      ctx.rotate(l.angle);
+      ctx.drawImage(sprite, fi * fw, 0, fw, fh, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
+    }
+  }
+
+  clear() { this._larvae = []; this._active = false; }
+}
+
+
 export class BossBattleScene {
 
   constructor({ wormBoss, babyWormManager, audio, scoreManager, projectileManager, transitionScene, singularityBombManager, tunnel }) {
@@ -34,6 +120,8 @@ export class BossBattleScene {
     //  WORMHOLE GAME OVER STATE
     this._wormholeActive = false;
     this._vortex         = null;
+
+    this._larvaSystem = new LarvaSystem();
 
     //  DOM REFS — BOSS HEALTH BAR 
     this._bossBarFill      = document.getElementById('boss-bar-fill');
@@ -84,6 +172,7 @@ export class BossBattleScene {
 
     // VORTEX UPDATE — DRIVES THREE.JS RENDER EACH FRAME AFTER SHIP IS CONSUMED
     this._vortex?.update(dt);
+    this._larvaSystem.update(dt);
   }
 
   /**
@@ -188,6 +277,7 @@ export class BossBattleScene {
     this.rageStarted        = false;
     if (ship) ship._cellularDistortActive = false; // ENSURE FLAG IS CLEARED ON HARD RESET
     this.cellularAttack.reset();
+    this._larvaSystem.clear();
     this.tunnel.resetRage();
     this.tunnel.resetBossTransition();
     this.wormBoss.isRaging = false;
@@ -396,6 +486,8 @@ export class BossBattleScene {
     };
   }
 
+drawLarvae(ctx) { this._larvaSystem.draw(ctx); }
+
 enterRageSequence() {  
   if (this.rageStarted) return;
   this.rageStarted = true; 
@@ -414,6 +506,10 @@ enterRageSequence() {
     this.tunnel.setRageBlackout(1.0);
     this.wormBoss.freeze = false;
     this.tunnel.setRageCrumble(0.25);
+    ImageLoader.load('larva').then(() => {
+      const head = this.wormBoss.segments[0];
+      this._larvaSystem.spawn(head.screenX, head.screenY);
+    });
   }, 2667);
 
   // BAR 4 / THE DROP (10.667s = 4 bars @ 90BPM) — TRANSFORMATION COMPLETE, SUCTION ATTACK FIRES
@@ -438,11 +534,12 @@ enterRageSequence() {
         this.audio.playWarning();
       }
 
-      // FULLY CONSUMED — INSTANT KILL
-      if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE
-          && ship.isAlive && !ship.isInvincible) {
-        ship.takeDamage(ship.maxHP);
-      }
+    // FULLY CONSUMED — INSTANT KILL (VICTORY OVERRIDES — DON'T TRIGGER IF WORM IS ALREADY DYING)
+    if (ship.getSuctionScale() < CONFIG.SHIP_HP.SUCTION_DEATH_SCALE
+        && ship.isAlive && !ship.isInvincible
+        && !this.wormBoss.isDying && !this.wormBoss.isDead) {
+      ship.takeDamage(ship.maxHP);
+    }
     } else {
       if (!ship.consumedMode) ship.clearSuction();
       this._warningSounded = false;
