@@ -1,4 +1,4 @@
-// Updated 3/22/26 @ 10pm
+// Updated 3/26/26 @ 10AM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -285,6 +285,12 @@ wormBoss.onDeath = () => {
   SessionRecorder.log('boss_battle_end');
   audio.stopMusic();
   ship.exitCinematic();
+  // HARD-CLEAR SUCTION STATE — PREVENTS SCALED-DOWN SHIP CARRYING INTO CLOSING SCENE
+  // IF THE PLAYER LANDS THE KILLING BLOW DURING AN ACTIVE SUCTION ATTACK
+  ship.suctionScale  = 1.0;
+  ship.suctionActive = false;
+  ship.suctionShakeX = 0;
+  ship.suctionShakeY = 0;
   document.querySelectorAll('#hud, #hp-container, #lives-container, #boss-health-container, #wave-hud, #ui-buttons, #bomb-container')
     .forEach(el => el.classList.add('pre-game-hidden'));
   const rawScore = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';

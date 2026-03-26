@@ -1,4 +1,4 @@
-// Updated 3/25/26 @1PM
+// Updated 3/26/26 @ 10AM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -218,6 +218,12 @@ export class BossBattleScene {
     this.audio.stopMusic();
     this.audio.playGameOver2();
     if (this.singularityBombManager) this.singularityBombManager.deployEnabled = false;
+
+    // HARD-CLEAR CELLULAR DISTORT — PREVENTS REVERSED CONTROLS, INVERTED SHIP COLORS,
+    // AND MAGENTA TRACERS FROM CARRYING OVER INTO THE WORMHOLE VORTEX SCENE
+    ship._cellularDistortActive = false;
+    this._distortTimer          = 0;
+    this.cellularAttack.reset();
 
     this.wormBoss.forceSuction(); // FORCE WORM INTO SUCTION VISUALS
 
