@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 4:30PM
+// Updated 3/27/26 @ 1am
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -610,6 +610,16 @@ window.addEventListener('resize', () => {
   gameCanvas.height = window.innerHeight;
   ship.handleResize();
   crosshair.handleResize();
+});
+
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    tunnel.handleResize();
+    gameCanvas.width  = window.innerWidth;
+    gameCanvas.height = window.innerHeight;
+    ship.handleResize();
+    crosshair.handleResize();
+  }, 300);
 });
 
 // ==================== GAME LOOP ====================
