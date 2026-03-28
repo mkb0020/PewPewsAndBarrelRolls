@@ -1,4 +1,4 @@
-// Updated 3/27/26 @ 1am
+// Updated 3/28/26 @ 4am
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -799,8 +799,19 @@ function gameLoop() {
 
     // ENEMY LASER vs SHIP
     if (ship.isAlive && !ship.isInvincible) {
-      const laserDamage = enemyManager.checkLaserHits(ship.x, ship.y, ship.isBarrelRolling);
-      if (laserDamage > 0) { ship.takeDamage(laserDamage); audio.playOuch(); }
+        const result = enemyManager.checkLaserHits(ship.x, ship.y, ship.isBarrelRolling);
+        if (result.damage > 0) { // NORMAL HIT = DAMAGE
+            ship.takeDamage(result.damage);
+            audio.playOuch();
+        }
+        for (const def of result.deflected) { // BARREL ROLL DEFLECT + SPARKLING PRISM RICOCHET
+            projectileManager.createPrismRicochet(
+                def.x,
+                def.y,
+                def.dirX,
+                def.dirY
+            );
+        }
     }
   }
 

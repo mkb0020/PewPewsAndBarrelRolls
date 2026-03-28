@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 2am
+// Updated 3/28/26 @ 5am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -726,26 +726,38 @@ export class EnemyManager {
     }
   }
 
-  checkLaserHits(shipX, shipY, isBarrelRolling = false) {  // CHECK ALL ENEMY LASERS V SHIP - RETURNS TOTAL DAMAGE DEALT THIS FRAME /  BARREL ROLL DEFLECTS LASERS STAR-FOX-64 STYLE — LARGER RADIUS, ZERO DAMAGE / BARREL ROLL HIT BUBBLE IS ~2× NORMAL
-    const DEFLECT_RADIUS_MULT = 2.2;  
+checkLaserHits(shipX, shipY, isBarrelRolling = false) {
+    // CHECK ALL ENEMY LASERS V SHIP - RETURNS TOTAL DAMAGE + DEFLECTED LASERS
+    const DEFLECT_RADIUS_MULT = 2.2;
     let totalDamage = 0;
+    const deflected = [];   // ← FOR BARREL ROLL PRISM EFFECT
+
     for (let i = this.lasers.length - 1; i >= 0; i--) {
-      const laser = this.lasers[i];
-      if (isBarrelRolling) {
-        // DEFLECT — DESTROY LASER IF IT ENTERS THE ROLL BUBBLE, NO DAMAGE
-        const dx  = laser.x - shipX;
-        const dy  = laser.y - shipY;
-        const r   = CONFIG.ENEMY_LASER.HIT_RADIUS * DEFLECT_RADIUS_MULT;
-        if (dx * dx + dy * dy < r * r) {
-          this.lasers.splice(i, 1); // DEFLECTED — SILENTLY REMOVED (PROJECTILE EXPLOSION HANDLED IN main.js)
+        const laser = this.lasers[i];
+
+        if (isBarrelRolling) {
+            const dx = laser.x - shipX;
+            const dy = laser.y - shipY;
+            const r  = CONFIG.ENEMY_LASER.HIT_RADIUS * DEFLECT_RADIUS_MULT;
+
+            if (dx * dx + dy * dy < r * r) {
+                // DEFLECTED!
+                deflected.push({
+                    x:    laser.x,
+                    y:    laser.y,
+                    dirX: laser.dirX ?? laser.vx ?? 1,   // FALLBACK
+                    dirY: laser.dirY ?? laser.vy ?? 0
+                });
+                this.lasers.splice(i, 1);
+            }
+        } else if (laser.checkShipHit(shipX, shipY)) {
+            totalDamage += CONFIG.ENEMY_LASER.DAMAGE;
+            this.lasers.splice(i, 1);
         }
-      } else if (laser.checkShipHit(shipX, shipY)) {
-        totalDamage += CONFIG.ENEMY_LASER.DAMAGE;
-        this.lasers.splice(i, 1);
-      }
     }
-    return totalDamage;
-  }
+
+    return { damage: totalDamage, deflected };   // ← CHANGED RETURN
+}
  
   checkCollisions(shipX, shipY) {  // CHECK ALL ENEMIES FOR BODY COLLISION WITH SHIP - RETURNS TOTAL DAMAGE DEALT THIS FRAME
     let totalDamage = 0;

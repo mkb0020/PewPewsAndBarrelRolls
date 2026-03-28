@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 1:3AM
+// Updated 3/28/26 @ 5AM
 // projectiles.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -306,6 +306,7 @@ export class ProjectileManager {
     this.projectiles = [];
     this.explosions  = [];
     this.explosionSmoke = new ExplosionSmokeSystem();
+    this.prismRicochets = new PrismRicochetSystem(); // BARREL ROLL DEFLECT 
     this._boostHue   = 0;  
   }
 
@@ -327,6 +328,10 @@ export class ProjectileManager {
     this.explosions.push(new Explosion(x, y, type));
   }
 
+  createPrismRicochet(hitX, hitY, laserDirX, laserDirY) {
+    this.prismRicochets.burst(hitX, hitY, laserDirX || 0, laserDirY || 0);
+  }
+
   update(dt) {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       this.projectiles[i].update(dt);
@@ -337,12 +342,14 @@ export class ProjectileManager {
       if (this.explosions[i].isDead) this.explosions.splice(i, 1);
     }
     this.explosionSmoke.update(dt);
+    this.prismRicochets.update(dt); // BARREL ROLL DEFLECT
   }
 
   draw(ctx) {
     for (const p of this.projectiles) p.draw(ctx);
     for (const e of this.explosions)  e.draw(ctx);
     this.explosionSmoke.draw(ctx); 
+    this.prismRicochets.draw(ctx); //  BARREL ROLL DEFLECT
   }
 
   getProjectiles()          { return this.projectiles; }
@@ -350,7 +357,7 @@ export class ProjectileManager {
     const i = this.projectiles.indexOf(projectile);
     if (i > -1) this.projectiles.splice(i, 1);
   }
-  clear() { this.projectiles = []; this.explosions = []; this.explosionSmoke.clear();}
+  clear() { this.projectiles = []; this.explosions = []; this.explosionSmoke.clear(); this.prismRicochets.clear();}
 }
 
 // ======================= CROSSHAIR =======================
@@ -588,3 +595,140 @@ export class MuzzleFlash {
     ctx.restore();
   }
 }
+
+
+// ======================= PRISM RICOCHET (BARREL-ROLL DEFLECT) =======================
+  const PRISM_RICOCHET = {
+    COUNT:          18,
+    LIFE:           0.22,
+    SPEED_MIN:      280,
+    SPEED_MAX:      520,
+    FAN_ANGLE:      Math.PI * 120 / 180,
+    GLOW_ALPHA:     0.78,
+    TRAIL_LENGTH:   22,
+    SHARD_WIDTH:    3.5,
+
+    COLORS: [
+      [0,   100, 50],   // #FF0000  
+      [27,  96,  61],   // #fb923c  
+      [322, 81,  43]    // #c71585  
+    ]
+  };
+
+  const hueLerp = (h1, h2, t) => {
+    let diff = ((h2 - h1 + 180) % 360) - 180;
+    return (h1 + diff * t + 360) % 360;
+  };
+
+  class PrismRicochetParticle {
+    constructor(x, y, vx, vy, hue, sat, light) {
+      this.x = x; this.y = y;
+      this.prevX = x; this.prevY = y;
+      this.vx = vx;
+      this.vy = vy;
+      this.hue = hue;
+      this.sat = sat;
+      this.light = light;
+      this.life = PRISM_RICOCHET.LIFE;
+      this.maxLife = PRISM_RICOCHET.LIFE;
+      this.isDead = false;
+    }
+
+    update(dt) {
+      this.prevX = this.x;
+      this.prevY = this.y;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      this.life -= dt;
+      if (this.life <= 0) this.isDead = true;
+    }
+
+    draw(ctx) {
+      const alpha = this.life / this.maxLife;
+      const angle = Math.atan2(this.vy, this.vx);
+
+      ctx.save();
+
+      // LUMINOUS TRAIL 
+      ctx.globalAlpha = alpha * 0.65;
+      ctx.strokeStyle = `hsl(${this.hue}, ${this.sat}%, 88%)`;
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = `hsl(${this.hue}, 100%, 95%)`;
+      ctx.beginPath();
+      ctx.moveTo(this.prevX, this.prevY);
+      ctx.lineTo(this.x, this.y);
+      ctx.stroke();
+
+      // GLOWING PRISM SHARD 
+      ctx.globalAlpha = alpha * PRISM_RICOCHET.GLOW_ALPHA;
+      ctx.strokeStyle = `hsl(${this.hue}, ${this.sat}%, ${this.light}%)`;
+      ctx.lineWidth = PRISM_RICOCHET.SHARD_WIDTH;
+      ctx.shadowBlur = 9;
+      ctx.shadowColor = '#fff';
+      ctx.beginPath();
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(
+        this.x - Math.cos(angle) * PRISM_RICOCHET.TRAIL_LENGTH,
+        this.y - Math.sin(angle) * PRISM_RICOCHET.TRAIL_LENGTH
+      );
+      ctx.stroke();
+
+      // BRIGHT TIP
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = alpha * 0.95;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  class PrismRicochetSystem {
+    constructor() {
+      this.particles = [];
+    }
+
+    burst(x, y, incomingDirX, incomingDirY) {
+      const centerAngle = Math.atan2(incomingDirY, incomingDirX) + Math.PI;
+      const halfFan = PRISM_RICOCHET.FAN_ANGLE / 2;
+
+      for (let i = 0; i < PRISM_RICOCHET.COUNT; i++) {
+        const t = i / (PRISM_RICOCHET.COUNT - 1);
+        const offset = (t - 0.5) * PRISM_RICOCHET.FAN_ANGLE;
+        const ang = centerAngle + offset + (Math.random() * 0.15 - 0.075);
+
+        const speed = PRISM_RICOCHET.SPEED_MIN + Math.random() * (PRISM_RICOCHET.SPEED_MAX - PRISM_RICOCHET.SPEED_MIN);
+        const vx = Math.cos(ang) * speed;
+        const vy = Math.sin(ang) * speed;
+
+        const idx1 = Math.floor(Math.random() * 3);
+        const idx2 = Math.floor(Math.random() * 3);
+        const mix = Math.random();
+        const c1 = PRISM_RICOCHET.COLORS[idx1];
+        const c2 = PRISM_RICOCHET.COLORS[idx2];
+
+        const hue  = hueLerp(c1[0], c2[0], mix);
+        const sat  = Math.round(c1[1] + (c2[1] - c1[1]) * mix);
+        const light = Math.round(c1[2] + (c2[2] - c1[2]) * mix);
+
+        this.particles.push(new PrismRicochetParticle(x, y, vx, vy, hue, sat, light));
+      }
+    }
+
+    update(dt) {
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        this.particles[i].update(dt);
+        if (this.particles[i].isDead) this.particles.splice(i, 1);
+      }
+    }
+
+    draw(ctx) {
+      for (const p of this.particles) p.draw(ctx);
+    }
+
+    clear() { this.particles = []; }
+  }
