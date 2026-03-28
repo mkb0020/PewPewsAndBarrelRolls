@@ -1,4 +1,4 @@
-// Updated 3/22/26 @ 10PM
+// Updated 3/28/26 @ 1:30AM
 // scenes/closingScene.js
 import { ImageLoader } from '../utils/imageLoader.js';
 
@@ -26,40 +26,39 @@ const CREDITS_LINE_INTERVAL = 2.5;  // 7 LINES × 2.5s
 const CREDITS_FADE_EACH     = 2;
 const BACK_TO_MENU_DELAY    = 50;
 
-// ── SPACE WHALE CONFIG ────────────────────────────────────────────────────────
-const WHALE_APPEAR_TIME  = 2.5;    // SECONDS INTO CLOSING SCENE BEFORE WHALE FADES IN
-const WHALE_FADE_IN_SECS = 1.5;    // FADE-IN DURATION
-const WHALE_SPEED        = 55;     // px/s — CROSSES 1920PX SCREEN IN ~22s
-const WHALE_BASE_Y_FRAC  = 0.25;   // VERTICAL POSITION — BELOW CENTERED CREDITS TEXT
-const WHALE_BOB_AMP      = 7;      // px — VERTICAL SINE DRIFT AMPLITUDE
-const WHALE_BOB_FREQ     = 0.0015; // Hz — SAME AS ORIGINAL TEST (USES ms INTERNALLY)
-const WHALE_FRAME_COUNT  = 12;     // FRAMES IN spaceWhale.png SPRITE SHEET
-const WHALE_FRAME_DELAY  = 300;    // ms PER ANIMATION FRAME
-const WHALE_TAIL_SEGS    = 12;     // TAIL SEGMENT COUNT
-const WHALE_SEG_LEN      = 8;      // px BETWEEN TAIL SEGMENTS
-const WHALE_PREWARM_STEPS = 220;   // PHYSICS STEPS RUN BEFORE FIRST FRAME (SETTLES TAIL)
-const WHALE_TRAIL_MAX    = 40;     // TRAIL SNAPSHOTS — AT 60fps ≈ 0.83s HISTORY, ~1.4px APART
+// ── SPACE WHALE  ────────────────────────────────────────────────────────
+const WHALE_APPEAR_TIME   = 2.5;    // SECONDS INTO CLOSING SCENE BEFORE WHALE FADES IN
+const WHALE_FADE_IN_SECS  = 1.5;    // FADE-IN DURATION
+const WHALE_SPEED         = 50;     // px/s — CROSSES 1920PX SCREEN IN ~22s
+const WHALE_BASE_Y_FRAC   = 0.25;   // VERTICAL POSITION — BELOW CENTERED CREDITS TEXT
+const WHALE_BOB_AMP       = 6;      // px — VERTICAL SINE DRIFT AMPLITUDE
+const WHALE_BOB_FREQ      = 0.000133; // Hz (cycles/ms) — period = 1/freq ms // 0.00075 → ~1333ms | 0.0015 → ~667ms | 0.0005 → ~2000ms
+const WHALE_FRAME_COUNT   = 12;     // FRAMES IN spaceWhale.png SPRITE SHEET
+const WHALE_TAIL_SEGS     = 12;     // TAIL SEGMENT COUNT
+const WHALE_SEG_LEN       = 8;      // px BETWEEN TAIL SEGMENTS
+const WHALE_PREWARM_STEPS = 220;    // PHYSICS STEPS RUN BEFORE FIRST FRAME (SETTLES TAIL)
+const WHALE_TRAIL_MAX     = 40;     // TRAIL SNAPSHOTS — AT 60fps ≈ 0.83s HISTORY, ~1.4px APART
+
+const WHALE_TWO_PI = 2 * Math.PI;   // CACHED — AVOIDS RECOMPUTING EVERY FRAME
 
 
 class SpaceWhale {
   constructor() {
-    this._active      = false;
-    this._alpha       = 0;
-    this._x           = 0;
-    this._y           = 0;
-    this._baseY       = 0;
-    this._timeMs      = 0;     // MILLISECOND CLOCK — DRIVES BOB & TAIL WAVE
-    this._frameIndex  = 0;
-    this._frameTimer  = 0;
-    this._fw          = 0;     // SPRITE FRAME WIDTH (CACHED)
-    this._fh          = 0;     // SPRITE FRAME HEIGHT (CACHED)
-    this._tailAngle   = 0;     // SMOOTHED FLUKE ROTATION (RAD)
+    this._active     = false;
+    this._alpha      = 0;
+    this._x          = 0;
+    this._y          = 0;
+    this._baseY      = 0;
+    this._timeMs     = 0;     // MILLISECOND CLOCK — DRIVES BOB, TAIL WAVE, AND FRAME PHASE
+    this._frameIndex = 0;     // COMPUTED FROM PHASE EACH FRAME — NO LONGER ADVANCED BY TIMER
+    this._fw         = 0;     // SPRITE FRAME WIDTH (CACHED)
+    this._fh         = 0;     // SPRITE FRAME HEIGHT (CACHED)
+    this._tailAngle  = 0;     // SMOOTHED FLUKE ROTATION (RAD)
 
     // TAIL SEGMENT POSITIONS — INDEX 0 = BASE (BODY ATTACHMENT), LAST = FLUKE TIP
     this._tail = Array.from({ length: WHALE_TAIL_SEGS }, () => ({ x: 0, y: 0 }));
 
-    // TIME-BASED GHOST TRAIL — ONE SNAPSHOT PER update() CALL
-    // [{x, y, frame, tailAngle, tailXY: Float32Array(SEGS*2)}]
+    // TIME-BASED GHOST TRAIL — ONE SNAPSHOT PER update() CALL [{x, y, frame, tailAngle, tailXY: Float32Array(SEGS*2)}]
     this._trail = [];
   }
 
@@ -75,25 +74,25 @@ class SpaceWhale {
     this._y          = this._baseY;
     this._timeMs     = 0;
     this._frameIndex = 0;
-    this._frameTimer = 0;
     this._tailAngle  = 0;
     this._trail      = [];
     this._active     = true;
 
     // SEED SEGMENTS AT THEIR EQUILIBRIUM X-POSITIONS SO THEY DON'T SNAP FROM (0,0)
-    const tx = this._x + this._fw * 0.835;
+    const tx = this._x + this._fw * 0.83;
     const ty = this._y + this._fh * 0.445;
     for (let i = 0; i < WHALE_TAIL_SEGS; i++) {
       this._tail[i].x = tx + i * WHALE_SEG_LEN;
       this._tail[i].y = ty;
     }
 
-    // PRE-WARM PHYSICS — ADVANCES _timeMs SO WAVE PHASE IS CONTINUOUS FROM T=0,
-    // AND RUNS THE SPRING PHYSICS TO SETTLE ALL SEGMENTS INTO THEIR NATURAL WAVE.
+    // PRE-WARM PHYSICS — ADVANCES _timeMs SO WAVE PHASE IS CONTINUOUS FROM T=0, AND RUNS THE SPRING PHYSICS TO SETTLE ALL SEGMENTS INTO THEIR NATURAL WAVE.
     for (let i = 0; i < WHALE_PREWARM_STEPS; i++) {
       this._timeMs += 16;
       this._stepTailPhysics(16);
     }
+    // SYNC FRAME INDEX AFTER PREWARM
+    this._frameIndex = this._computeFrameIndex();
   }
 
   // ── PUBLIC: UPDATE ──────────────────────────────────────────────────────────
@@ -101,23 +100,22 @@ class SpaceWhale {
   update(dt, sceneFadeAlpha) {
     if (!this._active) return;
 
-    const dtMs        = dt * 1000;
-    this._timeMs     += dtMs;
-    this._frameTimer += dtMs;
+    const dtMs    = dt * 1000;
+    this._timeMs += dtMs;
 
     // FADE IN RELATIVE TO sceneFadeAlpha (SCENE OVERALL OPACITY AFTER FLASH)
     this._alpha = Math.min(1, this._alpha + dt / WHALE_FADE_IN_SECS) * sceneFadeAlpha;
 
-    // MOVEMENT — LEFT-SWIMMING, WITH VERTICAL BOB
-    this._x  -= WHALE_SPEED * dt;
-    this._y   = this._baseY + Math.sin(this._timeMs * WHALE_BOB_FREQ) * WHALE_BOB_AMP;
+    // ── BOB — sin(2π × freq × time) GIVES PERIOD = 1/freq ms ──────────────────
+    this._x -= WHALE_SPEED * dt;
+    this._y  = this._baseY + Math.sin(WHALE_TWO_PI * WHALE_BOB_FREQ * this._timeMs) * WHALE_BOB_AMP;
 
     // WRAP AROUND — CLEAR TRAIL AND RESET TAIL SO YOU DON'T GET A CROSS-SCREEN FLASH
     if (this._x < -(this._fw + 80)) {
-      this._x    = window.innerWidth + 80;
+      this._x   = window.innerWidth + 80;
       this._trail = [];
 
-      // REPOSITION TAIL SEGMENTS IMMEDIATELY TO NEW LOCATION 
+      // REPOSITION TAIL SEGMENTS IMMEDIATELY TO NEW LOCATION
       const tx = this._x + this._fw * 0.835;
       const ty = this._y + this._fh * 0.445;
       for (let i = 0; i < WHALE_TAIL_SEGS; i++) {
@@ -127,17 +125,13 @@ class SpaceWhale {
       this._tailAngle = 0;
     }
 
-    // ANIMATION FRAME ADVANCE
-    if (this._frameTimer >= WHALE_FRAME_DELAY) {
-      this._frameIndex  = (this._frameIndex + 1) % WHALE_FRAME_COUNT;
-      this._frameTimer -= WHALE_FRAME_DELAY;
-    }
+    // ── PHASE-DRIVEN FRAME INDEX — PHASE GOES 0→1 OVER EXACTLYY ONE BOB──────────
+    this._frameIndex = this._computeFrameIndex();
 
     // TAIL PHYSICS
     this._stepTailPhysics(dtMs);
 
-    // CAPTURE TRAIL SNAPSHOT THIS FRAME — TIME-BASED GIVES ~1.4px SPACING AT 60fps
-    // USE A Float32Array FOR THE TAIL COPY TO MINIMISE GC PRESSURE
+    // CAPTURE TRAIL SNAPSHOT THIS FRAME
     const tailXY = new Float32Array(WHALE_TAIL_SEGS * 2);
     for (let i = 0; i < WHALE_TAIL_SEGS; i++) {
       tailXY[i * 2]     = this._tail[i].x;
@@ -168,17 +162,15 @@ class SpaceWhale {
 
     ctx.save();
 
-    // ── GHOST TRAILS (OLDEST → NEWEST SO NEWEST RENDERS ON TOP) - 'LIGHTER' GIVES ADDITIVE, GLOWING BLEND 
+    // ── GHOST TRAILS (OLDEST → NEWEST SO NEWEST RENDERS ON TOP)
     ctx.globalCompositeOperation = 'lighter';
 
     for (let i = n - 1; i >= 0; i--) {
       const g = this._trail[i];
-      // t=0 IS NEWEST, t=1 IS OLDEST — POWER CURVE MAKES RHE FSLLOFF SMOOTHER
       const t = i / Math.max(n - 1, 1);
       const a = Math.pow(1 - t, 2.4) * 0.36 * this._alpha;
       if (a < 0.004) continue;
 
-      // HUE DRIFTS ALONG THE TRAIL — NEWER = CURRENT COLOR, OLDER = SHIFTED
       const hue = (this._timeMs * 0.001 + (n - 1 - i) * 7) % 360;
 
       // ── GHOST TAIL SEGMENTS ──────────────────────────────────────────────
@@ -186,8 +178,8 @@ class SpaceWhale {
       if (xy) {
         ctx.lineCap = 'round';
         for (let j = 0; j < WHALE_TAIL_SEGS - 1; j++) {
-          const x0 = xy[j * 2],     y0 = xy[j * 2 + 1];
-          const x1 = xy[(j+1)*2],   y1 = xy[(j+1)*2 + 1];
+          const x0 = xy[j * 2],   y0 = xy[j * 2 + 1];
+          const x1 = xy[(j+1)*2], y1 = xy[(j+1)*2 + 1];
           ctx.beginPath();
           ctx.moveTo(x0, y0);
           ctx.lineTo(x1, y1);
@@ -206,24 +198,22 @@ class SpaceWhale {
         ctx.rotate(g.tailAngle);
         ctx.globalAlpha = a;
         ctx.drawImage(fluke, -8, -20, 45, 45);
-        // TINT THE FLUKE WITH THE HUE
         ctx.globalCompositeOperation = 'source-atop';
         ctx.globalAlpha = 1;
         ctx.fillStyle   = `hsla(${hue}, 100%, 65%, ${a})`;
         ctx.fillRect(-8, -20, 45, 45);
-        ctx.restore(); 
+        ctx.restore();
       }
 
       // ── GHOST BODY ───────────────────────────────────────────────────────
       ctx.save();
       ctx.globalAlpha = a;
       ctx.drawImage(whale, g.frame * fw, 0, fw, fh, g.x, g.y, fw, fh);
-      // TINT USING source-atop — ONLY PAINTS OVER WHALE'S NON-TRANSPARENT PIXELS
       ctx.globalCompositeOperation = 'source-atop';
       ctx.globalAlpha = 1;
       ctx.fillStyle   = `hsla(${hue}, 100%, 65%, ${a})`;
       ctx.fillRect(g.x, g.y, fw, fh);
-      ctx.restore(); 
+      ctx.restore();
     }
 
     // RESET COMPOSITE BEFORE DRAWING THE SOLID WHALE
@@ -237,8 +227,8 @@ class SpaceWhale {
       ctx.moveTo(this._tail[i].x, this._tail[i].y);
       ctx.lineTo(this._tail[i + 1].x, this._tail[i + 1].y);
       ctx.shadowColor  = 'rgba(95,0,209,0.5)';
-      ctx.shadowBlur   = 18;
-      ctx.lineWidth    = Math.max(1, 45 - i * 3);
+      ctx.shadowBlur   = 22;
+      ctx.lineWidth    = Math.max(1, 44.5 - i * 3);
       ctx.strokeStyle  = `rgba(95,0,209,${0.7 * this._alpha})`;
       ctx.stroke();
     }
@@ -266,9 +256,22 @@ class SpaceWhale {
     ctx.restore();
   }
 
+  // ── PRIVATE: PHASE → FRAME INDEX ───────────────────────────────────────────
+  // phase = 0→1 over one full bob cycle. frame 0 = bottom of bob (phase 0.75 in a sine wave,
+  // since sin bottoms out at -π/2 = 0.75 of a full cycle).
+  // If you want frame 0 at the TOP of the bob instead, change the offset to 0.25.
+  _computeFrameIndex() {
+    // SHIFT PHASE SO FRAME 0 ALIGNS WITH THE BOTTOM OF THE BOB
+    // sin bottoms at t where 2π·f·t = -π/2, i.e. phase = 0.75
+    // Subtract 0.75 and wrap with % 1 to put frame 0 at the trough
+    const rawPhase    = (this._timeMs * WHALE_BOB_FREQ) % 1;
+    const shiftedPhase = (rawPhase + 0.25) % 1; // +0.25 shifts frame 0 to trough
+    return Math.floor(shiftedPhase * WHALE_FRAME_COUNT);
+  }
+
   // ── PRIVATE: TAIL PHYSICS ───────────────────────────────────────────────────
   _stepTailPhysics(dtMs) {
-    const tx = this._x + this._fw * 0.835;
+    const tx = this._x + this._fw * 0.82;
     const ty = this._y + this._fh * 0.445;
 
     // BASE (SEGMENT 0) IS PINNED TO THE BODY ATTACHMENT POINT
@@ -277,15 +280,13 @@ class SpaceWhale {
 
     for (let i = 1; i < WHALE_TAIL_SEGS; i++) {
       const progress = i / (WHALE_TAIL_SEGS - 1);   // 0=base, 1=tip
-      const amp      = WHALE_BOB_AMP * 0.4 * (1 + progress * 9.0); // TIP WAVES MORE
-      const phase    = this._timeMs * WHALE_BOB_FREQ - i * 0.3;
+      const amp      = WHALE_BOB_AMP * 0.15 * (1 + progress * 9.0); // TIP WAVES MORE
+      // TAIL PHYSICS USES THE SAME 2π FORMULA AS THE BOB
+      const phase    = WHALE_TWO_PI * WHALE_BOB_FREQ * this._timeMs - i * 0.3;
 
       const targetX = tx + i * WHALE_SEG_LEN;
       const targetY = ty + Math.sin(phase) * amp;
 
-      // SPRING CONSTANTS: X IS STIFFER (KEEPS TAIL EXTENDED),
-      // Y IS LOOSER AT BASE / LOOSER STILL AT TIP (TIP LAGS MORE = ORGANIC)
-      // SCALE BY dtMs/16 SO PHYSICS IS FRAME-RATE INDEPENDENT
       const dtScale = Math.min(3, dtMs / 16);
       const kX = Math.min(1, 0.20 * dtScale);
       const kY = Math.min(1, (0.005 + progress * 0.065) * dtScale);
@@ -301,7 +302,6 @@ class SpaceWhale {
     this._tailAngle = this._tailAngle * 0.9 + raw * 0.1;
   }
 }
-
 
 // ── CLOSING SCENE ─────────────────────────────────────────────────────────────
 export class ClosingScene {

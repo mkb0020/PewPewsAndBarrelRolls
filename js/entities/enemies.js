@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 5PM
+// Updated 3/28/26 @ 1:30AM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -110,9 +110,7 @@ export class Enemy {
     this.animSpeed  = this.config.ANIM_SPEED;
     this.pulsePhase = Math.random() * Math.PI * 2;
 
-    // ─── FRAME INDEX ───
-    // OCTOPUS TYPES: LOCK TO BODY FRAME (NO SPRITE CYCLE — LIFE COMES FROM TENTACLES)
-    // JELLYFISH TYPES: RANDOMIZE START FRAME FOR ANIMATION VARIATION
+    // ─── FRAME INDEX / OCTOPUS TYPES: LOCK TO BODY FRAME (NO SPRITE CYCLE — LIFE COMES FROM TENTACLES) / JELLYFISH TYPES: RANDOMIZE START FRAME FOR ANIMATION VARIATION
     if (TENTACLE_TYPES.has(type)) {
       this.animFrame  = this.config.BODY_FRAME;
       this.frameIndex = this.config.BODY_FRAME;
@@ -155,8 +153,7 @@ export class Enemy {
     // ─── SPAWN VFX ───
     this.spawnVFX = new GlitchFleshAssembly(this);
 
-    // ─── TENTACLE SYSTEM (OCTOPUS TYPES ONLY) ───
-    // INITIALIZED AFTER SPAWN VFX — TENTACLES APPEAR ONCE ASSEMBLY IS COMPLETE
+    // ─── TENTACLE SYSTEM (OCTOPUS TYPES ONLY) - INITIALIZED AFTER SPAWN VFX — TENTACLES APPEAR ONCE ASSEMBLY IS COMPLETE
     this.tentacleSystem = TENTACLE_TYPES.has(type) ? new TentacleSystem(this) : null;
 
     // ─── BLACK HOLE SUCTION ───
@@ -216,7 +213,7 @@ export class Enemy {
 
     //  PHASE: APPROACH
     if (this.phase === 'APPROACH') {
-      const moveSpeed = 0.35; // TESTING TO SEE IF THIS ALLOWS ENEMIES A CHANCE TO FIRE SPECIAL ATTACKS
+      const moveSpeed = 0.3; // HOW FAST ENEMIES APPOACH - TESTING NEW VALUES TO GIVE ENEMIES THE CHANCE TO FIRE SPECIAL ATTACKS
       this.curveProgress -= moveSpeed * dt;
       if (this.curveProgress < 0) this.curveProgress += 1;
       if (this.curveProgress > 1) this.curveProgress -= 1;
@@ -477,8 +474,7 @@ export class Enemy {
       }
     }
 
-    // ── GRAVITATIONAL LENS DISTORTION — DISPLACES DRAW POSITION OUTWARD FROM BH ──
-    // PURELY VISUAL — REUSES _activeSingularityBH HOOK
+    // ── GRAVITATIONAL LENS DISTORTION — DISPLACES DRAW POSITION OUTWARD FROM BH / PURELY VISUAL — REUSES _activeSingularityBH HOOK
     if (_activeSingularityBH && !_activeSingularityBH.isDead()) {
       const lensStr = _activeSingularityBH.getLensStrength?.() ?? 0;
       if (lensStr > 0.005) {
@@ -493,8 +489,7 @@ export class Enemy {
       }
     }
 
-    // ── BODY SPRITE  ──────────────────
-    // TELEGRAPH HEAD SWAP — OCTOPUS TYPES SHOW ALTERNATE HEAD FRAME DURING ATTACK TELEGRAPH
+    // ── BODY SPRITE  / TELEGRAPH HEAD SWAP — OCTOPUS TYPES SHOW ALTERNATE HEAD FRAME DURING ATTACK TELEGRAPH
     let drawFrameIndex = this.frameIndex;
     if (this.type === 'TANK'     && this.slimeTelegraphActive)               drawFrameIndex = 4;
     if (this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING')   drawFrameIndex = 5;
@@ -581,8 +576,7 @@ export class EnemyManager {
     this.onFractalTelegraph = null; // ZIP ZAP FRACTAL CASCADE — TELEGRAPH BEGIN
     this.onFractalCascade   = null; // ZIP ZAP FRACTAL CASCADE — ATTACK FIRE
 
-    // INTERNAL COOLDOWN TRACKING — SET WHEN AN ATTACK FIRES, CHECKED BEFORE ALLOWING NEXT TELEGRAPH.
-    // SELF-CONTAINED: NO EXTERNAL WIRING NEEDED. MIRRORS CONFIG.FRACTAL_CASCADE.COOLDOWN_MS.
+    // INTERNAL COOLDOWN TRACKING — SET WHEN AN ATTACK FIRES, CHECKED BEFORE ALLOWING NEXT TELEGRAPH. SELF-CONTAINED: NO EXTERNAL WIRING NEEDED. MIRRORS CONFIG.FRACTAL_CASCADE.COOLDOWN_MS.
     this._fractalCooldownUntil = 0;
     this._prismCooldownUntil   = 0;  // BLOCKS NEW FLIMFLAM TELEGRAPHS WHILE PRISM IS ACTIVE
     this._slimeCooldownUntil   = 0;  // BLOCKS NEW TANK TELEGRAPHS WHILE SLIME ATTACK IS ACTIVE
@@ -660,9 +654,7 @@ export class EnemyManager {
       this.nextSpawnDelay = this.randomSpawnDelay();
     }
 
-    // ATTACK GATE — PRE-SCAN: IF ANY ENEMY IS ALREADY MID-TELEGRAPH FOR A GLOBAL ATTACK,
-    // BLOCK ALL OTHERS THIS FRAME. *Claimed FLAGS ARE ALSO SET WITHIN THE LOOP TO CLOSE
-    // SAME-FRAME RACES WHERE TWO ENEMIES' TIMERS EXPIRE SIMULTANEOUSLY.
+    // ATTACK GATE — PRE-SCAN: IF ANY ENEMY IS ALREADY MID-TELEGRAPH FOR A GLOBAL ATTACK, BLOCK ALL OTHERS THIS FRAME. *Claimed FLAGS ARE ALSO SET WITHIN THE LOOP TO CLOSE / SAME-FRAME RACES WHERE TWO ENEMIES' TIMERS EXPIRE SIMULTANEOUSLY.
     let fractalClaimed = this.enemies.some(
       e => e.type === 'ZIGZAG' && e.fractalAttackState === 'TELEGRAPHING'
     );
@@ -688,38 +680,35 @@ export class EnemyManager {
         enemy.pendingLaser = null;
       }
 
-      // FLIM FLAM OCULAR PRISM — FIRE WHEN TELEGRAPHING COMPLETES
+      // FLIM FLAM OCULAR PRISM — FIRE WHEN TELEGRAPHING COMPLETES / BLOCK NEW PRISM TELEGRAPHS UNTIL THE PRISM'S ACTIVE DURATION EXPIRES
       if (enemy.pendingOcularPrism) {
         this.onOcularPrism?.(window.innerWidth, window.innerHeight);
-        // BLOCK NEW PRISM TELEGRAPHS UNTIL THE PRISM'S ACTIVE DURATION EXPIRES
         this._prismCooldownUntil = Date.now() + (CONFIG.OCULAR_PRISM.DURATION + CONFIG.OCULAR_PRISM.FADE_DURATION) * 1000;
         enemy.pendingOcularPrism = false;
       }
 
-      // FLIM FLAM TELEGRAPH — FIRES WHEN TELEGRAPHING BEGINS
+      // FLIM FLAM TELEGRAPH — FIRES WHEN TELEGRAPHING BEGINS / BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
       if (enemy.pendingTelegraph) {
-        prismClaimed = true; // BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
+        prismClaimed = true; 
         this.onTelegraph?.();
         enemy.pendingTelegraph = false;
       }
 
-      // SLIME TELEGRAPH START — FIRES WHEN GREEN GLOW BEGINS
+      // SLIME TELEGRAPH START — FIRES WHEN GREEN GLOW BEGINS / BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
       if (enemy.pendingSlimeTelegraph) {
-        slimeClaimed = true; // BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
+        slimeClaimed = true; 
         this.onSlimeTelegraph?.();
         enemy.pendingSlimeTelegraph = false;
       }
 
-      // COLLECT SLIME ATTACK (TANK / GLORK ONLY)
+      // COLLECT SLIME ATTACK (TANK / GLORK ONLY) / BLOCK NEW SLIME TELEGRAPHS UNTIL WARP + RECOVER + COOLDOWN EXPIRES (7.2 + 1.8 + 5.0s)
       if (enemy.pendingSlime) {
         this.onSlimeAttack?.(enemy.x, enemy.y);
-        // BLOCK NEW SLIME TELEGRAPHS UNTIL WARP + RECOVER + COOLDOWN EXPIRES (7.2 + 1.8 + 5.0s)
         this._slimeCooldownUntil = Date.now() + 14000;
         enemy.pendingSlime = false;
       }
 
-      // COLLECT FRACTAL CASCADE (ZIGZAG / ZIP ZAP ONLY)
-      // pendingFractalTelegraph IS ONLY EVER SET WHEN cascadeAvailable WAS TRUE (GATED IN enemy.update)
+      // COLLECT FRACTAL CASCADE (ZIGZAG / ZIP ZAP ONLY) /  pendingFractalTelegraph IS ONLY EVER SET WHEN cascadeAvailable WAS TRUE (GATED IN enemy.update)
       if (enemy.pendingFractalTelegraph) {
         fractalClaimed = true; // BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
         this.onFractalTelegraph?.();

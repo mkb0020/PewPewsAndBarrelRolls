@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 5pm
+// Updated 3/28/26 @ 1:30AM
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -118,7 +118,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 7, //  TESTING
+        HEALTH: 5, //  TESTING
         SCORE: 10,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
@@ -136,13 +136,13 @@ export const CONFIG = {
         SPEED: 120,
         COLOR: '#FF0000',
         GLOW_COLOR: '#b444a3',
-        HEALTH: 9,
+        HEALTH: 7,
         SCORE: 20,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 11,
-        COLLISION_DAMAGE: 20,
+        COLLISION_DAMAGE: 10, // REDUCED FROM 20
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 1.5,
+        LASER_INTERVAL: 2, // INCREASED FROM 1.5
         COMBAT_DURATION: 7.0,
         WANDER_SPEED: 120,
         WANDER_X: 290,
@@ -163,9 +163,9 @@ export const CONFIG = {
         ANIM_SPEED:    0,
         SPLINE_COLOR:  '#543c57',
 
-        COLLISION_DAMAGE: 35,
+        COLLISION_DAMAGE: 10, // DECREASED FROM 35
         LASER_COLOR: '#ff0000',
-        LASER_INTERVAL: 2,
+        LASER_INTERVAL: 2.3, // INCREASED FROM 2
         COMBAT_DURATION: 16.0,
         WANDER_SPEED: 30,
         WANDER_X: 90,
@@ -197,7 +197,7 @@ export const CONFIG = {
         SPEED: 90,
         COLOR: '#FF0000',
         GLOW_COLOR: '#7097eb',
-        HEALTH: 8,
+        HEALTH: 6,
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 70,
         ZIGZAG_FREQUENCY: 2,
@@ -208,9 +208,9 @@ export const CONFIG = {
         ANIM_SPEED:    0,        
         SPLINE_COLOR:  '#324453', 
 
-        COLLISION_DAMAGE: 20,
+        COLLISION_DAMAGE: 10, // REDUCED FROM 20
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 1.7,
+        LASER_INTERVAL: 2, // INCREASED FROM 1.7
         COMBAT_DURATION: 11.0,
         WANDER_SPEED: 55,
         WANDER_X: 80,
@@ -251,9 +251,9 @@ export const CONFIG = {
         ANIM_SPEED:    0,        
         SPLINE_COLOR:  '#6f407c', 
 
-        COLLISION_DAMAGE: 20,
+        COLLISION_DAMAGE: 10, // REDUCED FROM 20
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 2,
+        LASER_INTERVAL: 2.5, // INCREASED FROM 2
         HOVER_DURATION_MIN: 0.7,
         HOVER_DURATION_MAX: 1.6,
         DASH_SPEED: 200,
@@ -362,13 +362,13 @@ export const CONFIG = {
 
   ENEMY_LASER: {
     SPEED:          480,    
-    DAMAGE:         15,
+    DAMAGE:         10,
     HIT_RADIUS:     14,    
     BOLT_LENGTH:    22,     
     BOLT_WIDTH:     3,
     GLOW_BLUR:      12,
-    FIRST_SHOT_MIN: 0.5,
-    FIRST_SHOT_MAX: 1.5,
+    FIRST_SHOT_MIN: 0.7,
+    FIRST_SHOT_MAX: 2.0,
   },
 
   EXPLOSIONS: {
@@ -483,8 +483,8 @@ export const CONFIG = {
 
     KILLS_PER_WAVE: [3, 4, 4, 5, 5], // TEMPORARY FOR  TESTING   
     
-    GOO_FIRST_SHOT_MIN: 1.5,
-    GOO_FIRST_SHOT_MAX: 1.7,
+    GOO_FIRST_SHOT_MIN: 1.7,
+    GOO_FIRST_SHOT_MAX: 2.0,
     GOO_INTERVAL_MIN:   2.5,
     GOO_INTERVAL_MAX:   4.5,
   },

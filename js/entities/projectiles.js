@@ -1,5 +1,4 @@
-// Updated 3/5/26 @ 8:00PM
-
+// Updated 3/28/26 @ 1:3AM
 // projectiles.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -393,7 +392,7 @@ export class Crosshair {
     const shipX = window.innerWidth  / 2 + shipOffsetX;
     const shipY = window.innerHeight / 2 - shipOffsetY;
 
-    // ── RESOLVE RAW INPUT (mobile joystick > mouse > keyboard) ──
+    // ── RESOLVE RAW INPUT (MOBILE JOYSTICK > MOUSE > KEYBOARD) ──
     let rawX = 0, rawY = 0;
     if (isMobile) {
       rawX = analogInput.x;

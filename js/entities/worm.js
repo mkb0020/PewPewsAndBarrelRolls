@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 10AM
+// Updated 3/28/26 @ 1:30AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -70,7 +70,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           300, // For Testing
+  HEALTH:           300,
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
   RAGE_TRIGGER_THRESHOLD: 0.3,
@@ -523,9 +523,7 @@ export class WormBoss {
       ImageLoader.load('wormRage');
     }
 
-  // CALLED BY startSuctionAttack() — INSTANTLY FINALISES THE TRANSFORM IF THE TIMING GAP BETWEEN
-  // THE LAST SEGMENT REVEAL AND normalAlphas[0] REACHING 0 WOULD LEAVE SEGMENTS[0] AT THE WRONG POSITION.
-  // SAFE TO CALL WHEN ALREADY EMERGED (NO-OP).
+  // CALLED BY startSuctionAttack() — INSTANTLY FINALISES THE TRANSFORM IF THE TIMING GAP BETWEEN  THE LAST SEGMENT REVEAL AND normalAlphas[0] REACHING 0 WOULD LEAVE SEGMENTS[0] AT THE WRONG POSITION. SAFE TO CALL WHEN ALREADY EMERGED (NO-OP).
   _forceCompleteRageTransform() {
     const rt = this._rageTransform;
     if (!rt.active) return;
@@ -710,8 +708,7 @@ export class WormBoss {
   }
 
   startSuctionAttack() {
-    // FORCE-COMPLETE RAGE TRANSFORM IF STILL IN PROGRESS — PREVENTS SUCTION TARGETING
-    // THE LOCKED NORMAL-HEAD POSITION (AT THE RAGE WORM'S TAIL) INSTEAD OF THE RAGE HEAD
+    // FORCE-COMPLETE RAGE TRANSFORM IF STILL IN PROGRESS — PREVENTS SUCTION TARGETING / THE LOCKED NORMAL-HEAD POSITION (AT THE RAGE WORM'S TAIL) INSTEAD OF THE RAGE HEAD
     if (this._rageTransform.active) this._forceCompleteRageTransform();
     this.isAttacking     = true;
     this.attackType      = 'suction';
@@ -772,15 +769,13 @@ export class WormBoss {
       }
     }
 
-    // ============= RAGE ON NEXT HIT — ARMS ONCE PENDING ATTACK COMPLETES =============
-    // WHEN THE ATTACK THAT WAS RUNNING AT 30% HP FINALLY ENDS, WE SWITCH FROM
-    // "WAITING FOR ATTACK" → "WAITING FOR PLAYER HIT" — checkProjectileHit() PULLS THE TRIGGER
+    //  RAGE ON NEXT HIT — ARMS ONCE PENDING ATTACK COMPLETES / WHEN THE ATTACK THAT WAS RUNNING AT 30% HP FINALLY ENDS, WE SWITCH FROM "WAITING FOR ATTACK" → "WAITING FOR PLAYER HIT" — checkProjectileHit() PULLS THE TRIGGER
     if (this._rageWaitingForHit && !this.isAttacking && !this._rageOnNextHit) {
       this._rageOnNextHit = true;
     }
 
-    // ============= DYING SEQUENCE — HEAD STAYS PUT, RIPPLE WAVE DOWN THE BODY =============
-    if (this.isDying) { // HEAD  STAYS ROUGHLY IN PLACE
+    //  DYING SEQUENCE — HEAD STAYS PUT, RIPPLE WAVE DOWN THE BODY /  HEAD  STAYS ROUGHLY IN PLACE=============
+    if (this.isDying) { 
       const t = this.time + this.phaseOffset;
       const tremble = organicNoise(t, WORM.WIGGLE_X) * 0.25;  
       this.headX += (tremble - this.headX) * WORM.HEAD_SMOOTH;
@@ -1133,8 +1128,7 @@ export class WormBoss {
       }
     }
 
-    // ============= PROJECT TO SCREEN SPACE & CACHE =============
-    // cx / cy CACHED AT TOP OF update()
+    //  PROJECT TO SCREEN SPACE & CACHE / cx / cy CACHED AT TOP OF update()
     const bs = this.baseScale;
 
     for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
@@ -1353,8 +1347,7 @@ export class WormBoss {
         if (i === 0) {
           ctx.rotate(Math.sin(this.time * 3.5 + this.phaseOffset) * 0.08);
           if (rt.active && !rt.emerged) {
-            // SCALE UP FROM SMALL AS THE HEAD POPS OUT — STARTS AT 30%, REACHES 100% WHEN POP COMPLETES
-            const eased = rt.headSwapProgress * rt.headSwapProgress * (3 - 2 * rt.headSwapProgress); // SMOOTHSTEP
+            const eased = rt.headSwapProgress * rt.headSwapProgress * (3 - 2 * rt.headSwapProgress); //SCALE UP FROM SMALL AS THE HEAD POPS OUT — STARTS AT 30%, REACHES 100% WHEN POP COMPLETES / SMOOTHSTEP
             const rageHeadScale = 0.30 + eased * 0.70;
             ctx.scale(rageHeadScale, rageHeadScale);
           } else if (headFrame >= WORM.FRAME_ATTACK_START && rt.emerged) {
@@ -1454,8 +1447,7 @@ export class WormBoss {
     return { hit: false };
   }
 
-  // ======================= AI — ATTACK SELECTION =======================
-  // RETURNS A RANDOMIZED WAIT TIME BETWEEN ATTACKS (5–10s BY DEFAULT)
+  //  AI — ATTACK SELECTION / RETURNS A RANDOMIZED WAIT TIME BETWEEN ATTACKS (5–10s BY DEFAULT)
   _rollInterval() {
     let interval = WORM.ATTACK_INTERVAL_MIN
       + Math.random() * (WORM.ATTACK_INTERVAL_MAX - WORM.ATTACK_INTERVAL_MIN);
@@ -1541,8 +1533,7 @@ export class WormBoss {
     return pool[pool.length - 1].type; // FALLBACK (FLOATING POINT EDGE CASE)
   }
 
-  // ======================= CELLULAR ATTACK END =======================
-  // CALLED BY bossBattle.js VIA cellularAttack.onAttackEnd — ENDS THE CELLULAR LOOP CLEANLY
+  //  CELLULAR ATTACK END / CALLED BY bossBattle.js VIA cellularAttack.onAttackEnd — ENDS THE CELLULAR LOOP CLEANLY
   endCellularAttack() { this._endCellularAttackInternal(); }
 
   _endCellularAttackInternal() {
