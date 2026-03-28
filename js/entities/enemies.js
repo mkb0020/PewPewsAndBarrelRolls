@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 1:30AM
+// Updated 3/28/26 @ 2am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -425,16 +425,8 @@ export class Enemy {
     }
   }
 
-  checkCollision(shipX, shipY) { // RETURNS COLLISION DAMAGE IF CLOSE AND HASN'T ALREADY HIT / 0 OTHERWISE
-    if (this.hasDealtCollisionDamage || this.scale < 0.82) return 0;
-    const hitRadius = this.getSize() * 0.75; // SLIGHTLY FORGIVING
-    const dx = this.x - shipX;
-    const dy = this.y - shipY;
-    if ((dx * dx + dy * dy) < (hitRadius * hitRadius)) {
-      this.hasDealtCollisionDamage = true;
-      this.isDead = true;
-      return this.config.COLLISION_DAMAGE;
-    }
+  checkCollision(shipX, shipY) {
+    // COLLISION DAMAGE DISABLED — ENEMIES EXIST ON A SIMULATED Z-PLANE SLIGHTLY BEHIND / THE SHIP, SO PHYSICAL CONTACT IS INTENTIONALLY AN ILLUSION. LASERS ARE THE THREAT.
     return 0;
   }
 
@@ -734,10 +726,20 @@ export class EnemyManager {
     }
   }
 
-  checkLaserHits(shipX, shipY) { // CHECK ALL ENEMY LASERS V SHIP - RETURNS TOTAL DAMAGE DEALT THIS FRAME
+  checkLaserHits(shipX, shipY, isBarrelRolling = false) {  // CHECK ALL ENEMY LASERS V SHIP - RETURNS TOTAL DAMAGE DEALT THIS FRAME /  BARREL ROLL DEFLECTS LASERS STAR-FOX-64 STYLE — LARGER RADIUS, ZERO DAMAGE / BARREL ROLL HIT BUBBLE IS ~2× NORMAL
+    const DEFLECT_RADIUS_MULT = 2.2;  
     let totalDamage = 0;
     for (let i = this.lasers.length - 1; i >= 0; i--) {
-      if (this.lasers[i].checkShipHit(shipX, shipY)) {
+      const laser = this.lasers[i];
+      if (isBarrelRolling) {
+        // DEFLECT — DESTROY LASER IF IT ENTERS THE ROLL BUBBLE, NO DAMAGE
+        const dx  = laser.x - shipX;
+        const dy  = laser.y - shipY;
+        const r   = CONFIG.ENEMY_LASER.HIT_RADIUS * DEFLECT_RADIUS_MULT;
+        if (dx * dx + dy * dy < r * r) {
+          this.lasers.splice(i, 1); // DEFLECTED — SILENTLY REMOVED (PROJECTILE EXPLOSION HANDLED IN main.js)
+        }
+      } else if (laser.checkShipHit(shipX, shipY)) {
         totalDamage += CONFIG.ENEMY_LASER.DAMAGE;
         this.lasers.splice(i, 1);
       }

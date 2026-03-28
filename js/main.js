@@ -799,7 +799,7 @@ function gameLoop() {
 
     // ENEMY LASER vs SHIP
     if (ship.isAlive && !ship.isInvincible) {
-      const laserDamage = enemyManager.checkLaserHits(ship.x, ship.y);
+      const laserDamage = enemyManager.checkLaserHits(ship.x, ship.y, ship.isBarrelRolling);
       if (laserDamage > 0) { ship.takeDamage(laserDamage); audio.playOuch(); }
     }
   }
