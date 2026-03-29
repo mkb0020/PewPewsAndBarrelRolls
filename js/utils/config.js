@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 1:30AM
+// Updated 3/29/26 @ 3AM
 export const CONFIG = {
   TUNNEL: {
     RADIUS: 2400, 
@@ -71,9 +71,9 @@ export const CONFIG = {
     PULSE_SPEED:       1.8,   
     BOB_SPEED:         1.1,   
     BOB_AMPLITUDE:     9,     
-    LIFETIME:          5,    
+    LIFETIME:          6,    
     FIRST_SPAWN_DELAY: 15,     //FOR TESTING
-    SPAWN_INTERVAL:    35,    //FOR TESTING
+    SPAWN_INTERVAL:    25,    //FOR TESTING
     MAX_COUNT:         1,    //FOR TESTING
     HEAL_AMOUNT:       30,    
   },
@@ -142,9 +142,9 @@ export const CONFIG = {
         ANIM_SPEED: 11,
         COLLISION_DAMAGE: 10, // REDUCED FROM 20
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 2, // INCREASED FROM 1.5
-        COMBAT_DURATION: 7.0,
-        WANDER_SPEED: 120,
+        LASER_INTERVAL: 3, // INCREASED FROM 1.5
+        COMBAT_DURATION: 6.0,
+        WANDER_SPEED: 100,
         WANDER_X: 290,
         WANDER_Y: 170,
       },
@@ -165,7 +165,7 @@ export const CONFIG = {
 
         COLLISION_DAMAGE: 10, // DECREASED FROM 35
         LASER_COLOR: '#ff0000',
-        LASER_INTERVAL: 2.3, // INCREASED FROM 2
+        LASER_INTERVAL: 3, // INCREASED FROM 2
         COMBAT_DURATION: 16.0,
         WANDER_SPEED: 30,
         WANDER_X: 90,
@@ -210,9 +210,9 @@ export const CONFIG = {
 
         COLLISION_DAMAGE: 10, // REDUCED FROM 20
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 2, // INCREASED FROM 1.7
-        COMBAT_DURATION: 11.0,
-        WANDER_SPEED: 55,
+        LASER_INTERVAL: 3, // INCREASED FROM 1.7
+        COMBAT_DURATION: 7.0,
+        WANDER_SPEED: 45,
         WANDER_X: 80,
         WANDER_Y: 130,
 // VALUES BELOW ARE NOT FINALIZED 
@@ -262,8 +262,8 @@ export const CONFIG = {
         ROAM_X: 240,
         ROAM_Y: 155,
         COMBAT_DURATION: 11.0,
-        PRISM_FIRST_DELAY_MIN: 0.5,
-        PRISM_FIRST_DELAY_MAX: 1,
+        PRISM_FIRST_DELAY_MIN: 1.0,
+        PRISM_FIRST_DELAY_MAX: 1.5,
         PRISM_COOLDOWN_MIN:    8.0,
         PRISM_COOLDOWN_MAX:   12.0,
         PRISM_TELEGRAPH:       1.8,
@@ -361,7 +361,7 @@ export const CONFIG = {
   },
 
   ENEMY_LASER: {
-    SPEED:          480,    
+    SPEED:          450,    
     DAMAGE:         10,
     HIT_RADIUS:     14,    
     BOLT_LENGTH:    22,     
@@ -409,8 +409,8 @@ export const CONFIG = {
   },
 
   SLIME_ATTACK: {
-    FIRST_ATTACK_MIN:   0.2,   
-    FIRST_ATTACK_MAX:   0.5, 
+    FIRST_ATTACK_MIN:   1.0,   
+    FIRST_ATTACK_MAX:   1.5, 
     REPEAT_INTERVAL:    7.0,  
     TELEGRAPH_DURATION:  1.6,  
     MIN_SCALE:           0.50,  // GLORK MUST BE THIS SIZE TO ATTACK
@@ -430,8 +430,8 @@ export const CONFIG = {
     GHOST_DEPTH:            3,     // RECURSIVE GHOST LEVELS (0, 1, 2)
     TERMINAL_LINE_INTERVAL: 0.35,  // SECONDS PER LINE TYPED IN DEBUG TERMINAL
     COOLDOWN_MS:            10000, // ms — GLOBAL COOLDOWN AFTER ATTACK ENDS
-    FIRST_DELAY_MIN:  0.1,   // SECONDS AFTER ENTERING COMBAT BEFORE FIRST TELEGRAPH
-    FIRST_DELAY_MAX:  0.5,
+    FIRST_DELAY_MIN:  1.0,   // SECONDS AFTER ENTERING COMBAT BEFORE FIRST TELEGRAPH
+    FIRST_DELAY_MAX:  1.5,
     COOLDOWN_MIN:    5.0,   // PER-ENEMY COOLDOWN BEFORE REPEATING
     COOLDOWN_MAX:    7.0,
   },
@@ -471,7 +471,7 @@ export const CONFIG = {
     LATERAL_MIN:       20,     // px FROM CENTER
     LATERAL_MAX:      40,     
 
-    HIT_MIN_SCALE:   0.7,     // MUST BE THIS BIG TO HIT
+    HIT_MIN_SCALE:   0.5,     // MUST BE THIS BIG TO HIT
     GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
 
     HEALTH:            5,        // TEMPORARY FOR  TESTING
@@ -490,7 +490,7 @@ export const CONFIG = {
   },
 
   GOO_PROJECTILE: {
-    SPEED:         320,    
+    SPEED:         300,    
     GRAVITY:       480,    
     BLOB_RADIUS:    10,    
     HIT_RADIUS:     22,    

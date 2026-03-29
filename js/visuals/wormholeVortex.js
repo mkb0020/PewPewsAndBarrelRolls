@@ -1,32 +1,141 @@
+// Updated 3/29/26 @ 2am
+// wormholeVortex.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import * as THREE from 'three';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 const VORTEX = {
   DURATION:         12,   // TOTAL SECONDS
-  FADE_IN:          1,  // SECONDS TO FULL OPACITY
-  FADE_OUT_START:   7,   // WHEN FADE-TO-BLACK BEGINS
-  TEXT_FADE_IN:     6,   // WHEN "WORMHOLES ALL THE WAY DOWN" TEXT APPEARS
+  FADE_IN:          1,    // SECONDS TO FULL OPACITY
+  FADE_OUT_START:   7,    // WHEN FADE-TO-BLACK BEGINS
 
-  TUBE_RADIUS:      3.4,   // INNER RADIUS OF ESOPHAGUS
-  TUBE_PATH_SEGS:   110,   // SMOOTHNESS OF TUBE PATH
-  TUBE_RADIAL_SEGS: 14,    // CROSS-SECTION POLYGON COUNT (KEEP LOW FOR PERF)
-  TUBE_LENGTH:      130,   // Z-DEPTH OF TUBE
+  TUBE_RADIUS:      3.4,  // INNER RADIUS OF ESOPHAGUS
+  TUBE_PATH_SEGS:   180,  // SMOOTHNESS OF TUBE PATH (BUMPED — SHADER DEFORMS VERTS)
+  TUBE_RADIAL_SEGS: 48,   // CROSS-SECTION POLYGON COUNT (HIGHER FOR SHADER DETAIL)
+  TUBE_LENGTH:      130,  // Z-DEPTH OF TUBE
 
-  RIB_COUNT:        32,    // NUMBER OF TORUS RINGS (ESOPHAGUS RIBS)
-  RIB_THICKNESS:    0.19,
-
-  CAM_BASE_SPEED:   9,     // INITIAL CAMERA FLIGHT SPEED (Z-UNITS/S)
-  CAM_ACCEL:        22,    // EXTRA SPEED ADDED BY END (ACCELERATES INTO THE DARK)
-  WOBBLE_X:         0.55,  // CAMERA SIDE WOBBLE AMPLITUDE
+  CAM_BASE_SPEED:   9,    // INITIAL CAMERA FLIGHT SPEED (Z-UNITS/S)
+  CAM_ACCEL:        22,   // EXTRA SPEED ADDED BY END (ACCELERATES INTO THE DARK)
+  WOBBLE_X:         0.55, // CAMERA SIDE WOBBLE AMPLITUDE
   WOBBLE_Y:         0.38,
 
-  TUBE_SPIN_SPEED:  0.28,  // RAD/S — SLOW ROTATION OF TUBE AROUND Z ADDS DISORIENTATION
+  TUBE_SPIN_SPEED:  0.28, // RAD/S — SLOW ROTATION OF TUBE AROUND Z ADDS DISORIENTATION
 
-  PULSE_BASE:       3.5,   // BASE POINT LIGHT INTENSITY
-  PULSE_RANGE:      2.8,   // FLICKER AMPLITUDE
-  PULSE_FREQ:       8,     // HZ
+  FLESH_PROGRESS_DURATION: 4.0, // SECONDS FOR FLESH SHADER TO FULLY MATERIALIZE
+
+  // SHADER TUNING
+  THROB_SPEED:      2.8,
+  PERI_STRENGTH:    1.0,
+  RIPPLE:           0.6,
 };
+
+// ===================== SHADER SOURCES =====================
+
+const _vertexShader = /* glsl */`
+  uniform float time;
+  uniform float progress;
+  uniform float throbSpeed;
+  uniform float periStrength;
+  uniform float ripple;
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vPos;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+  }
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  }
+
+  void main() {
+    vUv    = uv;
+    vNormal = normal;
+    vPos   = position;
+
+    vec3 pos = position;
+
+    // PERISTALSIS — RHYTHMIC RADIAL SQUEEZE WAVES
+    float wave = sin(time * 2.8 + vUv.x * 14.0) * 0.12 * periStrength * progress;
+    pos += normal * wave;
+
+    // VEIN / TISSUE DISPLACEMENT
+    float veinNoise = noise(vUv * vec2(18.0, 35.0) + time * throbSpeed * 0.8);
+    float veins = sin(vUv.x * 42.0) * sin(vUv.y * 28.0 + time * throbSpeed) * 0.18 * progress;
+    veins += veinNoise * 0.09 * progress;
+    pos += normal * veins;
+
+    // HIGH-FREQ RIPPLE DETAIL
+    float ripplePulse = sin(time * 7.0 + vUv.x * 60.0) * ripple * progress * 0.07;
+    pos += normal * ripplePulse;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+const _fragmentShader = /* glsl */`
+  uniform float time;
+  uniform float progress;
+  uniform float opacity;
+  varying vec2 vUv;
+  varying vec3 vNormal;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+  }
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  }
+
+  void main() {
+    // DEEP PURPLISH-BLACK → DARK BURGUNDY AS PROGRESS RAMPS
+    vec3 startColor = vec3(0.05, 0.008, 0.09);
+    vec3 endColor   = vec3(0.12, 0.025, 0.012);
+    vec3 base = mix(startColor, endColor, progress);
+
+    // ORGANIC TISSUE NOISE
+    float tissue = noise(vUv * 28.0) * 0.35 + noise(vUv * 9.0) * 0.18;
+    base = base * (0.72 + tissue * 0.22);
+
+    // VEIN PATTERN
+    float veinPattern = sin(vUv.x * 38.0) * sin(vUv.y * 31.0 + time * 2.2);
+    veinPattern = pow(abs(veinPattern), 2.8) * progress;
+    vec3 veinColor = vec3(0.28, 0.02, 0.04);
+    vec3 color = mix(base, veinColor, veinPattern * 0.6);
+
+    // MICRO-DETAIL SPARK
+    float micro = noise(vUv * 85.0 + time * 1.5) * progress;
+    color = mix(color, vec3(0.55, 0.16, 0.11), micro * 0.12);
+
+    // SPECULAR HIGHLIGHT
+    vec3 lightDir = normalize(vec3(0.5, 0.5, 0.4));
+    float specular = pow(max(0.0, dot(vNormal, lightDir)), 28.0);
+    color += vec3(0.35, 0.20, 0.18) * specular * 0.8 * progress;
+
+    // FRESNEL RIM GLOW
+    float fresnel = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
+    color += vec3(0.45, 0.09, 0.14) * fresnel * 0.28 * progress;
+
+    color = clamp(color, 0.0, 0.85);
+    gl_FragColor = vec4(color, opacity);
+  }
+`;
+
+// ===================== CLASS =====================
 
 export class WormholeVortex {
   constructor() {
@@ -35,8 +144,9 @@ export class WormholeVortex {
     this._scene      = null;
     this._camera     = null;
     this._tubeMesh   = null;
+    this._glowTube   = null;
     this._pulseLight = null;
-    this._ribs       = [];
+    this._uniforms   = null;
 
     this._active  = false;
     this._time    = 0;
@@ -63,8 +173,7 @@ export class WormholeVortex {
 
     this._updateAlpha();
     this._updateCamera(dt);
-    this._updateLights();
-    this._updateRibPulse();
+    this._updateShaderUniforms();
 
     if (this._tubeMesh) this._tubeMesh.rotation.z += VORTEX.TUBE_SPIN_SPEED * dt;
 
@@ -81,7 +190,7 @@ export class WormholeVortex {
   // ===================== PRIVATE — FRAME UPDATE =====================
 
   _updateAlpha() {
-    const t = this._time;
+    const t   = this._time;
     const dur = VORTEX.DURATION;
 
     if (t < VORTEX.FADE_IN) {
@@ -93,8 +202,6 @@ export class WormholeVortex {
     }
     this._alpha = Math.max(0, Math.min(1, this._alpha));
     if (this._canvas) this._canvas.style.opacity = this._alpha;
-
-
   }
 
   _updateCamera(dt) {
@@ -108,7 +215,7 @@ export class WormholeVortex {
     this._camera.position.y = Math.cos(this._time * 1.35) * VORTEX.WOBBLE_Y
                              + Math.cos(this._time * 0.5)  * VORTEX.WOBBLE_Y * 0.35;
 
-    // LOOK SLIGHTLY AHEAD OF POSITION SO CAMERA CURVES WITH THE TUBE
+    // LOOK SLIGHTLY AHEAD SO CAMERA CURVES WITH THE TUBE
     this._camera.lookAt(
       this._camera.position.x * 0.25,
       this._camera.position.y * 0.25,
@@ -116,25 +223,42 @@ export class WormholeVortex {
     );
   }
 
-  _updateLights() {
-    if (!this._pulseLight) return;
-    this._pulseLight.position.z = this._camera.position.z - 4;
-    this._pulseLight.intensity  =
-      VORTEX.PULSE_BASE + Math.sin(this._time * VORTEX.PULSE_FREQ) * VORTEX.PULSE_RANGE;
-  }
+  _updateShaderUniforms() {
+    if (!this._uniforms) return;
 
-  _updateRibPulse() {
-    for (const rib of this._ribs) {
-      // EACH RIB HAS ITS OWN PHASE SO THEY RIPPLE RATHER THAN ALL FLASH TOGETHER
-      rib.material.emissiveIntensity =
-        0.25 + Math.abs(Math.sin(this._time * 5 + rib.userData.phase)) * 0.65;
+    // PROGRESS 0→1 OVER FLESH_PROGRESS_DURATION — FLESH TEXTURE MATERIALIZES AS YOU FLY IN
+    const progress = Math.min(1, this._time / VORTEX.FLESH_PROGRESS_DURATION);
+
+    this._uniforms.time.value     = this._time;
+    this._uniforms.progress.value = progress;
+    this._uniforms.opacity.value  = this._alpha;
+
+    // PULSE LIGHT FOLLOWS CAMERA
+    if (this._pulseLight) {
+      this._pulseLight.position.z = this._camera.position.z - 4;
+      this._pulseLight.intensity  =
+        3.5 + Math.sin(this._time * VORTEX.PERI_STRENGTH ?? 8) * 2.8 * progress;
+    }
+
+    // GLOW TUBE BREATHES SUBTLY
+    if (this._glowTube) {
+      this._glowTube.material.opacity =
+        this._alpha * (0.06 + Math.sin(this._time * 6) * 0.03 * (1 - progress * 0.8));
+    }
+
+    // BACKGROUND COLOR LERPS FROM BLACK → DARK WARM VOID AS FLESH MATERIALIZES
+    if (this._scene) {
+      const startDark = new THREE.Color(0x0b0012);
+      const endDark   = new THREE.Color(0x120002);
+      const bgColor   = new THREE.Color().copy(startDark).lerp(endDark, progress);
+      this._scene.background.copy(bgColor);
+      this._scene.fog.color.copy(bgColor);
     }
   }
 
   // ===================== PRIVATE — SETUP =====================
 
   _buildDOM() {
-    // THREE.JS CANVAS — SITS OVER EVERYTHING
     this._canvas = document.createElement('canvas');
     Object.assign(this._canvas.style, {
       position:      'fixed',
@@ -147,8 +271,6 @@ export class WormholeVortex {
       opacity:       '0',
     });
     document.body.appendChild(this._canvas);
-
-
   }
 
   _setupRenderer() {
@@ -158,18 +280,18 @@ export class WormholeVortex {
     this._renderer = new THREE.WebGLRenderer({ canvas: this._canvas, antialias: false });
     this._renderer.setSize(w, h);
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    this._renderer.setClearColor(0x060000); // DEEP NEAR-BLACK RED — LAST FRAME IS DARK
+    this._renderer.setClearColor(0x000000);
 
     this._scene  = new THREE.Scene();
+    this._scene.background = new THREE.Color(0x000000);
     this._camera = new THREE.PerspectiveCamera(88, w / h, 0.1, 500);
     this._camera.position.set(0, 0, 0);
 
-    // EXPONENTIAL FOG — OBJECTS AHEAD DISSOLVE INTO DARKNESS, PULLS EYE FORWARD
-    this._scene.fog = new THREE.FogExp2(0x060000, 0.055);
+    this._scene.fog = new THREE.FogExp2(0x000000, 0.045);
   }
 
   _buildScene() {
-    // ═══ TUBE PATH — GENTLE S-CURVE SO IT DOESN'T LOOK PERFECTLY STRAIGHT ═══
+    // ═══ TUBE PATH — GENTLE S-CURVE ═══
     const points = [];
     for (let i = 0; i <= 50; i++) {
       const t     = i / 50;
@@ -179,7 +301,6 @@ export class WormholeVortex {
     }
     const curve = new THREE.CatmullRomCurve3(points);
 
-    // ═══ TUBE MESH — BackSide SO WE SEE THE INSIDE WALLS ═══
     const tubeGeo = new THREE.TubeGeometry(
       curve,
       VORTEX.TUBE_PATH_SEGS,
@@ -187,53 +308,47 @@ export class WormholeVortex {
       VORTEX.TUBE_RADIAL_SEGS,
       false
     );
-    const tubeMat = new THREE.MeshPhongMaterial({
-      color:             0x600000,
-      emissive:          0x280000,
-      emissiveIntensity: 0.45,
-      specular:          0x2a0000,
-      shininess:         25,
-      side:              THREE.BackSide,
+
+    // ═══ FLESH SHADER — STARTS AS DARK VOID, MATERIALIZES INTO ORGANIC TISSUE ═══
+    this._uniforms = {
+      time:         { value: 0 },
+      progress:     { value: 0 },
+      opacity:      { value: 0 },
+      throbSpeed:   { value: VORTEX.THROB_SPEED },
+      periStrength: { value: VORTEX.PERI_STRENGTH },
+      ripple:       { value: VORTEX.RIPPLE },
+    };
+
+    const tubeMat = new THREE.ShaderMaterial({
+      uniforms:       this._uniforms,
+      vertexShader:   _vertexShader,
+      fragmentShader: _fragmentShader,
+      side:           THREE.BackSide,
+      transparent:    true,
     });
+
     this._tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
     this._scene.add(this._tubeMesh);
 
-    // ═══ RIBS — TORUS RINGS PERPENDICULAR TO TUBE PATH ═══
-    for (let i = 0; i < VORTEX.RIB_COUNT; i++) {
-      const t   = (i + 0.5) / VORTEX.RIB_COUNT;
-      const pt  = curve.getPoint(t);
-      const tan = curve.getTangent(t);
-
-      const ribGeo = new THREE.TorusGeometry(
-        VORTEX.TUBE_RADIUS * 1.03,
-        VORTEX.RIB_THICKNESS,
-        8,
-        22
-      );
-      const ribMat = new THREE.MeshPhongMaterial({
-        color:             0x380000,
-        emissive:          0x1a0000,
-        emissiveIntensity: 0.4,
-        shininess:         8,
-      });
-      const rib = new THREE.Mesh(ribGeo, ribMat);
-      rib.position.copy(pt);
-      rib.lookAt(pt.clone().add(tan)); // ORIENT PERPENDICULAR TO TUBE DIRECTION
-      rib.userData.phase = (i / VORTEX.RIB_COUNT) * Math.PI * 6; // STAGGERED PULSE PHASE
-      this._scene.add(rib);
-      this._ribs.push(rib);
-    }
+    // ═══ GLOW LAYER — ADDITIVE BLENDING FOR INNER LUMINOSITY ═══
+    const glowMat = new THREE.MeshBasicMaterial({
+      color:       0x1a0006,
+      transparent: true,
+      opacity:     0,
+      blending:    THREE.AdditiveBlending,
+      side:        THREE.BackSide,
+    });
+    this._glowTube = new THREE.Mesh(tubeGeo, glowMat); // SHARED GEOMETRY — NO EXTRA MEMORY
+    this._glowTube.scale.set(1.22, 1.0, 1.22);
+    this._scene.add(this._glowTube);
 
     // ═══ LIGHTS ═══
-    // AMBIENT — DARK RED BASE SO NOTHING IS PITCH BLACK
-    this._scene.add(new THREE.AmbientLight(0x300000, 2.2));
+    this._scene.add(new THREE.AmbientLight(0x180008, 0.4));
 
-    // PULSE LIGHT — TRAVELS WITH CAMERA, ILLUMINATES NEARBY WALLS
-    this._pulseLight = new THREE.PointLight(0x7a0a00, VORTEX.PULSE_BASE, 22);
-    this._pulseLight.position.set(0, 0, -3);
+    this._pulseLight = new THREE.PointLight(0x7a0a00, 3.5, 40);
+    this._pulseLight.position.set(0, 0, -4);
     this._scene.add(this._pulseLight);
 
-    // DEEP LIGHT — GLOWS FROM FAR AHEAD, LURES CAMERA FORWARD
     const deepLight = new THREE.PointLight(0x701e00, 4, 55);
     deepLight.position.set(0, 0, -VORTEX.TUBE_LENGTH * 0.6);
     this._scene.add(deepLight);
@@ -261,7 +376,8 @@ export class WormholeVortex {
     this._scene      = null;
     this._camera     = null;
     this._tubeMesh   = null;
+    this._glowTube   = null;
     this._pulseLight = null;
-    this._ribs       = [];
+    this._uniforms   = null;
   }
 }
