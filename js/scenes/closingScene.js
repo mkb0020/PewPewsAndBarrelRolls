@@ -27,11 +27,11 @@ const CREDITS_FADE_EACH     = 2;
 const BACK_TO_MENU_DELAY    = 50;
 
 // ── SPACE WHALE  ────────────────────────────────────────────────────────
-const WHALE_APPEAR_TIME   = 2.5;    // SECONDS INTO CLOSING SCENE BEFORE WHALE FADES IN
+const WHALE_APPEAR_TIME   = 0.1;    // SECONDS INTO CLOSING SCENE BEFORE WHALE FADES IN
 const WHALE_FADE_IN_SECS  = 1.5;    // FADE-IN DURATION
-const WHALE_SPEED         = 50;     // px/s — CROSSES 1920PX SCREEN IN ~22s
+const WHALE_SPEED         = 45;     // px/s — CROSSES 1920PX SCREEN IN ~22s
 const WHALE_BASE_Y_FRAC   = 0.25;   // VERTICAL POSITION — BELOW CENTERED CREDITS TEXT
-const WHALE_BOB_AMP       = 6;      // px — VERTICAL SINE DRIFT AMPLITUDE
+const WHALE_BOB_AMP       = 8;      // px — VERTICAL SINE DRIFT AMPLITUDE
 const WHALE_BOB_FREQ      = 0.000133; // Hz (cycles/ms) — period = 1/freq ms // 0.00075 → ~1333ms | 0.0015 → ~667ms | 0.0005 → ~2000ms
 const WHALE_FRAME_COUNT   = 12;     // FRAMES IN spaceWhale.png SPRITE SHEET
 const WHALE_TAIL_SEGS     = 12;     // TAIL SEGMENT COUNT
@@ -227,7 +227,7 @@ class SpaceWhale {
       ctx.moveTo(this._tail[i].x, this._tail[i].y);
       ctx.lineTo(this._tail[i + 1].x, this._tail[i + 1].y);
       ctx.shadowColor  = 'rgba(95,0,209,0.5)';
-      ctx.shadowBlur   = 22;
+      ctx.shadowBlur   = 24;
       ctx.lineWidth    = Math.max(1, 44.5 - i * 3);
       ctx.strokeStyle  = `rgba(95,0,209,${0.7 * this._alpha})`;
       ctx.stroke();
@@ -238,7 +238,7 @@ class SpaceWhale {
       const last = this._tail[WHALE_TAIL_SEGS - 1];
       ctx.save();
       ctx.globalAlpha = this._alpha;
-      ctx.shadowBlur  = 0;
+      ctx.shadowBlur  = 2;
       ctx.translate(last.x, last.y);
       ctx.rotate(this._tailAngle);
       ctx.drawImage(fluke, -8, -20, 45, 45);

@@ -1373,14 +1373,14 @@ export class WormBoss {
           ctx.globalCompositeOperation = 'screen';
           const shineGrad = ctx.createRadialGradient(
             rsx - size * 0.17, rsy - size * 0.22, size * 0.03,
-            rsx + size * 0.05, rsy + size * 0.05, size * 0.55
+            rsx + size * 0.05, rsy + size * 0.05, size * 0.39
           );
           shineGrad.addColorStop(0,    `rgba(255, 245, 230, ${shineA})`);
           shineGrad.addColorStop(0.35, `rgba(230, 110, 80,  ${shineA * 0.4})`);
           shineGrad.addColorStop(1,    'rgba(0, 0, 0, 0)');
           ctx.fillStyle = shineGrad;
           ctx.beginPath();
-          ctx.arc(rsx, rsy, size * 0.55, 0, Math.PI * 2);
+          ctx.arc(rsx, rsy, size * 0.39, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
         }
