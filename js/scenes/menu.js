@@ -268,16 +268,7 @@ export class Menu {
   }
 
   // ======================= TUNNEL ANIMATION =======================
-  _animateTunnel() {
-    const tick = () => {
-      this._rafId = requestAnimationFrame(tick);
-      if (this._tunnel) {
-        this._tunnel.update(0.016 * 0.35);
-        this._tunnel.render();
-      }
-    };
-    this._rafId = requestAnimationFrame(tick);
-  }
+
 
   hide() {
     this._select('gameplay');

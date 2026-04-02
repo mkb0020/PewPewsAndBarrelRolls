@@ -78,7 +78,6 @@ export class Ship {
 
     this.particles = new ParticleSystem();
     this._particleBoosterToggle = false; // ALTERNATES ODD PARTICLE BETWEEN LEFT/RIGHT BOOSTERS EACH FRAME
-    this._particleBoosterToggle = false; // ALTERNATES ODD PARTICLE BETWEEN LEFT/RIGHT EACH FRAME
 
     // ========== GLORK SLIME EFFECT ==========
     this._slimeHeaviness = 0;          
