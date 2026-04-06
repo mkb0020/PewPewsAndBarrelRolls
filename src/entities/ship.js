@@ -1,0 +1,1107 @@
+// Updated 3/19/26 @ 11:45am
+// ship.js
+// ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
+import { CONFIG } from '../utils/config.js';
+import { keys, virtualKeys, isKeyPressed } from '../utils/controls.js';
+import { ParticleSystem } from '../visuals/particles.js';
+import { ImageLoader } from '../utils/imageLoader.js';
+import { SessionRecorder } from '../temp/devTools.js';
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+export class Ship {
+  constructor(canvas, ctx) {
+    this.canvas = canvas;
+    this.ctx    = ctx;
+
+    this.x = window.innerWidth  / 2;
+    this.y = window.innerHeight / 2;
+    this.width  = CONFIG.SHIP.WIDTH;
+    this.height = CONFIG.SHIP.HEIGHT;
+    this.rotation = 0;
+
+    this.offset   = { x: 0, y: 0 };
+    this.velocity = { x: 0, y: 0 };
+
+    this.targetRotation  = 0;
+    this.currentRotation = 0;
+
+    this.currentFrame      = CONFIG.SHIP.NEUTRAL_FRAME;
+    this.currentFrameFloat = CONFIG.SHIP.NEUTRAL_FRAME;
+    this.targetFrame       = CONFIG.SHIP.NEUTRAL_FRAME;
+
+    this.isBarrelRolling    = false;
+    this.barrelRollProgress = 0;
+    this.barrelRollDirection = 1;
+
+    this.shootCooldown = 0;
+    this.canShoot      = true;
+
+    this.maxHP              = CONFIG.SHIP_HP.MAX_HP;
+    this.hp                 = CONFIG.SHIP_HP.MAX_HP;
+    this.lives              = CONFIG.SHIP_HP.MAX_LIVES;
+    this.isInvincible       = false;
+    this.invincibilityTimer = 0;
+    this.isAlive            = true;
+    this.onDeath            = null; 
+    this.onHPChange         = null;
+    this.onLivesChange      = null;
+    this.onConsumedComplete = null; // BOSS GAME OVER PATH — SET BY bossBattle.startWormholeGameOver(); BYPASSES _triggerDeath
+
+    this.suctionActive = false;
+    this.suctionScale  = 1.0;
+    this.suctionShakeX = 0;
+    this.suctionShakeY = 0;
+    this._rollBurstFired = false;
+
+    // RAGE SUCTION MULTIPLIER — APPLIED TO BASE FORCE, MAX DISTANCE, SHAKE, AND RAMP EXPONENT
+    this._rageSuction = false;
+
+    // ========== BOOST ==========
+    this._boostCooldown = 0;   
+    this._boostActive   = false; 
+    this._boostTimer    = 0;    
+    this._boostGhost    = null; 
+    this.onBoost        = null;
+
+    this.consumedMode        = false;
+    this.consumedTimer       = 0;
+    this.consumedDuration    = 1.1;
+    this.consumedTargetX     = 0;
+    this.consumedTargetY     = 0;
+    this._consumedDeathFired = false;
+    this.consumedFlashAlpha  = 0;
+
+    this.cinematicMode          = false;
+    this.cinematicScale         = 1.0;
+    this.CINEMATIC_SCALE_TARGET = 1.5;
+    this.CINEMATIC_LERP         = 0.08;
+
+    this.particles = new ParticleSystem();
+    this._particleBoosterToggle = false; // ALTERNATES ODD PARTICLE BETWEEN LEFT/RIGHT BOOSTERS EACH FRAME
+
+    // ========== GLORK SLIME EFFECT ==========
+    this._slimeHeaviness = 0;          
+    this._trailPositions = [];          
+    this._trailCaptureTimer = 0;
+
+    // ========== COSMIC PRISM HEAL GLOW ==========
+    this._healGlow         = 0;     
+    this._healGlowDuration = 0.65;  
+
+    // ========== FRACTAL CASCADE ==========
+    this._fractalControlsReversed = false; // SET BY fractalCascade.update(), FLIPS INPUT AXES
+
+    // ========== CELLULAR DISTORTION ==========
+    this._cellularDistortActive = false;   // SET BY bossBattle — REVERSES CONTROLS + SLOWS SHIP + TRACERS
+
+    // ========== SHIP DEATH SEQUENCE ==========
+    this.deathSequenceEnabled  = true;  // SET FALSE BY main.js WHEN BOSS IS ACTIVE
+    this._dsActive             = false;
+    this._dsTimer              = 0;
+    this._dsPhase              = 'idle'; 
+    this._dsLives              = 0;      
+    this._dsX                  = 0;      
+    this._dsY                  = 0;
+    this._dsFrame              = 0;      
+    this._dsKabamTimer         = 0;
+    this._dsKabamFrame         = 0;
+    this._dsSmoke              = [];     
+    this._dsFrags              = [];     
+    this.onDeathSequenceStart  = null;   
+    // console.log('✔ Ship initialized');
+  }
+
+  // ========== BOOSTER POSITIONS ==========
+  // RETURNS WORLD-SPACE [LEFT, RIGHT] BOOSTER COORDS, ROTATION-AWARE
+  _boosterPositions() {
+    const cos = Math.cos(this.rotation);
+    const sin = Math.sin(this.rotation);
+    const ox  = CONFIG.PARTICLES.BOOSTER_OFFSET_X;
+    const oy  = CONFIG.PARTICLES.BOOSTER_OFFSET_Y;
+    return [
+      { x: this.x + (-ox * cos - oy * sin), y: this.y + (-ox * sin + oy * cos) }, // LEFT
+      { x: this.x + ( ox * cos - oy * sin), y: this.y + ( ox * sin + oy * cos) }, // RIGHT
+    ];
+  }
+
+  startBarrelRoll(direction = 1) {
+    if (!this.isBarrelRolling) {
+      this.isBarrelRolling     = true;
+      this.barrelRollProgress  = 0;
+      this.barrelRollDirection = direction;
+      this._rollBurstFired     = false;
+      // console.log('DO A BARREL ROLL!');
+    }
+  }
+
+  // ========== BOOST ==========
+  activateBoost() {
+    if (this._boostCooldown > 0)                          return false;
+    if (!this.isAlive || this.consumedMode || this.cinematicMode) return false;
+
+    const movingUp    = isKeyPressed('w')    || isKeyPressed('arrowup');
+    const movingDown  = isKeyPressed('s')    || isKeyPressed('arrowdown');
+    const movingLeft  = isKeyPressed('a')    || isKeyPressed('arrowleft');
+    const movingRight = isKeyPressed('d')    || isKeyPressed('arrowright');
+
+    let dx = 0, dy = 0;
+    if (movingRight) dx += 1;
+    if (movingLeft)  dx -= 1;
+    if (movingUp)    dy += 1;   
+    if (movingDown)  dy -= 1;
+
+    const inputMag = Math.sqrt(dx * dx + dy * dy);
+    if (inputMag > 0) {
+      dx /= inputMag;
+      dy /= inputMag;
+    } else {
+      const vMag = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+      if (vMag > 10) {
+        dx = this.velocity.x / vMag;
+        dy = this.velocity.y / vMag;   // POSITIVE-UP, matches offset.y convention
+      }
+    }
+
+    const impulse = CONFIG.BOOST.IMPULSE;
+    this.velocity.x += dx * impulse;
+    this.velocity.y += dy * impulse;   // CONSISTENT WITH velocity.y += inputY * accel in updateMovement
+
+    this._boostActive   = true;
+    this._boostTimer    = CONFIG.BOOST.DURATION;
+    this._boostCooldown = CONFIG.BOOST.COOLDOWN;
+
+    this._boostGhost = {
+      x:        this.x,
+      y:        this.y,
+      rotation: this.rotation,
+      frame:    this.currentFrame,
+      timer:    CONFIG.BOOST.GHOST_DURATION,
+      duration: CONFIG.BOOST.GHOST_DURATION,
+    };
+
+    if (this.onBoost) this.onBoost();
+    return true;
+  }
+
+  getBoostCooldown()      { return this._boostCooldown; }
+  isBoostReady()          { return this._boostCooldown <= 0; }
+
+  updateMovement(dt) {
+    const movingUp    = isKeyPressed('w') || isKeyPressed('arrowup');
+    const movingDown  = isKeyPressed('s') || isKeyPressed('arrowdown');
+    const movingLeft  = isKeyPressed('a') || isKeyPressed('arrowleft');
+    const movingRight = isKeyPressed('d') || isKeyPressed('arrowright');
+
+    let inputX = 0, inputY = 0;
+    if (movingRight) inputX += 1;
+    if (movingLeft)  inputX -= 1;
+    if (movingUp)    inputY += 1;
+    if (movingDown)  inputY -= 1;
+
+    const mag = Math.sqrt(inputX * inputX + inputY * inputY);
+    if (mag > 1) { inputX /= mag; inputY /= mag; }
+
+    // FRACTAL CASCADE — FLIP ALL INPUT AXES WHEN CONTROLS ARE REVERSED
+    if (this._fractalControlsReversed || this._cellularDistortActive) { inputX = -inputX; inputY = -inputY; }
+
+    // ACCELERATION + DAMPING
+    const accel = CONFIG.SHIP.ACCELERATION * dt
+                * (1 - this._slimeHeaviness * (1 - CONFIG.SLIME_ATTACK.CONTROL_ACCEL_MULT))
+                * (this._cellularDistortActive ? CONFIG.CELLULAR_ATTACK.DISTORT_ACCEL_MULT : 1);
+    this.velocity.x += inputX * accel;
+    this.velocity.y += inputY * accel;
+
+    const damp = Math.pow(CONFIG.SHIP.DAMPING, dt * 60);
+    this.velocity.x *= damp;
+    this.velocity.y *= damp;
+
+    // SLIME EXTRA DRAG 
+    if (this._slimeHeaviness > 0.01) {
+      const slimeDamp = Math.pow(CONFIG.SLIME_ATTACK.CONTROL_DAMP_MULT, dt * 60 * this._slimeHeaviness);
+      this.velocity.x *= slimeDamp;
+      this.velocity.y *= slimeDamp;
+    }
+
+    // CELLULAR DISTORTION EXTRA DRAG
+    if (this._cellularDistortActive) {
+      const distortDamp = Math.pow(CONFIG.CELLULAR_ATTACK.DISTORT_DAMP_MULT, dt * 60);
+      this.velocity.x *= distortDamp;
+      this.velocity.y *= distortDamp;
+    }
+
+    // INTEGRATE
+    this.offset.x += this.velocity.x * dt;
+    this.offset.y += this.velocity.y * dt;
+
+    // CLAMP — EXPAND DURING SUCTION SO WORM CAN DRAG SHIP
+    const clampMult = this.suctionActive ? CONFIG.WORM_SUCTION.MAX_OFFSET_EXPAND : 1.0;
+    const maxX = CONFIG.SHIP.MAX_OFFSET_X * clampMult;
+    const maxY = CONFIG.SHIP.MAX_OFFSET_Y * clampMult;
+
+    const prevX = this.offset.x;
+    const prevY = this.offset.y;
+    this.offset.x = Math.max(-maxX, Math.min(maxX, this.offset.x));
+    this.offset.y = Math.max(-maxY, Math.min(maxY, this.offset.y));
+    if (this.offset.x !== prevX) this.velocity.x = 0;
+    if (this.offset.y !== prevY) this.velocity.y = 0;
+
+    this.x = window.innerWidth  / 2 + this.offset.x + this.suctionShakeX;
+    this.y = window.innerHeight / 2 - this.offset.y + this.suctionShakeY;
+
+    // BOOST — COOLDOWN TICK + ACTIVE TIMER + PARTICLE BURST
+    if (this._boostCooldown > 0) this._boostCooldown = Math.max(0, this._boostCooldown - dt);
+    this._updateBoostBarDOM();
+    if (this._boostActive) {
+      this._boostTimer -= dt;
+      if (this._boostTimer <= 0) {
+        this._boostActive = false;
+        this._boostTimer  = 0;
+      } else if (!this.suctionActive) {  // NO NEW PARTICLES WHILE SUCTION SHRINKS THE SHIP
+        const [bL, bR] = this._boosterPositions();
+        this._particleBoosterToggle = !this._particleBoosterToggle;
+        this.particles.spawn(bL.x, bL.y, this._particleBoosterToggle ? 2 : 1);
+        this.particles.spawn(bR.x, bR.y, this._particleBoosterToggle ? 1 : 2);
+      }
+    }
+    if (this._boostGhost) {
+      this._boostGhost.timer -= dt;
+      if (this._boostGhost.timer <= 0) this._boostGhost = null;
+    }
+
+    // SPRITE FRAME
+    let desiredFrame = CONFIG.SHIP.NEUTRAL_FRAME;
+    if (movingUp)        desiredFrame = CONFIG.SHIP.UP_FRAME;
+    else if (movingDown) desiredFrame = CONFIG.SHIP.DOWN_FRAME;
+
+    const interpSpeed = (movingUp || movingDown)
+      ? CONFIG.SHIP.FRAME_INTERPOLATION_ACTIVE
+      : CONFIG.SHIP.FRAME_INTERPOLATION_IDLE;
+
+    this.targetFrame = desiredFrame;
+    this.currentFrameFloat += (this.targetFrame - this.currentFrameFloat) * interpSpeed;
+    this.currentFrame = Math.round(this.currentFrameFloat);
+
+    // BARREL ROLL
+    if (this.isBarrelRolling) {
+      this.barrelRollProgress += dt / CONFIG.BARREL_ROLL.DURATION;
+      if (this.barrelRollProgress >= 1.0) {
+        this.isBarrelRolling    = false;
+        this.barrelRollProgress = 0;
+        this.currentRotation    = 0;
+      } else {
+        const rollAngle = this.barrelRollProgress * 360 * this.barrelRollDirection;
+        this.rotation   = rollAngle * Math.PI / 180;
+        if (!this.suctionActive &&  // NO NEW PARTICLES WHILE SUCTION SHRINKS THE SHIP
+            this.particles.getCount() < CONFIG.PARTICLES.MAX_COUNT * CONFIG.BARREL_ROLL.PARTICLE_SPAWN_MULTIPLIER) {
+          const [bL, bR] = this._boosterPositions();
+          this.particles.spawn(bL.x, bL.y);
+          this.particles.spawn(bR.x, bR.y);
+        }
+      }
+    } else {
+      this.targetRotation = 0;
+      if (movingLeft)  this.targetRotation = -CONFIG.SHIP.TILT_ANGLE;
+      if (movingRight) this.targetRotation =  CONFIG.SHIP.TILT_ANGLE;
+      this.currentRotation += (this.targetRotation - this.currentRotation) * CONFIG.SHIP.ROTATION_SMOOTHING;
+      this.rotation = this.currentRotation * Math.PI / 180;
+    }
+  }
+
+  update(dt) {
+    if (!this.isAlive) {
+      if (this._dsActive) this._updateDeathSequence(dt);
+      return;
+    }
+
+    // CONSUMED — CONTROLS LOCKED, SPIRAL TO MOUTH
+    if (this.consumedMode) {
+      this._updateConsumed(dt);
+      this.particles.update(dt);
+      return;
+    }
+
+    // CINEMATIC — CONTROLS LOCKED, DRIFT TO BOTTOM-CENTER
+    if (this.cinematicMode) {
+      const targetOffsetX =  0;
+      const targetOffsetY = -(window.innerHeight * 0.30);
+      this.velocity.x = 0;
+      this.velocity.y = 0;
+      this.offset.x += (targetOffsetX - this.offset.x) * this.CINEMATIC_LERP;
+      this.offset.y += (targetOffsetY - this.offset.y) * this.CINEMATIC_LERP;
+      this.x = window.innerWidth  / 2 + this.offset.x;
+      this.y = window.innerHeight / 2 - this.offset.y;
+      this.cinematicScale += (this.CINEMATIC_SCALE_TARGET - this.cinematicScale) * this.CINEMATIC_LERP;
+      this.currentRotation += (0 - this.currentRotation) * 0.1;
+      this.rotation = this.currentRotation * Math.PI / 180;
+      this.isBarrelRolling = false;
+      this.particles.update(dt);
+      return;
+    }
+
+    this.updateMovement(dt);
+
+    if (this.shootCooldown > 0) {
+      this.shootCooldown -= dt;
+      if (this.shootCooldown <= 0) this.canShoot = true;
+    }
+
+    if (this.isInvincible) {
+      this.invincibilityTimer -= dt;
+      if (this.invincibilityTimer <= 0) {
+        this.isInvincible       = false;
+        this.invincibilityTimer = 0;
+      }
+    }
+
+    if (!this.isBarrelRolling && !this.suctionActive) {  // NO NEW PARTICLES WHILE SUCTION SHRINKS THE SHIP
+      const [bL, bR] = this._boosterPositions();
+      const base  = Math.floor(CONFIG.PARTICLES.SPAWN_RATE / 2);
+      const extra = CONFIG.PARTICLES.SPAWN_RATE % 2;
+      this._particleBoosterToggle = !this._particleBoosterToggle;
+      this.particles.spawn(bL.x, bL.y, base + (extra &&  this._particleBoosterToggle ? 1 : 0));
+      this.particles.spawn(bR.x, bR.y, base + (extra && !this._particleBoosterToggle ? 1 : 0));
+    }
+    this.particles.update(dt);
+
+    // ========= HEAL GLOW DECAY =========
+    if (this._healGlow > 0) {
+      this._healGlow = Math.max(0, this._healGlow - dt / this._healGlowDuration);
+    }
+
+    // ========= SLIME / CELLULAR DISTORTION TRAIL CAPTURE =========
+    if (this._slimeHeaviness > 0.05 || this._cellularDistortActive) {
+      this._trailCaptureTimer -= dt;
+      if (this._trailCaptureTimer <= 0) {
+        this._trailCaptureTimer = CONFIG.SLIME_ATTACK.TRAIL_CAPTURE_RATE;
+        this._trailPositions.push({
+          x:        this.x,
+          y:        this.y,
+          rotation: this.rotation,
+          frame:    this.currentFrame,
+        });
+        if (this._trailPositions.length > CONFIG.SLIME_ATTACK.TRAIL_MAX) {
+          this._trailPositions.shift();
+        }
+      }
+    } else {
+      if (this._trailPositions.length > 0) this._trailPositions.shift();
+    }
+  }
+
+  //  WORM SUCTION 
+  setRageSuction(enabled) {
+    this._rageSuction = Boolean(enabled);
+  }
+
+  applySuction(mouthX, mouthY, dt) {
+    if (this.consumedMode) return;
+    this.suctionActive = true;
+    const SC = CONFIG.WORM_SUCTION;
+    const rageMul = this._rageSuction ? SC.RAGE_MULTIPLIER : 1;
+
+    const shipScreenX = window.innerWidth  / 2 + this.offset.x;
+    const shipScreenY = window.innerHeight / 2 - this.offset.y;
+
+    const sdx  = mouthX - shipScreenX;
+    const sdy  = mouthY - shipScreenY;
+    const dist = Math.sqrt(sdx * sdx + sdy * sdy);
+
+    // PREVENT NaN WHEN SHIP IS EXACTLY AT THE MOUTH (DIST = 0). KEEP PREVIOUS VELOCITY INSTEAD OF BLOWING UP.
+    if (dist < 1) {
+      this.suctionShakeX = 0;
+      this.suctionShakeY = 0;
+      return;
+    }
+
+    const closeness   = Math.max(0, 1 - dist / (SC.MAX_DISTANCE * rageMul));
+    const targetScale = SC.SCALE_FAR - closeness * (SC.SCALE_FAR - SC.SCALE_NEAR);
+    this.suctionScale += (targetScale - this.suctionScale) * SC.SCALE_LERP;
+
+    if (closeness > 0.1) {
+      const shakeAmt   = SC.SHAKE_INTENSITY * rageMul * closeness;
+      this.suctionShakeX = (Math.random() - 0.5) * shakeAmt;
+      this.suctionShakeY = (Math.random() - 0.5) * shakeAmt;
+    } else {
+      this.suctionShakeX = 0;
+      this.suctionShakeY = 0;
+    }
+
+    const snx = sdx / dist;
+    const sny = sdy / dist;
+    const stx = -sny;
+    const sty =  snx;
+
+    const rawForce = SC.BASE_FORCE * rageMul * Math.pow(closeness, SC.RAMP_EXPONENT); // NOTE: RAMP_EXPONENT IS NOT MULTIPLIED — RAGE SHOULD BE UNIFORMLY STRONGER, NOT JUST CLOSE-RANGE
+    const forceMag = Math.min(rawForce, SC.MAX_FORCE * rageMul);
+
+    const rolling  = this.isBarrelRolling;
+    const spinMult = rolling ? SC.ROLL_SPIN_RESIST : 1.0;
+    const pullMult = rolling ? SC.ROLL_PULL_RESIST : 1.0;
+
+    if (rolling && this.barrelRollProgress > 0.45 && !this._rollBurstFired) {
+      this._rollBurstFired = true;
+      this.velocity.x -= snx * SC.ROLL_BURST_FORCE;
+      this.velocity.y += sny * SC.ROLL_BURST_FORCE;
+    }
+
+    const screenFX = (snx * SC.PULL_STRENGTH * pullMult + stx * SC.SPIN_STRENGTH * spinMult) * forceMag;
+    const screenFY = (sny * SC.PULL_STRENGTH * pullMult + sty * SC.SPIN_STRENGTH * spinMult) * forceMag;
+
+    this.velocity.x += screenFX * dt;
+    this.velocity.y -= screenFY * dt;
+
+    // SAFETY: PREVENT NaNs FROM PROPAGATING INTO POSITION
+    if (!Number.isFinite(this.velocity.x)) this.velocity.x = 0;
+    if (!Number.isFinite(this.velocity.y)) this.velocity.y = 0;
+  }
+
+  clearSuction() {
+    if (this.consumedMode) return;
+    this.suctionActive = false;
+    this.suctionShakeX = 0;
+    this.suctionShakeY = 0;
+    this.suctionScale += (1.0 - this.suctionScale) * CONFIG.WORM_SUCTION.SCALE_LERP;
+  }
+
+  getSuctionScale() { return this.suctionScale; }
+
+  //  CONSUMED SEQUENCE 
+  enterConsumed(targetX, targetY) {
+    if (this.consumedMode || !this.isAlive) return;
+    this.consumedMode        = true;
+    this.consumedTimer       = 0;
+    this.consumedTargetX     = targetX;
+    this.consumedTargetY     = targetY;
+    this._consumedDeathFired = false;
+    this.consumedFlashAlpha  = 0;
+    this.isInvincible        = true;
+    this.isBarrelRolling     = false;
+    this.velocity.x          = 0;
+    this.velocity.y          = 0;
+  }
+
+  _updateConsumed(dt) {
+    this.consumedTimer += dt;
+    const t    = Math.min(this.consumedTimer / this.consumedDuration, 1.0);
+    const ease = t * t * t; // CUBIC — ROCKETS INTO MOUTH AT END
+
+    const targetOffsetX =  this.consumedTargetX - window.innerWidth  / 2;
+    const targetOffsetY = -(this.consumedTargetY - window.innerHeight / 2);
+
+    const chaseSpeed = 0.08 + ease * 0.28;
+    this.offset.x += (targetOffsetX - this.offset.x) * chaseSpeed;
+    this.offset.y += (targetOffsetY - this.offset.y) * chaseSpeed;
+    this.x = window.innerWidth  / 2 + this.offset.x;
+    this.y = window.innerHeight / 2 - this.offset.y;
+
+    this.rotation -= Math.PI * 4 * dt * (0.6 + ease * 3.5); // RAPID CCW SPIN
+    this.suctionScale = Math.max(0, 1.0 - ease * 0.98);     // SHRINK INTO MOUTH
+
+    this.consumedFlashAlpha = t > 0.7 ? (t - 0.7) / 0.3 : 0; // FLASH IN FINAL 30%
+
+    if (t >= 1.0 && !this._consumedDeathFired) {
+      this._consumedDeathFired = true;
+      this.consumedFlashAlpha  = 0;
+      this.consumedMode        = false;
+      if (this.onConsumedComplete) {
+        this.onConsumedComplete(); // BOSS GAME OVER: FIRE VORTEX, SKIP _triggerDeath
+      } else {
+        this._triggerDeath();      // NORMAL PATH: LOSE A LIFE
+      }
+    }
+  }
+
+  takeLatchDamage(amount) {
+    if (!this.isAlive || this.isInvincible) return;
+    this.hp = Math.max(0, this.hp - amount);
+    if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
+    if (this.hp <= 0) this._triggerDeath();
+  }
+
+  heal(amount) {
+    if (!this.isAlive) return;
+    this.hp = Math.min(this.maxHP, this.hp + amount);
+    if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
+    this._healGlow = 1;
+  }
+
+  takeDamage(amount) {
+    if (this.isInvincible || !this.isAlive) return false;
+    this.hp = Math.max(0, this.hp - amount);
+    SessionRecorder.log('player_damage', { amount, hp: this.hp, lives: this.lives });
+    if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
+    if (this.hp <= 0) {
+      this._triggerDeath();
+    } else {
+      this._startInvincibility(CONFIG.SHIP_HP.INVINCIBILITY_DURATION);
+    }
+    return true;
+  }
+
+  _triggerDeath() {
+    this.isAlive = false;
+    this.lives   = Math.max(0, this.lives - 1);
+    if (this.onLivesChange) this.onLivesChange(this.lives);
+
+    if (this.deathSequenceEnabled) {
+      this._startDeathSequence();  
+    } else {
+      if (this.onDeath) this.onDeath(this.lives);
+    }
+  }
+
+  respawn() {
+    this.hp      = this.maxHP;
+    this.isAlive = true;
+    this.offset.x    = 0;
+    this.offset.y    = 0;
+    this.velocity.x  = 0;
+    this.velocity.y  = 0;
+    this.x = window.innerWidth  / 2;
+    this.y = window.innerHeight / 2;
+    this.suctionScale  = 1.0;
+    this.suctionActive = false;
+    this.suctionShakeX = 0;
+    this.suctionShakeY = 0;
+    this.consumedMode        = false;
+    this.consumedTimer       = 0;
+    this.consumedFlashAlpha  = 0;
+    this._consumedDeathFired = false;
+    this._trailPositions     = [];
+    this._slimeHeaviness     = 0;
+    this._cellularDistortActive = false;
+    this._dsActive = false;
+    this._dsPhase  = 'idle';
+    this._dsSmoke  = [];
+    this._dsFrags  = [];
+    if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
+    this._startInvincibility(CONFIG.SHIP_HP.RESPAWN_INVINCIBILITY);
+  }
+
+  resetForNewGame() {
+    this.hp    = this.maxHP;
+    this.lives = CONFIG.SHIP_HP.MAX_LIVES;
+    this.isAlive          = true;
+    this.isInvincible     = false;
+    this.invincibilityTimer = 0;
+    this.offset.x = 0; this.offset.y = 0;
+    this.velocity.x = 0; this.velocity.y = 0;
+    this.suctionScale  = 1.0;
+    this.suctionActive = false;
+    this.consumedMode        = false;
+    this.consumedTimer       = 0;
+    this.consumedFlashAlpha  = 0;
+    this._consumedDeathFired = false;
+    this.onConsumedComplete  = null;
+    this.cinematicMode  = false;
+    this.cinematicScale = 1.0;
+    this._dsActive = false;
+    this._dsPhase  = 'idle';
+    this._dsSmoke  = [];
+    this._dsFrags  = [];
+    this._fractalControlsReversed = false;
+    this._cellularDistortActive   = false;
+    this.x = window.innerWidth  / 2;
+    this.y = window.innerHeight / 2;
+    if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);
+    if (this.onLivesChange) this.onLivesChange(this.lives);
+  }
+
+  _startInvincibility(duration) {
+    this.isInvincible       = true;
+    this.invincibilityTimer = duration;
+  }
+
+  _startDeathSequence() {
+    this._dsActive     = true;
+    this._dsTimer      = 0;
+    this._dsPhase      = 'freeze';
+    this._dsLives      = this.lives;
+    this._dsX          = this.x;
+    this._dsY          = this.y;
+    this._dsFrame      = this.currentFrame;
+    this._dsKabamTimer = 0;
+    this._dsKabamFrame = 0;
+    this._dsSmoke      = [];
+    this._dsFrags      = [];
+    if (this.onDeathSequenceStart) this.onDeathSequenceStart();
+  }
+
+  _updateDeathSequence(dt) {
+    const CFG        = CONFIG.SHIP_DEATH;
+    const freezeEnd  = CFG.FREEZE_DURATION;
+    const glitchEnd  = freezeEnd + CFG.GLITCH_DURATION;
+
+    this._dsTimer += dt;
+
+    if (this._dsPhase === 'freeze' && this._dsTimer >= freezeEnd) {
+      this._dsPhase = 'glitch';
+      this._spawnDeathFragments(); 
+    }
+
+    if (this._dsPhase === 'glitch' && this._dsTimer >= glitchEnd) {
+      this._dsPhase = 'fragments';
+      this._dsKabamTimer = 0;
+      this._dsKabamFrame = 0;
+      this._launchDeathFragments();
+    }
+
+    if (this._dsPhase === 'fragments') {
+      this._dsKabamTimer += dt;
+      this._dsKabamFrame  = Math.floor(this._dsKabamTimer * CFG.KABAM_FPS);
+
+      for (const f of this._dsFrags) {
+        f.x       += f.vx * dt;
+        f.y       += f.vy * dt;
+        f.vy      += 35 * dt; 
+        f.rotation += f.rotSpeed * dt;
+      }
+
+      if (this._dsKabamFrame >= CFG.KABAM_FRAMES) {
+        this._dsPhase  = 'done';
+        this._dsActive = false;
+        if (this.onDeath) this.onDeath(this._dsLives);
+      }
+    }
+  }
+
+  _spawnDeathFragments() {
+    const CFG  = CONFIG.SHIP_DEATH;
+    const gap  = CFG.PIECE_HOVER_SPREAD;
+    const defs = [
+      { frameIdx: 0, ox: -gap, oy: 0 },
+      { frameIdx: 1, ox:  0,   oy: 0 },
+      { frameIdx: 2, ox:  gap, oy: 0 },
+    ];
+    for (const d of defs) {
+      this._dsFrags.push({
+        frameIdx: d.frameIdx,
+        x:        this._dsX + d.ox,
+        y:        this._dsY + d.oy,
+        vx:       0,
+        vy:       0,
+        rotation: (Math.random() - 0.5) * 0.25,
+        rotSpeed: 0, 
+      });
+    }
+  }
+
+  _launchDeathFragments() {
+    const CFG  = CONFIG.SHIP_DEATH;
+    const extra = CFG.PIECE_SPREAD; 
+    const dirs  = [
+      { ox: -extra, oy: -extra * 0.3, vx: -CFG.PIECE_DRIFT_X, vy: -CFG.PIECE_DRIFT_Y * 0.6, rotDir: -1 },
+      { ox:  0,     oy: -extra,        vx:  0,                 vy: -CFG.PIECE_DRIFT_Y,        rotDir:  1 },
+      { ox:  extra, oy: -extra * 0.3, vx:  CFG.PIECE_DRIFT_X, vy: -CFG.PIECE_DRIFT_Y * 0.6, rotDir:  1 },
+    ];
+    for (let i = 0; i < this._dsFrags.length; i++) {
+      const f = this._dsFrags[i];
+      const d = dirs[i];
+      f.x       += d.ox;
+      f.y       += d.oy;
+      f.vx       = d.vx;
+      f.vy       = d.vy;
+      f.rotSpeed = d.rotDir * CFG.PIECE_SPIN * (0.7 + Math.random() * 0.6);
+    }
+  }
+
+  _spawnDeathSmoke() {
+    const CFG = CONFIG.SHIP_DEATH;
+    for (let i = 0; i < CFG.SMOKE_COUNT; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = CFG.SMOKE_SPEED_MIN + Math.random() * (CFG.SMOKE_SPEED_MAX - CFG.SMOKE_SPEED_MIN);
+      const spread = CONFIG.SHIP.WIDTH * 0.25;
+      this._dsSmoke.push({
+        x:          this._dsX + (Math.random() - 0.5) * spread,
+        y:          this._dsY + (Math.random() - 0.5) * spread,
+        vx:         Math.cos(angle) * speed,
+        vy:         Math.sin(angle) * speed,
+        frameTimer: Math.random() * (1 / CFG.SMOKE_FPS), 
+        frame:      0,
+        scale:      CFG.SMOKE_SIZE_MIN + Math.random() * (CFG.SMOKE_SIZE_MAX - CFG.SMOKE_SIZE_MIN),
+      });
+    }
+  }
+
+  _drawDeathSequence() {
+    const ctx    = this.ctx;
+    const sprite = ImageLoader.get('ship');
+
+    if (this._dsPhase === 'freeze' && sprite) {
+      this._dsDrawShipSprite(ctx, sprite, this._dsX, this._dsY, this._dsFrame, 1.0);
+    }
+
+    if (this._dsPhase === 'glitch' && sprite) {
+      this._drawGlitchEffect(ctx, sprite);
+      this._drawDeathFragments(ctx, true);
+    }
+
+    if (this._dsPhase === 'fragments') {
+      this._drawDeathFragments(ctx, false);
+      this._drawKabam(ctx);
+    }
+  }
+
+  _dsDrawShipSprite(ctx, sprite, x, y, frame, alpha) {
+    const frameW = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
+    const w      = CONFIG.SHIP.WIDTH;
+    const h      = CONFIG.SHIP.HEIGHT;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(sprite, frame * frameW, 0, frameW, sprite.height, x - w / 2, y - h / 2, w, h);
+    ctx.restore();
+  }
+
+  _drawGlitchEffect(ctx, sprite) {
+    const CFG      = CONFIG.SHIP_DEATH;
+    const w        = CONFIG.SHIP.WIDTH;
+    const h        = CONFIG.SHIP.HEIGHT;
+    const frameW   = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
+    const srcX     = this._dsFrame * frameW;
+    const srcH     = sprite.height;
+    const nSlices  = CFG.GLITCH_SLICES;
+    const sliceSrcH = srcH / nSlices;
+    const sliceDstH = h   / nSlices;
+    const t        = this._dsTimer;
+    const glitchProgress = Math.max(0, (t - CFG.FREEZE_DURATION) / CFG.GLITCH_DURATION);
+
+    ctx.save();
+
+    const shipFade = 1 - glitchProgress * 0.92; // SHIP DISSOLVES AS FRAGMENTS TAKE OVER
+    for (let i = 0; i < nSlices; i++) {
+      const doJitter = Math.random() < (0.25 + glitchProgress * 0.55);
+      const offsetX  = doJitter
+        ? (Math.random() - 0.5) * CFG.GLITCH_OFFSET_MAX * 2 * glitchProgress
+        : 0;
+      const alpha    = (0.75 + 0.25 * Math.random()) * shipFade;
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.drawImage(
+        sprite,
+        srcX, i * sliceSrcH, frameW, sliceSrcH,
+        this._dsX - w / 2 + offsetX, this._dsY - h / 2 + i * sliceDstH, w, sliceDstH
+      );
+    }
+
+    ctx.globalAlpha = 0.22 * glitchProgress * shipFade;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(sprite, srcX, 0, frameW, srcH, this._dsX - w / 2 - 7, this._dsY - h / 2, w, h);
+
+    ctx.globalAlpha = 0.18 * glitchProgress * shipFade;
+    ctx.drawImage(sprite, srcX, 0, frameW, srcH, this._dsX - w / 2 + 7, this._dsY - h / 2, w, h);
+
+    if (Math.random() < 0.2 + glitchProgress * 0.25) {
+      ctx.globalAlpha      = Math.random() * 0.35 * glitchProgress + 0.05;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle        = Math.random() < 0.5 ? `rgba(0,255,255,1)` : `rgba(255,60,180,1)`;
+      const bh = sliceDstH * (1 + Math.floor(Math.random() * 2));
+      const by = this._dsY - h / 2 + Math.random() * (h - bh);
+      ctx.fillRect(this._dsX - w / 2, by, w, bh);
+    }
+
+    ctx.restore();
+  }
+
+  _drawDeathFragments(ctx, isHovering = false) {
+    const CFG      = CONFIG.SHIP_DEATH;
+    const pieces   = ImageLoader.get('shipPieces');
+    if (!pieces || this._dsFrags.length === 0) return;
+
+    const PIECE_FRAMES = 3;
+    const frameW       = pieces.width  / PIECE_FRAMES;
+    const frameH       = pieces.height;
+    const renderW      = CONFIG.SHIP.WIDTH  * CFG.PIECE_SCALE;
+    const renderH      = CONFIG.SHIP.HEIGHT * CFG.PIECE_SCALE;
+
+
+    let baseAlpha;
+    if (isHovering) {
+      const CFG2 = CONFIG.SHIP_DEATH;
+      const glitchProgress = Math.max(0, (this._dsTimer - CFG2.FREEZE_DURATION) / CFG2.GLITCH_DURATION);
+      baseAlpha = glitchProgress; // RAMP IN AS SHIP RAMPS OUT
+      ctx.save();
+      for (const f of this._dsFrags) {
+        const fragAlpha = baseAlpha * (0.75 + 0.25 * Math.random());
+        this._drawGlitchFragment(ctx, pieces, f, frameW, frameH, renderW, renderH, fragAlpha, glitchProgress);
+      }
+      ctx.restore();
+      return;
+    } else {
+      const fragProgress = Math.min(1, this._dsKabamTimer / (CFG.KABAM_FRAMES / CFG.KABAM_FPS));
+      baseAlpha = fragProgress < CFG.PIECE_FADE_START
+        ? 1
+        : 1 - (fragProgress - CFG.PIECE_FADE_START) / (1 - CFG.PIECE_FADE_START);
+    }
+
+    ctx.save();
+    for (const f of this._dsFrags) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, baseAlpha);
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.rotation);
+      ctx.drawImage(
+        pieces,
+        f.frameIdx * frameW, 0, frameW, frameH,
+        -renderW / 2, -renderH / 2, renderW, renderH
+      );
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // GLITCH-IN EFFECT FOR HOVERING PIECES DURING GLITCH PHASE
+  _drawGlitchFragment(ctx, sprite, f, frameW, frameH, renderW, renderH, baseAlpha, glitchProgress) {
+    const CFG     = CONFIG.SHIP_DEATH;
+    const nSlices = 5;
+    const sliceSrcH = frameH / nSlices;
+    const sliceDstH = renderH / nSlices;
+
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rotation);
+    for (let i = 0; i < nSlices; i++) {
+      const doJitter = Math.random() < (0.3 + glitchProgress * 0.5);
+      const offsetX  = doJitter
+        ? (Math.random() - 0.5) * CFG.GLITCH_OFFSET_MAX * 0.65 * glitchProgress
+        : 0;
+      ctx.globalAlpha = Math.max(0, baseAlpha * (0.85 + 0.15 * Math.random()));
+      ctx.drawImage(
+        sprite,
+        f.frameIdx * frameW, i * sliceSrcH, frameW, sliceSrcH,
+        -renderW / 2 + offsetX, -renderH / 2 + i * sliceDstH, renderW, sliceDstH
+      );
+    }
+    ctx.restore();
+  }
+
+  _drawDeathSmoke(ctx) {
+    const CFG   = CONFIG.SHIP_DEATH;
+    const smoke = ImageLoader.get('smoke');
+    if (!smoke || this._dsSmoke.length === 0) return;
+
+    const frameW = smoke.width / CFG.SMOKE_FRAMES;
+    const frameH = smoke.height;
+
+    ctx.save();
+    for (const s of this._dsSmoke) {
+      if (s.frame >= CFG.SMOKE_FRAMES) continue;
+      const lifeAlpha = 0.65;
+      ctx.globalAlpha = lifeAlpha;
+      ctx.drawImage(
+        smoke,
+        s.frame * frameW, 0, frameW, frameH,
+        s.x - s.scale / 2, s.y - s.scale / 2, s.scale, s.scale
+      );
+    }
+    ctx.restore();
+  }
+
+  _drawKabam(ctx) {
+    const CFG  = CONFIG.SHIP_DEATH;
+    const kabam = ImageLoader.get('kabam');
+    if (!kabam || this._dsKabamFrame >= CFG.KABAM_FRAMES) return;
+
+    const frameW = kabam.width / CFG.KABAM_FRAMES;
+    ctx.save();
+    ctx.drawImage(
+      kabam,
+      this._dsKabamFrame * frameW, 0, frameW, kabam.height,
+      this._dsX - CFG.KABAM_SIZE / 2,
+      this._dsY - CFG.KABAM_SIZE / 2,
+      CFG.KABAM_SIZE, CFG.KABAM_SIZE
+    );
+    ctx.restore();
+  }
+
+  // ========== BOOST COOLDOWN BAR (HTML/CSS) ==========
+  _updateBoostBarDOM() {
+    const cd   = this._boostCooldown;
+    const wrap = document.getElementById('boost-cooldown-bar');
+    const fill = document.getElementById('boost-cooldown-bar-fill');
+    if (!wrap || !fill) return;
+    if (cd <= 0) { wrap.classList.remove('visible'); return; }
+    const pct = 1 - cd / CONFIG.BOOST.COOLDOWN;
+    const hue = Math.round(190 + pct * 40);
+    wrap.classList.add('visible');
+    fill.style.width    = (pct * 100) + '%';
+    fill.style.setProperty('--hue', hue);
+  }
+
+  getHP()    { return this.hp; }
+  getLives() { return this.lives; }
+
+  shoot(targetX, targetY) {
+    if (!this.canShoot) return false;
+    this.canShoot      = false;
+    this.shootCooldown = CONFIG.SHOOTING.FIRE_RATE;
+    return { x: this.x, y: this.y, targetX, targetY };
+  }
+
+  draw() {
+    if (!this.isAlive && !this.consumedMode) {
+      if (this._dsActive) this._drawDeathSequence();
+      return;
+    }
+
+    // INVINCIBILITY BLINK
+    if (this.isInvincible && !this.consumedMode) {
+      const flashInterval = 1 / CONFIG.SHIP_HP.INVINCIBILITY_FLASH_HZ;
+      const flashPhase    = Math.floor(this.invincibilityTimer / flashInterval);
+      if (flashPhase % 2 === 0) return;
+    }
+
+    // BARREL ROLL SCREEN FLASH
+    if (this.isBarrelRolling) {
+      const flashIntensity = Math.sin(this.barrelRollProgress * Math.PI) * 0.15;
+      this.ctx.fillStyle = `rgba(0, 255, 255, ${flashIntensity})`;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    // SUCTION VIGNETTE
+    if (this.suctionActive && this.suctionScale < 0.92) {
+      const intensity  = Math.max(0, (0.92 - this.suctionScale) / 0.62);
+      const pulseAlpha = intensity * (0.12 + 0.07 * Math.sin(Date.now() * 0.008));
+      const grad = this.ctx.createRadialGradient(
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.35,
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.85
+      );
+      grad.addColorStop(0, `rgba(180, 0, 0, 0)`);
+      grad.addColorStop(1, `rgba(200, 0, 30, ${pulseAlpha})`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    if (this._slimeHeaviness > 0.02) {
+      const t    = this._slimeHeaviness;
+      const pulse = 0.08 + 0.05 * Math.sin(Date.now() * 0.003);
+      const grad = this.ctx.createRadialGradient(
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.15,
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.9
+      );
+      grad.addColorStop(0, `rgba(0, 80, 0, 0)`);
+      grad.addColorStop(0.6, `rgba(0, 120, 10, 0)`);
+      grad.addColorStop(1, `rgba(0, 200, 30, ${t * pulse})`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    // COSMIC PRISM HEAL GLOW
+    if (this._healGlow > 0) {
+      const g     = this._healGlow;
+      const eased = g * g * (3 - 2 * g); 
+      const glowR = 140 * (1 - g * 0.3);
+      const grad  = this.ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
+      grad.addColorStop(0,    `rgba(255, 255, 255, ${eased * 0.9})`);
+      grad.addColorStop(0.25, `rgba(180, 255, 220, ${eased * 0.6})`);
+      grad.addColorStop(0.55, `hsla(${(1 - g) * 180}, 100%, 80%, ${eased * 0.3})`);
+      grad.addColorStop(1,    'rgba(0, 0, 0, 0)');
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    // BOOST FLASH 
+    if (this._boostActive) {
+      const t     = this._boostTimer / CONFIG.BOOST.DURATION;
+      const alpha = t * CONFIG.BOOST.FLASH_ALPHA;
+      const grad  = this.ctx.createRadialGradient(
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.2,
+        this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.78
+      );
+      grad.addColorStop(0, `rgba(60, 210, 255, 0)`);
+      grad.addColorStop(1, `rgba(0, 160, 255, ${alpha})`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    this.ctx.globalAlpha = 1;
+
+    const sprite = ImageLoader.get('ship');
+
+    // BOOST GHOST 
+    if (this._boostGhost && sprite) {
+      const g       = this._boostGhost;
+      const t       = 1 - g.timer / g.duration; 
+      const alpha   = (1 - t) * 0.65;
+      const scale   = 1 + t * 0.25;             
+      const frameW  = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
+      this.ctx.save();
+      this.ctx.globalAlpha             = alpha;
+      this.ctx.globalCompositeOperation = 'lighter';
+      this.ctx.translate(g.x, g.y);
+      this.ctx.rotate(g.rotation);
+      this.ctx.scale(scale, scale);
+      this.ctx.drawImage(
+        sprite,
+        g.frame * frameW, 0, frameW, sprite.height,
+        -this.width / 2, -this.height / 2, this.width, this.height
+      );
+      this.ctx.globalCompositeOperation = 'source-atop';
+      this.ctx.globalAlpha = alpha * 0.7;
+      this.ctx.fillStyle   = '#00d4ff';
+      this.ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+      this.ctx.restore();
+    }
+
+    if (sprite) {
+      this.ctx.save();
+      this.ctx.translate(this.x, this.y);
+      this.ctx.rotate(this.rotation);
+
+      const totalScale = this.suctionScale * this.cinematicScale;
+      if (totalScale !== 1.0) this.ctx.scale(totalScale, totalScale);
+
+      // CELLULAR DISTORTION — INVERT SHIP COLORS AS INFECTION VISUAL INDICATOR
+      if (this._cellularDistortActive) this.ctx.filter = 'invert(1)';
+
+      const frameWidth = sprite.width / CONFIG.SHIP.SPRITE_FRAMES;
+      this.ctx.drawImage(
+        sprite,
+        this.currentFrame * frameWidth, 0, frameWidth, sprite.height,
+        -this.width / 2, -this.height / 2, this.width, this.height
+      );
+      this.ctx.restore();
+    } else {
+      // FALLBACK
+      this.ctx.fillStyle = '#0ff';
+      this.ctx.fillRect(this.x - 20, this.y - 20, 40, 40);
+    }
+
+    this.particles.draw(this.ctx);
+
+    if (this.consumedFlashAlpha > 0) {
+      const r    = window.innerHeight * 1.2;
+      const grad = this.ctx.createRadialGradient(
+        this.consumedTargetX, this.consumedTargetY, 0,
+        this.consumedTargetX, this.consumedTargetY, r
+      );
+      grad.addColorStop(0,    `rgba(255, 220, 220, ${this.consumedFlashAlpha * 0.95})`);
+      grad.addColorStop(0.15, `rgba(255,  60,  80, ${this.consumedFlashAlpha * 0.85})`);
+      grad.addColorStop(0.5,  `rgba(180,   0,  40, ${this.consumedFlashAlpha * 0.5})`);
+      grad.addColorStop(1,    `rgba( 80,   0,  20, 0)`);
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  }
+
+  enterCinematic() {
+    this.cinematicMode   = true;
+    this.velocity.x      = 0;
+    this.velocity.y      = 0;
+    this.isBarrelRolling = false;
+  }
+
+  exitCinematic() {
+    this.cinematicMode  = false;
+    this.cinematicScale = 1.0;
+  }
+
+  getOffset()     { return { x: this.offset.x, y: this.offset.y }; }
+
+  // ========== SLIME EFFECT ==========
+  setSlimeHeaviness(v) { this._slimeHeaviness = Math.max(0, Math.min(1, v)); }
+  getTrailPositions()  { return this._trailPositions; }
+
+  handleResize()  {
+    this.x = window.innerWidth  / 2 + this.offset.x;
+    this.y = window.innerHeight / 2 - this.offset.y;
+  }
+}

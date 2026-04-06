@@ -1,0 +1,784 @@
+// Updated 3/28/26 @ 5am
+// enemies.js 
+// ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
+import { CONFIG } from '../utils/config.js';
+import { ImageLoader, ENEMY_SPRITE } from '../utils/imageLoader.js';
+import { GlitchFleshAssembly } from '../visuals/glitchFleshAssembly.js';
+import { TentacleSystem, TENTACLE_TYPES } from '../entities/tentacles.js';
+import { SessionRecorder } from '../temp/devTools.js';
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+//  SINGULARITY BOMB HOOK - FOR SPAGHETTIFICATION 
+let _activeSingularityBH = null;
+export function setActiveSingularityBH(bh) { _activeSingularityBH = bh; }
+
+class EnemyLaser {
+  constructor(x, y, targetX, targetY, color) {
+    this.x      = x;
+    this.y      = y;
+    const dx    = targetX - x;
+    const dy    = targetY - y;
+    const dist  = Math.sqrt(dx * dx + dy * dy) || 1;
+    this.dirX   = dx / dist;
+    this.dirY   = dy / dist;
+    this.color  = color;
+    this.isDead = false;
+
+    const cfg       = CONFIG.ENEMY_LASER;
+    this.speed      = cfg.SPEED;
+    this.hitRadius  = cfg.HIT_RADIUS;
+    this.boltLength = cfg.BOLT_LENGTH;
+    this.boltWidth  = cfg.BOLT_WIDTH;
+    this.glowBlur   = cfg.GLOW_BLUR;
+  }
+
+  update(dt) {
+    this.x += this.dirX * this.speed * dt;
+    this.y += this.dirY * this.speed * dt;
+
+    const pad = 80;
+    if (
+      this.x < -pad || this.x > window.innerWidth  + pad ||
+      this.y < -pad || this.y > window.innerHeight + pad
+    ) this.isDead = true;
+  }
+
+  checkShipHit(shipX, shipY) {
+    const dx = this.x - shipX;
+    const dy = this.y - shipY;
+    return (dx * dx + dy * dy) < (this.hitRadius * this.hitRadius);
+  }
+
+  draw(ctx) {
+    const tailX = this.x - this.dirX * this.boltLength;
+    const tailY = this.y - this.dirY * this.boltLength;
+
+    ctx.save();
+    ctx.shadowBlur  = this.glowBlur;
+    ctx.shadowColor = this.color;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth   = this.boltWidth;
+    ctx.lineCap     = 'round';
+    ctx.globalAlpha = 0.9;
+
+    ctx.beginPath();
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(this.x, this.y);
+    ctx.stroke();
+
+    ctx.shadowBlur  = 0;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = 1;
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(this.x, this.y);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
+export class Enemy {
+  static _nextId = 1;
+
+  constructor(x, y, type = 'BASIC', curveProgress = 0) {
+    this.id = Enemy._nextId++;
+    this.x = x;
+    this.y = y;
+    this.type = type;
+    this.config = CONFIG.ENEMIES.TYPES[type];
+
+    this.size      = this.config.SIZE;
+    this.speed     = this.config.SPEED;
+    this.color     = this.config.COLOR;
+    this.glowColor = this.config.GLOW_COLOR;
+    this.health    = this.config.HEALTH;
+    this.maxHealth = this.config.HEALTH;
+    this.score     = this.config.SCORE;
+
+    // ─── 3D CURVE / APPROACH ───
+    this.curveProgress = curveProgress;
+    this.spawnProgress = curveProgress;
+    this.scale         = 0.05;
+    this.screenX       = x;
+    this.screenY       = y;
+
+    // ─── SPRITE / ANIMATION ───
+    this.spriteKey  = ENEMY_SPRITE[type];
+    this.animCount  = this.config.SPRITE_FRAMES;
+    this.animSpeed  = this.config.ANIM_SPEED;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+
+    // ─── FRAME INDEX / OCTOPUS TYPES: LOCK TO BODY FRAME (NO SPRITE CYCLE — LIFE COMES FROM TENTACLES) / JELLYFISH TYPES: RANDOMIZE START FRAME FOR ANIMATION VARIATION
+    if (TENTACLE_TYPES.has(type)) {
+      this.animFrame  = this.config.BODY_FRAME;
+      this.frameIndex = this.config.BODY_FRAME;
+    } else {
+      this.animFrame  = Math.random() * this.config.SPRITE_FRAMES;
+      this.frameIndex = Math.floor(this.animFrame);
+    }
+
+    // ─── PHASE STATE MACHINE ───
+    this.phase        = 'APPROACH';  // 'APPROACH' | 'COMBAT'
+    this.combatTimer  = 0;
+
+    // ─── APPROACH-SPECIFIC ───
+    this.zigzagPhase    = Math.random() * Math.PI * 2;
+    this.lateralOffset  = -(20 + Math.random() * 180)
+                        + (Math.random() < 0.2 ? Math.random() * 40 : 0);
+
+    // ─── COMBAT WANDER (shared by BASIC / FAST / TANK / ZIGZAG) ───
+    this.wanderTargetX = x;
+    this.wanderTargetY = y;
+
+    // ─── FLIM FLAM SPECIFIC ───
+    if (this.type === 'FLIMFLAM') {
+      this.ffState          = 'HOVER';
+      this.ffTimer          = 0.3 + Math.random() * 0.4;
+      this.ffTargetX        = window.innerWidth  / 2;
+      this.ffTargetY        = window.innerHeight / 2;
+      this.ffBobPhase       = Math.random() * Math.PI * 2;
+      // OCULAR PRISM ATTACK STATE
+      this.ffAttackState      = 'IDLE';       // 'IDLE' | 'TELEGRAPHING'
+      this.ffAttackTimer      = this.config.PRISM_FIRST_DELAY_MIN
+                              + Math.random() * (this.config.PRISM_FIRST_DELAY_MAX - this.config.PRISM_FIRST_DELAY_MIN);
+      this.pendingOcularPrism  = false;
+      this.pendingTelegraph    = false;   
+    }
+
+    this.isDead = false;
+    this.hasDealtCollisionDamage = false;
+
+    // ─── SPAWN VFX ───
+    this.spawnVFX = new GlitchFleshAssembly(this);
+
+    // ─── TENTACLE SYSTEM (OCTOPUS TYPES ONLY) - INITIALIZED AFTER SPAWN VFX — TENTACLES APPEAR ONCE ASSEMBLY IS COMPLETE
+    this.tentacleSystem = TENTACLE_TYPES.has(type) ? new TentacleSystem(this) : null;
+
+    // ─── BLACK HOLE SUCTION ───
+    this._bhSucked         = false;  
+    this._bhOriginalScale  = 1;      
+    this._bhOrbitAngle     = 0;      
+    this._bhOrbitRadius    = 0;      
+
+    // ─── LASERS ───
+    const lcfg = CONFIG.ENEMY_LASER;
+    this.laserTimer    = lcfg.FIRST_SHOT_MIN
+                       + Math.random() * (lcfg.FIRST_SHOT_MAX - lcfg.FIRST_SHOT_MIN);
+    this.laserInterval = this.config.LASER_INTERVAL;
+    this.laserColor    = this.config.LASER_COLOR;
+    this.pendingLaser  = null;
+
+    // ─── ZIGZAG FRACTAL CASCADE ATTACK ───
+    if (this.type === 'ZIGZAG') {
+      const FC = CONFIG.FRACTAL_CASCADE;
+      this.fractalTimer          = FC.FIRST_DELAY_MIN + Math.random() * (FC.FIRST_DELAY_MAX - FC.FIRST_DELAY_MIN);
+      this.fractalAttackState    = 'IDLE';   // 'IDLE' | 'TELEGRAPHING'
+      this.fractalTelegraphTimer = 0;
+      this.pendingFractalTelegraph = false;
+      this.pendingFractalCascade   = false;
+    }
+
+    // ─── TANK SLIME ATTACK ───
+    if (this.type === 'TANK') {
+      const scfg = CONFIG.SLIME_ATTACK;
+      this.slimeTimer           = scfg.FIRST_ATTACK_MIN
+                                + Math.random() * (scfg.FIRST_ATTACK_MAX - scfg.FIRST_ATTACK_MIN);
+      this.pendingSlime          = false;
+      this.pendingSlimeTelegraph = false;
+      this.slimeTelegraphActive  = false;   
+      this.slimeTelegraphTimer   = 0;
+      this.slimeGlowPulse        = 0;      
+    }
+  }
+
+  update(dt, time, curve, playerProgress, cascadeAvailable = true, prismAvailable = true, slimeAvailable = true) {
+    // ─── SPAWN VFX ───
+    if (!this.spawnVFX.isDone) this.spawnVFX.update(dt);
+
+    // ─── ANIMATION (JELLYFISH TYPES ONLY — OCTOPUS frameIndex IS LOCKED) ───
+    this.pulsePhase += CONFIG.ENEMIES.PULSE_SPEED * dt;
+    if (this.animSpeed > 0) {
+      this.animFrame  = (this.animFrame + this.animSpeed * dt) % this.animCount;
+      this.frameIndex = Math.floor(this.animFrame);
+    }
+
+    // ─── TENTACLE UPDATE (OCTOPUS TYPES, COMBAT PHASE ONLY) ───
+    if (this.tentacleSystem && this.spawnVFX.isDone) {
+      this.tentacleSystem.update(dt, time);
+    }
+
+    if (this._bhSucked) return;
+
+    //  PHASE: APPROACH
+    if (this.phase === 'APPROACH') {
+      const moveSpeed = 0.3; // HOW FAST ENEMIES APPOACH - TESTING NEW VALUES TO GIVE ENEMIES THE CHANCE TO FIRE SPECIAL ATTACKS
+      this.curveProgress -= moveSpeed * dt;
+      if (this.curveProgress < 0) this.curveProgress += 1;
+      if (this.curveProgress > 1) this.curveProgress -= 1;
+
+      let progressDelta = this.spawnProgress - this.curveProgress;
+      if (progressDelta < -0.5) progressDelta += 1;
+      if (progressDelta >  0.5) progressDelta -= 1;
+
+      const distanceToPlayer = Math.abs(progressDelta) / 0.3;
+      this.scale = 0.2 + (Math.min(distanceToPlayer, 1.0) * 0.8);
+
+      this.screenX = window.innerWidth  / 2 + this.lateralOffset;
+      this.screenY = window.innerHeight / 2;
+
+      if (this.type === 'ZIGZAG') {
+        this.zigzagPhase += this.config.ZIGZAG_FREQUENCY * dt;
+        this.screenX += Math.sin(this.zigzagPhase) * this.config.ZIGZAG_AMPLITUDE * this.scale;
+      }
+      if (this.type === 'FLIMFLAM') this._updateFlimFlamMove(dt);
+
+      this.x = this.screenX;
+      this.y = this.screenY;
+
+      // ─── TRANSITION TO COMBAT ───
+      if (this.scale >= CONFIG.ENEMIES.COMBAT_SCALE) {
+        this.phase       = 'COMBAT';
+        this.scale       = CONFIG.ENEMIES.COMBAT_SCALE;
+        this.combatTimer = this.config.COMBAT_DURATION;
+        this._pickNewWanderTarget();
+      }
+      return;
+    }
+
+    //  PHASE: COMBAT
+    this.combatTimer -= dt;
+    if (this.combatTimer <= 0) {
+      this.isDead = true;
+      return;
+    }
+
+    // ─── COMBAT MOVEMENT  ───
+    if (this.type === 'FLIMFLAM') {
+      this._updateFlimFlamMove(dt);
+      this.x = this.screenX;
+      this.y = this.screenY;
+
+    } else if (this.type === 'ZIGZAG') {
+      this._updateWander(dt, false);
+      this.zigzagPhase += this.config.ZIGZAG_FREQUENCY * dt;
+      this.x = this.screenX + Math.sin(this.zigzagPhase) * this.config.ZIGZAG_AMPLITUDE;
+      this.y = this.screenY;
+
+    } else {
+      this._updateWander(dt, true);
+      this.x = this.screenX;
+      this.y = this.screenY;
+    }
+
+    // ─── LASERS  ───
+    const isTelegraphing = this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING';
+    if (!isTelegraphing) {
+      this.laserTimer -= dt;
+      if (this.laserTimer <= 0) {
+        this.laserTimer   = this.laserInterval;
+        this.pendingLaser = { x: this.x, y: this.y, color: this.laserColor };
+      }
+    }
+
+    // ─── FLIM FLAM OCULAR PRISM ATTACK STATE MACHINE ───
+    if (this.type === 'FLIMFLAM') {
+      const cfg = this.config;
+      this.ffAttackTimer -= dt;
+
+      if (this.ffAttackState === 'IDLE' && this.ffAttackTimer <= 0) {
+        if (prismAvailable) {
+          // PRISM READY — BEGIN TELEGRAPH, HEAD SWAP + SFX WILL FIRE
+          this.ffAttackState    = 'TELEGRAPHING';
+          this.ffAttackTimer    = cfg.PRISM_TELEGRAPH;
+          this.pendingTelegraph = true;
+        } else {
+          // PRISM STILL ACTIVE OR ON COOLDOWN — RE-ROLL TIMER, NO HEAD SWAP, NO SFX
+          this.ffAttackTimer = cfg.PRISM_COOLDOWN_MIN
+                             + Math.random() * (cfg.PRISM_COOLDOWN_MAX - cfg.PRISM_COOLDOWN_MIN);
+        }
+      } else if (this.ffAttackState === 'TELEGRAPHING' && this.ffAttackTimer <= 0) {
+        this.pendingOcularPrism = true;
+        this.ffAttackState      = 'IDLE';
+        this.ffAttackTimer      = cfg.PRISM_COOLDOWN_MIN
+                                + Math.random() * (cfg.PRISM_COOLDOWN_MAX - cfg.PRISM_COOLDOWN_MIN);
+        this.laserTimer = 1.0; 
+      }
+    }
+
+    if (this.type === 'TANK') {
+      if (this.slimeTelegraphActive) {
+        this.slimeTelegraphTimer -= dt;
+        this.slimeGlowPulse = (Math.sin(this.pulsePhase * 5.5) + 1) * 0.5;
+        if (this.slimeTelegraphTimer <= 0) {
+          this.slimeTelegraphActive = false;
+          this.slimeGlowPulse       = 0;
+          this.pendingSlime         = true;  
+        }
+      } else {
+        this.slimeTimer -= dt;
+        if (this.slimeTimer <= 0) {
+          if (slimeAvailable) {
+            // SLIME READY — BEGIN TELEGRAPH, GREEN GLOW + SFX WILL FIRE
+            this.slimeTimer            = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
+            this.slimeTelegraphActive  = true;
+            this.slimeTelegraphTimer   = CONFIG.SLIME_ATTACK.TELEGRAPH_DURATION;
+            this.pendingSlimeTelegraph = true;
+          } else {
+            // SLIME STILL ACTIVE OR ON COOLDOWN — RE-ROLL TIMER, NO GLOW, NO SFX
+            this.slimeTimer = CONFIG.SLIME_ATTACK.REPEAT_INTERVAL;
+          }
+        }
+      }
+    }
+
+    // ─── ZIGZAG FRACTAL CASCADE ATTACK STATE MACHINE ───
+    if (this.type === 'ZIGZAG') {
+      if (this.fractalAttackState === 'IDLE') {
+        this.fractalTimer -= dt;
+        if (this.fractalTimer <= 0) {
+          if (cascadeAvailable) {
+            // CASCADE READY — BEGIN TELEGRAPH, HEAD SWAP + SFX WILL FIRE
+            this.fractalAttackState      = 'TELEGRAPHING';
+            this.fractalTelegraphTimer   = 0;
+            this.pendingFractalTelegraph = true;
+          } else {
+            // CASCADE STILL ON COOLDOWN — STAY IDLE, RE-ROLL TIMER, NO HEAD SWAP, NO SFX
+            const FC = CONFIG.FRACTAL_CASCADE;
+            this.fractalTimer = FC.COOLDOWN_MIN + Math.random() * (FC.COOLDOWN_MAX - FC.COOLDOWN_MIN);
+          }
+        }
+      } else if (this.fractalAttackState === 'TELEGRAPHING') {
+        this.fractalTelegraphTimer += dt;
+        if (this.fractalTelegraphTimer >= CONFIG.FRACTAL_CASCADE.TELEGRAPH_DURATION) {
+          this.fractalAttackState  = 'IDLE';
+          const FC = CONFIG.FRACTAL_CASCADE;
+          this.fractalTimer        = FC.COOLDOWN_MIN + Math.random() * (FC.COOLDOWN_MAX - FC.COOLDOWN_MIN);
+          this.pendingFractalCascade = true;
+        }
+      }
+    }
+  }
+
+  // ─── WANDER HELPERS ─────────────────────────────────────────────────────────
+  _updateWander(dt, fullXY = true) {
+    const step = this.config.WANDER_SPEED * dt;
+    const dx   = this.wanderTargetX - this.screenX;
+    const dy   = this.wanderTargetY - this.screenY;
+    const dist = fullXY ? Math.sqrt(dx * dx + dy * dy) : Math.abs(dy);
+
+    if (dist <= step + 2) {
+      if (fullXY) { this.screenX = this.wanderTargetX; this.screenY = this.wanderTargetY; }
+      else        { this.screenY = this.wanderTargetY; }
+      this._pickNewWanderTarget();
+    } else {
+      if (fullXY) { const inv = 1 / dist; this.screenX += dx * inv * step; this.screenY += dy * inv * step; }
+      else        { this.screenY += (dy > 0 ? 1 : -1) * step; }
+    }
+  }
+
+  _pickNewWanderTarget() {
+    const { WANDER_X, WANDER_Y } = this.config;
+    const margin = 90;
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    this.wanderTargetX = Math.max(margin, Math.min(window.innerWidth  - margin, cx + (Math.random() * 2 - 1) * WANDER_X));
+    this.wanderTargetY = Math.max(margin, Math.min(window.innerHeight - margin, cy + (Math.random() * 2 - 1) * WANDER_Y));
+  }
+
+  // ─── FLIM FLAM HOVER-DASH ───────────────────────────────────────────────────
+  _updateFlimFlamMove(dt) {
+    const cfg    = this.config;
+    const margin = 90;
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+
+    this.ffTimer -= dt;
+
+    if (this.ffState === 'HOVER') {
+      this.ffBobPhase += cfg.BOB_SPEED * dt;
+      this.screenX = this.ffTargetX;
+      this.screenY = this.ffTargetY + Math.sin(this.ffBobPhase) * cfg.BOB_AMPLITUDE * this.scale;
+
+      if (this.ffTimer <= 0) {
+        this.ffTargetX = Math.max(margin, Math.min(window.innerWidth  - margin, cx + (Math.random() * 2 - 1) * cfg.ROAM_X));
+        this.ffTargetY = Math.max(margin, Math.min(window.innerHeight - margin, cy + (Math.random() * 2 - 1) * cfg.ROAM_Y));
+        this.ffState   = 'DASH';
+        this.ffTimer   = 99;
+      }
+    } else {
+      const dx   = this.ffTargetX - this.screenX;
+      const dy   = this.ffTargetY - this.screenY;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const step = cfg.DASH_SPEED * this.scale * dt;
+
+      if (dist <= step + 2) {
+        this.screenX = this.ffTargetX;
+        this.screenY = this.ffTargetY;
+        this.ffState = 'HOVER';
+        this.ffTimer = cfg.HOVER_DURATION_MIN + Math.random() * (cfg.HOVER_DURATION_MAX - cfg.HOVER_DURATION_MIN);
+      } else {
+        this.screenX += (dx / dist) * step;
+        this.screenY += (dy / dist) * step;
+      }
+    }
+  }
+
+  checkCollision(shipX, shipY) {
+    // COLLISION DAMAGE DISABLED — ENEMIES EXIST ON A SIMULATED Z-PLANE SLIGHTLY BEHIND / THE SHIP, SO PHYSICAL CONTACT IS INTENTIONALLY AN ILLUSION. LASERS ARE THE THREAT.
+    return 0;
+  }
+
+  draw(ctx) {
+    if (this.isDead) return;
+
+    if (!this.spawnVFX.isDone) {
+      this.spawnVFX.draw(ctx);
+      return;
+    }
+
+    const fadeProgress = Math.min(1, Math.max(0, (this.scale - 0.2) / 0.6));
+    const spriteAlpha  = 0.1 + fadeProgress * 0.9;
+    const tintAlpha    = (1 - Math.min(1, fadeProgress / 0.2)) * 0.3;
+    const renderSize   = this.config.SIZE * this.scale;
+    const sprite       = ImageLoader.get(this.spriteKey);
+
+    // ── TENTACLES BEHIND BODY — NOT AFFECTED BY BH TRANSFORMS ────────────────
+    if (this.tentacleSystem) this.tentacleSystem.draw(ctx);
+
+    ctx.save();
+
+    // ── SPAGHETTIFICATION ──
+    if (_activeSingularityBH && !_activeSingularityBH.isDead()) {
+      const C    = CONFIG.SINGULARITY_BOMB;
+      const bdx  = _activeSingularityBH.x - this.x;
+      const bdy  = _activeSingularityBH.y - this.y;
+      const dist = Math.hypot(bdx, bdy);
+      if (dist < C.STRETCH_RANGE && dist > 1) {
+        const t       = 1 - dist / C.STRETCH_RANGE;
+        const stretch = 1 + (C.STRETCH_MAX - 1) * t * t;
+        const angle   = Math.atan2(bdy, bdx);
+        ctx.translate( this.x,  this.y);
+        ctx.rotate(angle);
+        ctx.scale(stretch, 1 / stretch);
+        ctx.translate(-this.x, -this.y);
+      }
+    }
+
+    // ── GRAVITATIONAL LENS DISTORTION — DISPLACES DRAW POSITION OUTWARD FROM BH / PURELY VISUAL — REUSES _activeSingularityBH HOOK
+    if (_activeSingularityBH && !_activeSingularityBH.isDead()) {
+      const lensStr = _activeSingularityBH.getLensStrength?.() ?? 0;
+      if (lensStr > 0.005) {
+        const ldx  = this.x - _activeSingularityBH.x;   // OUTWARD VECTOR
+        const ldy  = this.y - _activeSingularityBH.y;
+        const dist = Math.hypot(ldx, ldy);
+        const maxR = 300;
+        if (dist > 0 && dist < maxR) {
+          const factor = lensStr * (1 - dist / maxR);   // FADES WITH DISTANCE
+          ctx.translate(ldx * factor, ldy * factor);    // PUSH OUTWARD
+        }
+      }
+    }
+
+    // ── BODY SPRITE  / TELEGRAPH HEAD SWAP — OCTOPUS TYPES SHOW ALTERNATE HEAD FRAME DURING ATTACK TELEGRAPH
+    let drawFrameIndex = this.frameIndex;
+    if (this.type === 'TANK'     && this.slimeTelegraphActive)               drawFrameIndex = 4;
+    if (this.type === 'FLIMFLAM' && this.ffAttackState === 'TELEGRAPHING')   drawFrameIndex = 5;
+    if (this.type === 'ZIGZAG'   && this.fractalAttackState === 'TELEGRAPHING') drawFrameIndex = 3; // SEGMENT_FRAME — ALTERNATE HEAD
+
+    ctx.globalAlpha = spriteAlpha;
+    if (sprite) {
+      const fw = sprite.width / this.animCount;
+      const dx = this.x - renderSize / 2;
+      const dy = this.y - renderSize / 2;
+      ctx.drawImage(sprite, drawFrameIndex * fw, 0, fw, sprite.height, dx, dy, renderSize, renderSize);
+    } else {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * this.scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ─── APPROACH TINT OVERLAY ───
+    if (tintAlpha > 0.01) {
+      ctx.globalAlpha = tintAlpha;
+      ctx.fillStyle   = '#000000';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, renderSize * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    // ── HEALTH BAR ────────────────────────────────────────────────────────────
+    if (fadeProgress > 0.15 && !this._bhSucked) {
+      const halfSprite = renderSize * 0.5;
+      const barW    = Math.max(55, renderSize * 0.72);
+      const barH    = 5;
+      const barX    = this.x - barW / 2;
+      const barY    = this.y - halfSprite - 16;
+      const pct     = this.health / this.maxHealth;
+      const barAlpha = Math.min(1, (fadeProgress - 0.15) / 0.3);
+
+      ctx.save();
+      ctx.globalAlpha = barAlpha;
+      ctx.fillStyle   = 'rgba(0,0,0,0.65)';
+      ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+      const barColor  = pct > 0.28 ? '#ff3333' : '#ff2200';
+      ctx.fillStyle   = barColor;
+      ctx.fillRect(barX, barY, barW * pct, barH);
+      ctx.restore();
+    }
+
+  }
+
+  takeDamage(amount = 1) {
+    this.health -= amount;
+    if (this.health <= 0) {
+      this.isDead = true;
+      return true;
+    }
+    return false;
+  }
+
+  getPosition() { return { x: this.x, y: this.y }; }
+
+  getSize() {
+    return (this.config.SIZE / 2) * this.scale;
+  }
+}
+
+export class EnemyManager {
+  constructor(particleSystem, tunnel) {
+    this.enemies    = [];
+    this.lasers     = [];
+    this.particleSystem = particleSystem;
+    this.tunnel     = tunnel;
+    this.spawnTimer = 0;
+    this.nextSpawnDelay = this.randomSpawnDelay();
+    this.time       = 0;
+
+    this.onLaserFired      = null; 
+    this.onSlimeAttack     = null; 
+    this.onSlimeTelegraph  = null;
+    this.onOcularPrism     = null; 
+    this.onTelegraph       = null;
+    this.onEnemyKilled     = null; // FIRES WITH ENEMY TYPE WHEN AN ENEMY IS REMOVED — USED TO STOP ORPHANED TELEGRAPH SFX
+    this.onFractalTelegraph = null; // ZIP ZAP FRACTAL CASCADE — TELEGRAPH BEGIN
+    this.onFractalCascade   = null; // ZIP ZAP FRACTAL CASCADE — ATTACK FIRE
+
+    // INTERNAL COOLDOWN TRACKING — SET WHEN AN ATTACK FIRES, CHECKED BEFORE ALLOWING NEXT TELEGRAPH. SELF-CONTAINED: NO EXTERNAL WIRING NEEDED. MIRRORS CONFIG.FRACTAL_CASCADE.COOLDOWN_MS.
+    this._fractalCooldownUntil = 0;
+    this._prismCooldownUntil   = 0;  // BLOCKS NEW FLIMFLAM TELEGRAPHS WHILE PRISM IS ACTIVE
+    this._slimeCooldownUntil   = 0;  // BLOCKS NEW TANK TELEGRAPHS WHILE SLIME ATTACK IS ACTIVE
+
+    //  WAVE CONTROL  
+    this._allowedTypes    = null;   
+    this._spawnWeights    = null;  
+    this._spawningEnabled = true;   
+    this._maxCount        = null;   
+  }
+
+  randomSpawnDelay() {
+    return CONFIG.ENEMIES.SPAWN_INTERVAL_MIN
+         + Math.random() * (CONFIG.ENEMIES.SPAWN_INTERVAL_MAX - CONFIG.ENEMIES.SPAWN_INTERVAL_MIN);
+  }
+
+  getRandomEnemyType() {
+    if (this._allowedTypes && this._spawnWeights) {
+      const rand = Math.random();
+      let cumulative = 0;
+      for (let i = 0; i < this._allowedTypes.length; i++) {
+        cumulative += this._spawnWeights[i];
+        if (rand < cumulative) return this._allowedTypes[i];
+      }
+      return this._allowedTypes[this._allowedTypes.length - 1]; // FALLBACK
+    }
+    const rand = Math.random();
+    if (rand < 0.30) return 'BASIC';
+    if (rand < 0.50) return 'FAST';
+    if (rand < 0.68) return 'ZIGZAG';
+    if (rand < 0.84) return 'TANK';
+    return 'FLIMFLAM';
+  }
+
+  // ── WAVE CONTROL SETTERS — CALLED BY GameplayScene ───────────────────────
+  setAllowedTypes(types, weights) {
+    this._allowedTypes = types;
+    this._spawnWeights = weights;
+  }
+
+  setSpawningEnabled(enabled) {
+    this._spawningEnabled = enabled;
+  }
+
+  setMaxCount(n) {
+    this._maxCount = n;
+  }
+
+  spawnEnemy() {
+    const maxCount = this._maxCount ?? CONFIG.ENEMIES.MAX_COUNT;
+    if (!this._spawningEnabled) return;
+    if (this.enemies.length >= maxCount) return;
+
+    const playerProgress = (this.tunnel.getTime() * CONFIG.TUNNEL.SPEED) % 1;
+    const spawnProgress  = (playerProgress + 0.1) % 1; // SPAWN OFFSET - TESTING REDUCED VALUE FROM 0.3 TO SEE IF THAT HELPS GIVE ENEMIES A CHANCE TO FIRE SPECIAL ATTACKS BEFORE PLAYER CAN REACH THEM
+    const x    = window.innerWidth  / 2;
+    const y    = window.innerHeight / 2;
+    const type = this.getRandomEnemyType();
+
+    const enemy = new Enemy(x, y, type, spawnProgress);
+    this.enemies.push(enemy);
+    SessionRecorder.log('enemy_spawn', { id: enemy.id, enemyType: enemy.type });
+  }
+
+  update(dt, shipX, shipY) { // shipX/shipY - SO LASERS KNOW WHERE TO AIM
+    this.time += dt;
+
+    const playerProgress = (this.tunnel.getTime() * CONFIG.TUNNEL.SPEED) % 1;
+    const curve = this.tunnel.curve;
+
+    this.spawnTimer += dt;
+    if (this.spawnTimer >= this.nextSpawnDelay) {
+      this.spawnEnemy();
+      this.spawnTimer = 0;
+      this.nextSpawnDelay = this.randomSpawnDelay();
+    }
+
+    // ATTACK GATE — PRE-SCAN: IF ANY ENEMY IS ALREADY MID-TELEGRAPH FOR A GLOBAL ATTACK, BLOCK ALL OTHERS THIS FRAME. *Claimed FLAGS ARE ALSO SET WITHIN THE LOOP TO CLOSE / SAME-FRAME RACES WHERE TWO ENEMIES' TIMERS EXPIRE SIMULTANEOUSLY.
+    let fractalClaimed = this.enemies.some(
+      e => e.type === 'ZIGZAG' && e.fractalAttackState === 'TELEGRAPHING'
+    );
+    let prismClaimed = this.enemies.some(
+      e => e.type === 'FLIMFLAM' && e.ffAttackState === 'TELEGRAPHING'
+    );
+    let slimeClaimed = this.enemies.some(
+      e => e.type === 'TANK' && e.slimeTelegraphActive
+    );
+
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const enemy = this.enemies[i];
+      // COMPUTE ONCE PER ENEMY — PASSED INTO update() SO THE STATE MACHINE CAN GATE ITSELF
+      const cascadeAvailable = !fractalClaimed && Date.now() >= this._fractalCooldownUntil;
+      const prismAvailable   = !prismClaimed   && Date.now() >= this._prismCooldownUntil;
+      const slimeAvailable   = !slimeClaimed   && Date.now() >= this._slimeCooldownUntil;
+      enemy.update(dt, this.time, curve, playerProgress, cascadeAvailable, prismAvailable, slimeAvailable);
+
+      if (enemy.pendingLaser) { // COLLECT ANY LASER THIS ENEMY WANTS TO FIRE THIS FRAME
+        const pl = enemy.pendingLaser;
+        this.lasers.push(new EnemyLaser(pl.x, pl.y, shipX, shipY, pl.color));
+        this.onLaserFired?.();
+        enemy.pendingLaser = null;
+      }
+
+      // FLIM FLAM OCULAR PRISM — FIRE WHEN TELEGRAPHING COMPLETES / BLOCK NEW PRISM TELEGRAPHS UNTIL THE PRISM'S ACTIVE DURATION EXPIRES
+      if (enemy.pendingOcularPrism) {
+        this.onOcularPrism?.(window.innerWidth, window.innerHeight);
+        this._prismCooldownUntil = Date.now() + (CONFIG.OCULAR_PRISM.DURATION + CONFIG.OCULAR_PRISM.FADE_DURATION) * 1000;
+        enemy.pendingOcularPrism = false;
+      }
+
+      // FLIM FLAM TELEGRAPH — FIRES WHEN TELEGRAPHING BEGINS / BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
+      if (enemy.pendingTelegraph) {
+        prismClaimed = true; 
+        this.onTelegraph?.();
+        enemy.pendingTelegraph = false;
+      }
+
+      // SLIME TELEGRAPH START — FIRES WHEN GREEN GLOW BEGINS / BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
+      if (enemy.pendingSlimeTelegraph) {
+        slimeClaimed = true; 
+        this.onSlimeTelegraph?.();
+        enemy.pendingSlimeTelegraph = false;
+      }
+
+      // COLLECT SLIME ATTACK (TANK / GLORK ONLY) / BLOCK NEW SLIME TELEGRAPHS UNTIL WARP + RECOVER + COOLDOWN EXPIRES (7.2 + 1.8 + 5.0s)
+      if (enemy.pendingSlime) {
+        this.onSlimeAttack?.(enemy.x, enemy.y);
+        this._slimeCooldownUntil = Date.now() + 14000;
+        enemy.pendingSlime = false;
+      }
+
+      // COLLECT FRACTAL CASCADE (ZIGZAG / ZIP ZAP ONLY) /  pendingFractalTelegraph IS ONLY EVER SET WHEN cascadeAvailable WAS TRUE (GATED IN enemy.update)
+      if (enemy.pendingFractalTelegraph) {
+        fractalClaimed = true; // BLOCK ALL REMAINING ENEMIES IN THIS FRAME'S LOOP IMMEDIATELY
+        this.onFractalTelegraph?.();
+        enemy.pendingFractalTelegraph = false;
+      }
+      if (enemy.pendingFractalCascade) {
+        this.onFractalCascade?.();
+        // RECORD WHEN THIS ATTACK FIRED — BLOCKS NEW TELEGRAPHS UNTIL COOLDOWN EXPIRES
+        this._fractalCooldownUntil = Date.now() + CONFIG.FRACTAL_CASCADE.COOLDOWN_MS;
+        enemy.pendingFractalCascade = false;
+      }
+
+      if (enemy.isDead) {
+        SessionRecorder.log('enemy_killed', { id: enemy.id, enemyType: enemy.type });
+        this.onEnemyKilled?.(enemy.type); // NOTIFY SO ORPHANED TELEGRAPH SFX CAN BE STOPPED
+        this.enemies.splice(i, 1);
+      }
+    }
+
+    for (let i = this.lasers.length - 1; i >= 0; i--) {
+      this.lasers[i].update(dt);
+      if (this.lasers[i].isDead) this.lasers.splice(i, 1);
+    }
+  }
+
+checkLaserHits(shipX, shipY, isBarrelRolling = false) {
+    // CHECK ALL ENEMY LASERS V SHIP - RETURNS TOTAL DAMAGE + DEFLECTED LASERS
+    const DEFLECT_RADIUS_MULT = 2.2;
+    let totalDamage = 0;
+    const deflected = [];   // ← FOR BARREL ROLL PRISM EFFECT
+
+    for (let i = this.lasers.length - 1; i >= 0; i--) {
+        const laser = this.lasers[i];
+
+        if (isBarrelRolling) {
+            const dx = laser.x - shipX;
+            const dy = laser.y - shipY;
+            const r  = CONFIG.ENEMY_LASER.HIT_RADIUS * DEFLECT_RADIUS_MULT;
+
+            if (dx * dx + dy * dy < r * r) {
+                // DEFLECTED!
+                deflected.push({
+                    x:    laser.x,
+                    y:    laser.y,
+                    dirX: laser.dirX ?? laser.vx ?? 1,   // FALLBACK
+                    dirY: laser.dirY ?? laser.vy ?? 0
+                });
+                this.lasers.splice(i, 1);
+            }
+        } else if (laser.checkShipHit(shipX, shipY)) {
+            totalDamage += CONFIG.ENEMY_LASER.DAMAGE;
+            this.lasers.splice(i, 1);
+        }
+    }
+
+    return { damage: totalDamage, deflected };   // ← CHANGED RETURN
+}
+ 
+  checkCollisions(shipX, shipY) {  // CHECK ALL ENEMIES FOR BODY COLLISION WITH SHIP - RETURNS TOTAL DAMAGE DEALT THIS FRAME
+    let totalDamage = 0;
+    for (const enemy of this.enemies) {
+      totalDamage += enemy.checkCollision(shipX, shipY);
+    }
+    return totalDamage;
+  }
+
+  draw(ctx) {
+    for (let i = this.enemies.length - 1; i >= 0; i--) this.enemies[i].draw(ctx);
+    for (const laser of this.lasers) laser.draw(ctx);
+  }
+
+  getEnemies() { return this.enemies; }
+  clear() {
+    this.enemies = [];
+    this.lasers  = [];
+    this._fractalCooldownUntil = 0; // RESET ON WAVE CLEAR / GAME RESTART — FRESH SLATE
+    this._prismCooldownUntil   = 0;
+    this._slimeCooldownUntil   = 0;
+  }
+  getCount()   { return this.enemies.length; }
+}

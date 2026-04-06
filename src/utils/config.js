@@ -1,0 +1,655 @@
+// Updated 4/2/26 @ 11AM
+export const CONFIG = {
+  TUNNEL: {
+    RADIUS: 2400, 
+    SEGMENTS: 700,
+    TUBE_RADIUS: 330, 
+    TUBE_SEGMENTS: 120,
+    TUBE_RADIAL_SEGMENTS: 12,
+    SPEED: 210,
+    ROLL_AMOUNT: 0.95,
+    COLOR_BASE_HUE: 0.7, 
+    COLOR_PULSE_RANGE: 0.07, 
+    VERTICAL_WAVE_SPEED: 0.5,
+    VERTICAL_WAVE_AMPLITUDE: 0, // 0 DURING NORMAL GAME PLAY
+  },
+
+  SHIP: {
+    WIDTH: 140,
+    HEIGHT: 120,
+    SPEED: 5,             
+    ACCELERATION: 2400,   // px/s² 
+    DAMPING: 0.85,        // HIGHER = SPACE ICE
+    MAX_OFFSET_X: 400,
+    MAX_OFFSET_Y: 250,
+    ROTATION_SMOOTHING: 0.15,
+    TILT_ANGLE: 30, 
+    FRAME_INTERPOLATION_ACTIVE: 0.25,
+    FRAME_INTERPOLATION_IDLE: 0.08,
+    SPRITE_FRAMES: 5, // 0=UP, 1=HALF-UP, 2=NEUTRAL, 3=HALF-DOWN, 4=DOWN
+    NEUTRAL_FRAME: 2,
+    UP_FRAME: 0,
+    DOWN_FRAME: 4,
+  },
+
+  BARREL_ROLL: {
+    DURATION: 0.6, 
+    PARTICLE_SPAWN_MULTIPLIER: 2,
+  },
+
+  BOOST: {
+    IMPULSE:        950,  
+    DURATION:       0.28, 
+    COOLDOWN:       3.5,  
+    FLASH_ALPHA:    0.28, 
+    GHOST_DURATION: 0.40, 
+    BAR_Y:          68,   
+  },
+
+  PARTICLES: {
+    MAX_COUNT: 8,
+    SPAWN_RATE: 2,
+    LIFE_MIN: 0.1,
+    LIFE_VARIANCE: 0.1,
+    RADIUS: 13,
+    VELOCITY_X_RANGE: 10,
+    VELOCITY_Y_BASE: 10,
+    VELOCITY_Y_VARIANCE: 10,
+    SPAWN_SPREAD: 5,
+    OPACITY: 0.7,
+    COLOR_PRIMARY: '#37fbfb',
+    COLOR_SECONDARY: '#00FFFF',
+    // DUAL BOOSTER POSITIONS — RELATIVE TO SHIP CENTER, PRE-ROTATION
+    BOOSTER_OFFSET_X: 37,   // px OUTWARD FROM CENTER TO EACH WING BOOSTER
+    BOOSTER_OFFSET_Y: 1,   // px DOWNWARD FROM CENTER (CANVAS Y+ = DOWN)
+  },
+
+  COSMIC_PRISM: {
+    RADIUS:            20,    
+    COLLECT_RADIUS:    48,    
+    ROTATION_SPEED:    0.75,  
+    PULSE_SPEED:       1.8,   
+    BOB_SPEED:         1.1,   
+    BOB_AMPLITUDE:     9,     
+    LIFETIME:          6,    
+    FIRST_SPAWN_DELAY: 15,    
+    SPAWN_INTERVAL:    25,   
+    MAX_COUNT:         1,    
+    HEAL_AMOUNT:       30,    
+  },
+
+  TESSERACT_FRAGMENT: {
+    RADIUS:            15,    
+    COLLECT_RADIUS:    52,    
+    ROTATION_SPEED:    0.9,   
+    LIFETIME:          5,    
+    FIRST_SPAWN_DELAY: 12,    
+    SPAWN_INTERVAL:    30,     
+    MAX_COUNT:         1,     
+    BOOST_DURATION:    8.0,   
+  },
+
+  SCENE: {
+    FOG_DENSITY: 0.00069, 
+    BACKGROUND_COLOR: 0x0a0015,
+    CAMERA_FOV: 75,
+    CAMERA_NEAR: 0.1,
+    CAMERA_FAR: 5000,
+  },
+
+  MOBILE: {
+    JOYSTICK_RADIUS: 60,
+    DEAD_ZONE: 15,
+  },
+
+  MAX_PIXEL_RATIO: 2,
+
+  ENEMIES: {
+    MAX_COUNT: 1, //  TESTING
+    SPAWN_INTERVAL_MIN: 4.0, 
+    SPAWN_INTERVAL_MAX: 8.0,
+    SPAWN_DISTANCE: 400, 
+    SPRITE_SIZE: 150,
+    COMBAT_SCALE:      0.82,  // SCALE THRESHOLD — APPROACH → COMBAT TRANSITION
+
+    TYPES: {
+      BASIC: { // GLIP GLOP
+        SIZE: 100,
+        SPEED: 180,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#FF0000',
+        HEALTH: 5, //  TESTING
+        SCORE: 10,
+        SPRITE_FRAMES: 11,
+        ANIM_SPEED: 9,
+        COLLISION_DAMAGE: 20,
+        LASER_COLOR: '#ff0000',
+        LASER_INTERVAL: 3,
+        COMBAT_DURATION: 9.0,   
+        WANDER_SPEED: 70,
+        WANDER_X: 180,
+        WANDER_Y: 120,
+      },
+
+      FAST: { // PHIL — JELLYFISH
+        SIZE: 90,
+        SPEED: 120,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#b444a3',
+        HEALTH: 7,
+        SCORE: 20,
+        SPRITE_FRAMES: 11,
+        ANIM_SPEED: 11,
+        COLLISION_DAMAGE: 10, // REDUCED FROM 20
+        LASER_COLOR: '#FF0000',
+        LASER_INTERVAL: 3, // INCREASED FROM 1.5
+        COMBAT_DURATION: 6.0,
+        WANDER_SPEED: 100,
+        WANDER_X: 290,
+        WANDER_Y: 170,
+      },
+
+      TANK: { // GLORK — OCTOPUS
+        SIZE: 80,
+        SPEED: 70,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#FF0000',
+        HEALTH: 10,
+        SCORE: 50,
+
+        SPRITE_FRAMES: 6,      
+        BODY_FRAME:    1,       // QUADROPUS FRAME INDEX 1 (GLORK BODY)
+        SEGMENT_FRAME: 4,       // QUADROPUS FRAME INDEX 4 (GLORK SEG)
+        ANIM_SPEED:    0,
+        SPLINE_COLOR:  '#543c57',
+
+        COLLISION_DAMAGE: 10, // DECREASED FROM 35
+        LASER_COLOR: '#ff0000',
+        LASER_INTERVAL: 3, // INCREASED FROM 2
+        COMBAT_DURATION: 16.0,
+        WANDER_SPEED: 30,
+        WANDER_X: 90,
+        WANDER_Y: 60,
+// VALUES BELOW ARE NOT FINALIZED 
+        TENTACLE_COUNT:          1,
+        TENTACLE_SEGMENTS:       8,
+        TENTACLE_SEGMENT_LENGTH: 11,
+        TENTACLE_BASE_WIDTH:     9.5,   
+        TENTACLE_REACH:          90,  
+        TENTACLE_WANDER_SPEED:   1,
+        TENTACLE_CURL_STRENGTH:  0.1, 
+        TENTACLE_ANCHOR_RADIUS:  14,   
+        TENTACLE_ANCHOR_Y_OFFSET: 15.5,  
+        TENTACLE_REPEL_RADIUS:    50,  
+        TENTACLE_REPEL_STRENGTH:  300, 
+        TENTACLE_TIP_GRAVITY:     130,  
+        TENTACLE_TIP_REPEL_RADIUS:   55,  
+        TENTACLE_TIP_REPEL_STRENGTH: 200, 
+        TENTACLE_MAX_BEND:  Math.PI / 0.628,   
+        TENTACLE_TIP_BIAS:           40, 
+        TENTACLE_TIP_STIFFNESS:       10,
+        TENTACLE_TIP_DRAG:         0.9,
+        TENTACLE_ANCHOR_SWAY:         1,  
+      },
+
+      ZIGZAG: { // ZIP ZAP — OCTOPUS
+        SIZE: 75,
+        SPEED: 90,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#7097eb',
+        HEALTH: 6,
+        SCORE: 30,
+        ZIGZAG_AMPLITUDE: 70,
+        ZIGZAG_FREQUENCY: 2,
+
+        SPRITE_FRAMES: 6,        
+        BODY_FRAME:    0,        
+        SEGMENT_FRAME: 3,        
+        ANIM_SPEED:    0,        
+        SPLINE_COLOR:  '#324453', 
+
+        COLLISION_DAMAGE: 10, // REDUCED FROM 20
+        LASER_COLOR: '#FF0000',
+        LASER_INTERVAL: 3, // INCREASED FROM 1.7
+        COMBAT_DURATION: 7.0,
+        WANDER_SPEED: 45,
+        WANDER_X: 80,
+        WANDER_Y: 130,
+// VALUES BELOW ARE NOT FINALIZED 
+        TENTACLE_COUNT:          3,
+        TENTACLE_SEGMENTS:       7,
+        TENTACLE_SEGMENT_LENGTH: 12,
+        TENTACLE_BASE_WIDTH:     6.5,
+        TENTACLE_REACH:          80,   
+        TENTACLE_WANDER_SPEED:   1,  
+        TENTACLE_CURL_STRENGTH:  0.04, // TRAVELLING WAVE — SOLE MOTION DRIVER NOW THAT TIP WANDER IS GONE
+        TENTACLE_ANCHOR_RADIUS:  7,
+        TENTACLE_ANCHOR_Y_OFFSET: 21.5,
+        TENTACLE_REPEL_RADIUS:    25,
+        TENTACLE_REPEL_STRENGTH:  300, // SCALED UP (×dt IN CODE) — ~5px/FRAME EFFECTIVE PUSH @ 60FPS
+        TENTACLE_TIP_GRAVITY:     250,  
+        TENTACLE_TIP_REPEL_RADIUS:   40,
+        TENTACLE_TIP_REPEL_STRENGTH: 150, // SCALED UP (×dt IN CODE) — ~6px/FRAME EFFECTIVE PUSH @ 60FPS
+        TENTACLE_MAX_BEND:  Math.PI / 2,  // MAX ANGLE BETWEEN ADJACENT SEGMENTS (~60°) — PREVENTS SHARP KINKS
+        TENTACLE_TIP_BIAS:           50,  // px — OUTER TIPS NUDGE OUTWARD, INNER TIPS NUDGE DOWN
+        TENTACLE_TIP_STIFFNESS:       3, 
+        TENTACLE_TIP_DRAG:         0.85,  
+        TENTACLE_ANCHOR_SWAY:         0.5,  // px — SUBTLE ROOT SWAY AMPLITUDE
+      },
+
+      FLIMFLAM: { // FLIM FLAM
+        SIZE: 90,
+        SPEED: 200,
+        COLOR: '#FF0000',
+        GLOW_COLOR: '#6786c9',
+        HEALTH: 10,
+        SCORE: 50,
+
+        SPRITE_FRAMES: 6,  
+        BODY_FRAME:    2,       
+        SEGMENT_FRAME: 5,       
+        ANIM_SPEED:    0,        
+        SPLINE_COLOR:  '#6f407c', 
+
+        COLLISION_DAMAGE: 10, // REDUCED FROM 20
+        LASER_COLOR: '#FF0000',
+        LASER_INTERVAL: 2.5, // INCREASED FROM 2
+        HOVER_DURATION_MIN: 0.7,
+        HOVER_DURATION_MAX: 1.6,
+        DASH_SPEED: 200,
+        BOB_AMPLITUDE: 6,
+        BOB_SPEED: 4.5,
+        ROAM_X: 240,
+        ROAM_Y: 155,
+        COMBAT_DURATION: 11.0,
+        PRISM_FIRST_DELAY_MIN: 1.5,
+        PRISM_FIRST_DELAY_MAX: 2.5,
+        PRISM_COOLDOWN_MIN:    8.0,
+        PRISM_COOLDOWN_MAX:   12.0,
+        PRISM_TELEGRAPH:       1.8,
+// VALUES BELOW ARE NOT FINALIZED 
+        TENTACLE_COUNT:          4,
+        TENTACLE_SEGMENTS: 5,
+        TENTACLE_SEGMENT_LENGTH: 19,
+        TENTACLE_BASE_WIDTH: 10,
+        TENTACLE_REACH:          120,  
+        TENTACLE_WANDER_SPEED:   0.8,  
+        TENTACLE_CURL_STRENGTH:  0.08, // TRAVELLING WAVE — SOLE MOTION DRIVER NOW THAT TIP WANDER IS GONE
+        TENTACLE_ANCHOR_RADIUS:  17,
+        TENTACLE_ANCHOR_Y_OFFSET: 13,  
+        TENTACLE_REPEL_RADIUS:    17,
+        TENTACLE_REPEL_STRENGTH:  70, // SCALED UP (×dt IN CODE) — ~5px/FRAME EFFECTIVE PUSH @ 60FPS
+        TENTACLE_TIP_GRAVITY:     130,  
+        TENTACLE_TIP_REPEL_RADIUS:   30,  
+        TENTACLE_TIP_REPEL_STRENGTH: 360, // SCALED UP (×dt IN CODE) — ~6px/FRAME EFFECTIVE PUSH @ 60FPS
+        TENTACLE_MAX_BEND:  Math.PI / 4,  // MAX ANGLE BETWEEN ADJACENT SEGMENTS (~60°) — PREVENTS SHARP KINKS
+        TENTACLE_TIP_BIAS:           10,  // px — OUTER TIPS NUDGE OUTWARD, INNER TIPS NUDGE DOWN
+        TENTACLE_TIP_STIFFNESS:       19,  
+        TENTACLE_TIP_DRAG:         0.93,  
+        TENTACLE_ANCHOR_SWAY:         1,  // px — SUBTLE ROOT SWAY AMPLITUDE
+      },
+
+
+
+    },
+
+    PULSE_SPEED: 2.5,
+  },
+
+  SHOOTING: {
+    FIRE_RATE: 0.15, 
+    PROJECTILE_SPEED: 1200, 
+    PROJECTILE_SIZE: 8,
+    PROJECTILE_LENGTH: 30,
+    PROJECTILE_COLOR: '#00ffff',
+    PROJECTILE_GLOW_COLOR: '#00ffff',
+    MAX_PROJECTILES: 50,
+    CROSSHAIR_SIZE: 60,
+    CROSSHAIR_AIM_DEFLECT_PX: 500,    // MAX px FROM CENTER — CROSSHAIR RANGE OF MOTION
+    CROSSHAIR_CENTER_PULL: 0.35,       // 0=NONE, 1=LOCKED TO CENTER
+    CROSSHAIR_INNER_LAG: 0.22,         // LOWER = MORE LAG
+    CROSSHAIR_INPUT_SMOOTHING: 0.03,   // LOWER = FLOATIER
+    CROSSHAIR_OUTER_LAG: 0.11,         // OUTER BRACKETS CHASE SPEED 
+    CROSSHAIR_MAX_SEPARATION: 55,      // MAX PIXEL DISTANCE BETWEEN INNER AND OUTER RETICLES
+    CROSSHAIR_OUTER_SCALE: 1.5,        // OUTER BRACKETS - SIZE RELATIVE TO INNER SPRITE 
+    CROSSHAIR_FLASH_SPEED: 0.08,
+
+    FLASH_DURATION: 0.1, 
+  },
+
+  SHIP_HP: {
+    MAX_HP:                  100,
+    MAX_LIVES:               3,
+    INVINCIBILITY_DURATION:  2.0,   
+    INVINCIBILITY_FLASH_HZ:  8,     // FLASHES PER SECOND WHILE INVINCIBLE
+    SUCTION_DEATH_SCALE:     0.18,  // SUCTIONSCALE BELOW THIS = FULLY CONSUMED — LOSE A LIFE
+    RESPAWN_INVINCIBILITY:   3.0,  
+  },
+
+  WORM_BOSS: {
+    LUNGE_DAMAGE:         15,   // HP DEALT ON A SUCCESSFUL LUNGE BITE — TRIGGERS INVINCIBILITY FRAMES
+  },
+
+  WORM_SUCTION: { // FORCE PROFILE
+    BASE_FORCE:        600,    // px/s² at max distance  
+    RAMP_EXPONENT:     1.8,    // HOW AGGRESSIVELY FORCE GROWS AS SHIP GETS CLOSER (>1 = exponential ramp)
+    MAX_FORCE:         3200,   // HARD CAP — PREVENTS INSTANT VACUUM
+    MAX_DISTANCE:      900,    // BEYOND THIS DISTANCE: ZERO SUCTION FORCE
+    SPIN_STRENGTH:     0.55,   // TANGENTIAL FORCE MULTIPLIER (sideways pull)
+    PULL_STRENGTH:     1.0,    // RADIAL FORCE MULTIPLIER (straight-in pull)
+    // BARREL ROLL COUNTER
+    ROLL_SPIN_RESIST:  0.06,   // SPIRAL REDUCED TO THIS FRACTION WHILE ROLLING
+    ROLL_PULL_RESIST:  0.40,   // RADIAL REDUCED TO THIS FRACTION WHILE ROLLING
+    ROLL_BURST_FORCE:  900,    // OUTWARD BURST AT ROLL PEAK (progress ~0.5) 
+    // VISUAL SCALE — SHIP SHRINKS AS IT GETS SUCKED IN
+    SCALE_NEAR:        0.05,   // SMALLEST SCALE AT MOUTH — MUST BE BELOW SUCTION_DEATH_SCALE
+    SCALE_FAR:         1.0,    // NORMAL SCALE AT MAX_DISTANCE
+    SCALE_LERP:        0.06,   // HOW FAST SCALE RECOVERS / RESPONDS
+    SHAKE_INTENSITY:   4,      // px
+    // CLAMP EXPANSION — SUCTION CAN PULL SHIP PAST NORMAL PLAY FIELD
+    MAX_OFFSET_EXPAND: 1.6,    // MULTIPLIER ON NORMAL MAX_OFFSET DURING ATTACK
+    RAGE_MULTIPLIER:     2.5, // SUCTION STRENGTH INCREASE DURING RAGE PHASE — MULTIPLIES BASE_FORCE, MAX_DISTANCE, AND SHAKE_INTENSITY
+  },
+
+  ENEMY_LASER: {
+    SPEED:          450,    
+    DAMAGE:         10,
+    HIT_RADIUS:     14,    
+    BOLT_LENGTH:    22,     
+    BOLT_WIDTH:     3,
+    GLOW_BLUR:      12,
+    FIRST_SHOT_MIN: 0.7,
+    FIRST_SHOT_MAX: 2.0,
+  },
+
+  EXPLOSIONS: {
+    BAM_FRAMES:     8,
+    BAM_SIZE:       160,
+    BOOM_FRAMES:    6,
+    BOOM_SIZE:      200,
+    FRAME_DURATION: 0.03,
+  },
+
+  BABY_WORM: {
+    SPRITE_PATH:         './images/babyWorm.png',
+    SPRITE_FRAMES:       2,
+    HEAD_SIZE:           60,
+    SEGMENT_SIZE_RATIO:  1,
+    NUM_SEGMENTS:        6,
+    SEGMENT_SPACING:     11,
+    SPAWN_COUNT:         5,
+    SPAWN_INTERVAL:      0.30,
+    SEEK_SPEED:          175,
+    SEEK_ACCEL:          55,
+    MAX_SPEED:           310,
+    WIGGLE_AMP:          38,
+    WIGGLE_FREQ:         3.8,
+
+    LATCH_RADIUS:        38,
+    LATCH_ORBIT_SPEED:   0.9,
+    LATCH_ORBIT_DIST:    52,
+    LATCH_DAMAGE_RATE:   8,
+
+    TRAIL_LENGTH:        40,
+    TRAIL_COLOR:         '#55ff88',
+    TRAIL_GLOW:          '#00ff44',
+    TRAIL_MAX_SIZE:      13,
+    TRAIL_MIN_SIZE:      2,
+    TRAIL_MAX_ALPHA:     0.65,
+    ATTACK_DURATION:     9.0,
+  },
+
+  SLIME_ATTACK: {
+    FIRST_ATTACK_MIN:   1.5,   
+    FIRST_ATTACK_MAX:   2.5, 
+    REPEAT_INTERVAL:    7.0,  
+    TELEGRAPH_DURATION:  1.6,  
+    MIN_SCALE:           0.50,  // GLORK MUST BE THIS SIZE TO ATTACK
+    TUNNEL_SPEED_MULT:   0.28,  // TUNNEL SLOWS TO THIS PERCENT OF NORMAL SPEED 
+    TUNNEL_GREEN:       0x22ff44, 
+    TRAIL_MAX:           10,    // TRACERS
+    TRAIL_CAPTURE_RATE:  0.055, // SECONDS BETWEEN SNAPSHOTS
+    CONTROL_ACCEL_MULT:  0.45, // MOLLASSES PHYSICS 
+    CONTROL_DAMP_MULT:   0.60, 
+  },
+
+  FRACTAL_CASCADE: {
+    TELEGRAPH_DURATION:     1.3,   // SECONDS — ROTATING TRIANGLE FLASH AROUND PLAYER (1.3 SECONDS = 2 BEATS)
+    DURATION:               4.0,   // TOTAL ACTIVE DURATION (INCLUDES RECOMPILE WINDOW) (4 SECONDS = 6 BEATS @ 90BPM  + 4:4 TIME SIG)
+    RECOMPILE_WINDOW:       0.5,   // FINAL SECONDS — ECHOES COLLAPSE + SNAP FLASH
+    GHOST_INTERVAL:         0.10,  // SECONDS BETWEEN GHOST BATCH SPAWNS PER ECHO
+    GHOST_DEPTH:            3,     // RECURSIVE GHOST LEVELS (0, 1, 2)
+    TERMINAL_LINE_INTERVAL: 0.35,  // SECONDS PER LINE TYPED IN DEBUG TERMINAL
+    COOLDOWN_MS:            10000, // ms — GLOBAL COOLDOWN AFTER ATTACK ENDS
+    FIRST_DELAY_MIN:  1.5,   // SECONDS AFTER ENTERING COMBAT BEFORE FIRST TELEGRAPH
+    FIRST_DELAY_MAX:  2.5,
+    COOLDOWN_MIN:    5.0,   // PER-ENEMY COOLDOWN BEFORE REPEATING
+    COOLDOWN_MAX:    7.0,
+  },
+
+  OCULAR_PRISM: {
+    DURATION:       7.0,   
+    FADE_DURATION:   0.6,   
+    SHARD_MIN:       3,     
+    SHARD_MAX:       5,     
+    PUPIL_RADIUS:   68,     
+    PUPIL_HEALTH:    5,     
+    ICHOR_COUNT:    55,     
+    PUPIL_HIT_SCORE: 25,    
+    PUPIL_KILL_SCORE: 200,  
+  },
+
+  GAMEPLAY: {
+    WAVE_TRANSITION_DURATION: 10.5,   
+    BOSS_ENTRY_DELAY:         2.0,  
+    GOO_DAMAGE:               12,    
+    WAVE_WORM_KILL_SCORE:     100,    
+  },
+
+  WAVE_WORM: {
+    SPRITE_FRAMES:  10,        // 10 TOTAL: 5 WAVES × (BODY + HEAD)
+    HEAD_SIZE:            70, 
+    SEGMENT_SIZE_RATIO:  0.9, 
+    NUM_SEGMENTS:         15,  
+    SEGMENT_SPACING:      8,  
+    TAPER_RATIO:         0.8,
+    TUNNEL_BEND_X_OFFSET: -150,  // SPAWN ANCHOR - px LEFT OF SCREEN CENTER
+
+    PASS_SPEED:      0.12,     // PROGRESS UNITS / SECOND - FULL PASS = 8s
+    WIGGLE_AMP:        22,     // px  OF VERTICAL SINE DRIFT AT PEAK SCALE 
+    WIGGLE_FREQ:       1.4,    // Hz OF WIGGLE
+
+    LATERAL_MIN:       20,     // px FROM CENTER
+    LATERAL_MAX:      40,     
+
+    HIT_MIN_SCALE:   0.5,     // MUST BE THIS BIG TO HIT
+    GOO_MIN_SCALE:   0.45,     // WORM WON'T SHOOT UNTIL THIS SIZE
+
+    HEALTH:            5,        
+
+    FIRST_SPAWN_DELAY_MIN: 10,    
+    FIRST_SPAWN_DELAY_MAX: 15,    
+    SPAWN_GAP_MIN:         10,    
+    SPAWN_GAP_MAX:         20,     
+
+    KILLS_PER_WAVE: [3, 4, 4, 5, 5],   
+    
+    GOO_FIRST_SHOT_MIN: 1.7,
+    GOO_FIRST_SHOT_MAX: 2.0,
+    GOO_INTERVAL_MIN:   2.5,
+    GOO_INTERVAL_MAX:   4.5,
+  },
+
+  GOO_PROJECTILE: {
+    SPEED:         300,    
+    GRAVITY:       480,    
+    BLOB_RADIUS:    10,    
+    HIT_RADIUS:     22,    
+
+    SIZZLE_FRAMES:  12,     
+    SIZZLE_FPS:    15,
+    SIZZLE_SIZE:   120,     
+  },
+
+  SINGULARITY_BOMB: {
+    RADIUS:               20,    // SPINOR ITEM
+    COLLECT_RADIUS:       50,    
+    LIFETIME:             5,    
+    FIRST_SPAWN_DELAY:    30,    //  VALUE NOT FINALIZED - MORE TESTING NEEDED
+    SPAWN_INTERVAL:       45,   //  VALUE NOT FINALIZED - MORE TESTING NEEDED
+    MAX_COUNT:             1,   
+    MAX_INVENTORY:         3,    
+    ROTATION_SPEED:        1.4,  // radians/s — INTERNAL SPINOR ANGLE
+
+    BH_LIFETIME:           7,  // SECONDS AT FULL SIZE (CURRENT SFX IS 4 BARS = 10.67 SECONDS / COLLAPSE SOUND IS AT BAR 3 = 8 SECONDS)
+    BH_GROW_TIME:          0.7,  // HOW LONG TO REACH FULL RADIUS
+    BH_COLLAPSE_TIME:      1.1,  // HOW LONG TO COLLAPSE
+    BH_MAX_RADIUS:         60,   // px — EVENT HORIZON RADIUS
+    BH_WANDER_SPEED:       48,   // px/s — WANDER MOVEMENT SPEED
+    BH_WANDER_X:          200,   // px — HORIZONTAL RANGE AROUND WANDER ZONE CENTER
+    BH_WANDER_Y:          130,   // px — VERTICAL RANGE AROUND WANDER ZONE CENTER
+    BH_WANDER_BIAS_X:     0.68,  // FRACTION OF SCREEN WIDTH — CENTER OF WANDER ZONE (RIGHT BIAS)
+    BH_WANDER_BIAS_Y:     0.30,  // FRACTION OF SCREEN HEIGHT — CENTER OF WANDER ZONE (UPPER BIAS)
+    GRAVITY_STRENGTH:    260,   
+    GRAVITY_RANGE:       340,    // px — MAX INFLUENCE RADIUS
+    ORBIT_SPEED:         220,    // radians*sqrt(px)/s
+    ORBIT_CAPTURE_RANGE: 300,    // px — DISTANCE ENEMY FALLS INTO ORBIT
+    ORBIT_DRIFT_RATE:     10,    // px/s — SLOWER ORBIT
+    ORBIT_COLLAPSE_RATE: 380,    // px/s — FAST INWARD DRAIN WHEN BH STARTS COLLAPSING
+    STRETCH_MAX:           3.2,  // ── SPAGHETTIFICATION 
+    STRETCH_RANGE:        200,   
+    BOSS_ORBIT_RADIUS:   200,  
+    BOSS_ORBIT_SPEED:    1.55,  
+    BOSS_ORBIT_EASE:     1.6,   
+    HAWKING_PARTICLES:    22,
+    HAWKING_SPEED:        380,   
+  },
+
+  CELLULAR_ATTACK: {
+    CELL_SIZE_DESKTOP:     15,    
+    CELL_SIZE_MOBILE:       8,    
+    GRID_COVERAGE_X:       0.7,  
+    GRID_COVERAGE_Y:       0.8,  
+
+    SURVIVE:               [4, 5, 6, 7, 8],
+    BIRTH:                 [3],
+    STEP_RATE:             0.06,  // SECONDS BETWEEN EVOLUTION STEPS 
+    MAX_AGE:               24,   
+
+    DAMAGE_AGE:            5,     // MAGENTA — SHIP TAKES DAMAGE
+    BREAK_AGE:             9,     //  SHOOTABLE BREAK NODE
+    DOOM_AGE:              16,    // RED — HARDENED, STILL SHOOTABLE, FASTER PULSE
+
+    BREAK_NODES_TO_WIN:    10,    // BREAK NODES PLAYER MUST DESTROY TO WIN - VALUE NOT FINALIZED - TESTING STILL NEEDED
+    SEED_RADIUS_CELLS:     6,     // RADIUS OF EACH SEED CLUSTER (CELLS)
+    SEED_CLUSTER_COUNT:    5,     // NUMBER OF CLUSTERS SPRAYED FROM WORM MOUTH
+    SEED_SPREAD_CELLS:     15,     // SCATTER RADIUS AROUND MOUTH (CELLS)
+
+    ATTACK_DURATION:       5,    
+    SUCCESS_FADE_DURATION: 0.5,
+    COLLAPSE_BURST_COUNT:  75,
+    SUCCESS_BURST_COUNT:   120,   
+
+    SHIP_DAMAGE_RATE:      5,    // HP/s WHILE INSIDE A DAMAGING CELL
+
+    DISTORT_DURATION:      7.0,   
+    DISTORT_ACCEL_MULT:    0.75,  // MOVEMENT SLOWDOWN 
+    DISTORT_DAMP_MULT:     0.90,  //  VELOCITY DRAG 
+
+    GLOW_HARMLESS:         2, // WAS 5 - TESTING TO SEE IF THIS HELPS PERFORMANCE
+    GLOW_DAMAGING:         2,  // WAS 9 - TESTING TO SEE IF THIS HELPS PERFORMANCE
+    GLOW_BREAK:            2,  // WAS 13 - TESTING TO SEE IF THIS HELPS PERFORMANCE
+    GLOW_DOOM:            2,  // WAS 15 - TESTING TO SEE IF THIS HELPS PERFORMANCE
+    BREAK_PULSE_HZ:        1.2, 
+    DOOM_PULSE_HZ:         2.2,
+  },
+
+  //  SHIP DEATH SEQUENCE  (NON-BOSS BATTLE)
+  SHIP_DEATH: {
+    FREEZE_DURATION:    0.2,   
+    GLITCH_DURATION:    2.4,   
+    GLITCH_SLICES:      9,     
+    GLITCH_OFFSET_MAX:  16,     
+    PIECE_SCALE:        0.47,   
+    PIECE_HOVER_SPREAD: 60,     
+    PIECE_SPREAD:       18,     
+    PIECE_DRIFT_X:      100,     
+    PIECE_DRIFT_Y:      45,     
+    PIECE_SPIN:         2.2,   
+    PIECE_FADE_START:   1.8,  
+    KABAM_FRAMES:       16,
+    KABAM_FPS:          20,    
+    KABAM_SIZE:         400,    
+    SMOKE_COUNT:        9,     
+    SMOKE_FRAMES:       9,      
+    SMOKE_FPS:          12,
+    SMOKE_SIZE_MIN:     40,     
+    SMOKE_SIZE_MAX:     75,     
+    SMOKE_SPEED_MIN:    35,     
+    SMOKE_SPEED_MAX:    80,     
+  },
+};
+
+export function applyMobileScale(factor = 0.82) {
+  const C = CONFIG;
+
+  const PIXEL_KEYS = [
+    'SIZE',
+    'TENTACLE_SEGMENT_LENGTH', 'TENTACLE_BASE_WIDTH',
+    'TENTACLE_ANCHOR_RADIUS',  'TENTACLE_ANCHOR_Y_OFFSET',
+    'TENTACLE_REPEL_RADIUS',   'TENTACLE_TIP_GRAVITY',
+    'TENTACLE_TIP_REPEL_RADIUS', 'TENTACLE_TIP_BIAS',
+    'TENTACLE_ANCHOR_SWAY',
+    'ZIGZAG_AMPLITUDE',
+    'WANDER_X', 'WANDER_Y',   // COMBAT WANDER BOUNDS
+    'ROAM_X',   'ROAM_Y',     // FLIMFLAM ROAM ZONE
+    'BOB_AMPLITUDE',
+  ];
+  for (const type of Object.values(C.ENEMIES.TYPES)) {
+    for (const k of PIXEL_KEYS) {
+      if (k in type) type[k] *= factor;
+    }
+  }
+
+  // ── SHIP ──────────────────────────────────────────────────────────────────
+  C.SHIP.WIDTH  *= factor;
+  C.SHIP.HEIGHT *= factor;
+  C.PARTICLES.RADIUS           *= factor;
+  C.PARTICLES.BOOSTER_OFFSET_X *= factor;
+
+  // ── POWER-UPS ─────────────────────────────────────────────────────────────
+  C.COSMIC_PRISM.RADIUS               *= factor;
+  C.COSMIC_PRISM.COLLECT_RADIUS       *= factor;
+  C.TESSERACT_FRAGMENT.RADIUS         *= factor;
+  C.TESSERACT_FRAGMENT.COLLECT_RADIUS *= factor;
+  C.SINGULARITY_BOMB.RADIUS           *= factor;
+  C.SINGULARITY_BOMB.COLLECT_RADIUS   *= factor;
+  C.SINGULARITY_BOMB.BH_MAX_RADIUS    *= factor;
+
+  // ── BABY WORM ─────────────────────────────────────────────────────────────
+  C.BABY_WORM.HEAD_SIZE          *= factor;
+  C.BABY_WORM.LATCH_RADIUS       *= factor;
+  C.BABY_WORM.LATCH_ORBIT_DIST   *= factor;
+  C.BABY_WORM.SEGMENT_SPACING    *= factor;
+  C.BABY_WORM.TRAIL_MAX_SIZE     *= factor;
+
+  // ── WAVE WORM ─────────────────────────────────────────────────────────────
+  C.WAVE_WORM.HEAD_SIZE       *= factor;
+  C.WAVE_WORM.SEGMENT_SPACING *= factor;
+
+  // ── GOO PROJECTILE ────────────────────────────────────────────────────────
+  C.GOO_PROJECTILE.BLOB_RADIUS  *= factor;
+  C.GOO_PROJECTILE.HIT_RADIUS   *= factor;
+  C.GOO_PROJECTILE.SIZZLE_SIZE  *= factor;
+
+  // ── EXPLOSIONS ────────────────────────────────────────────────────────────
+  C.EXPLOSIONS.BAM_SIZE  *= factor;
+  C.EXPLOSIONS.BOOM_SIZE *= factor;
+
+  // ── SHIP DEATH SEQUENCE ───────────────────────────────────────────────────
+  C.SHIP_DEATH.KABAM_SIZE         *= factor;
+  C.SHIP_DEATH.PIECE_HOVER_SPREAD *= factor;
+  C.SHIP_DEATH.PIECE_SPREAD       *= factor;
+
+  // console.log(`✔ Mobile scale applied: ${factor}x`);
+}
