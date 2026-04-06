@@ -978,7 +978,6 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 /* ════════════════════════════ OPENING SCENE GLITCH EFFECTS ════════════════════════════ */
-
 .glitch-lines {
   position: absolute;
   inset: 0;
@@ -1043,6 +1042,17 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   box-shadow:
     0 0 10px #00ff88,
     0 0 25px #00ff88;
+}
+
+/* ══════════════════════ WORM RAGE GLITCH EFFECTS ══════════════════════  */
+.worm-rage-glitch canvas {
+  animation: rageFlicker 0.1s steps(1) infinite;
+}
+@keyframes rageFlicker {
+  0%   { filter: none; }
+  33%  { filter: hue-rotate(40deg) saturate(1.4); }
+  66%  { filter: brightness(1.15) contrast(1.1); }
+  100% { filter: none; }
 }
 
 /* ══════════════════════  BOOST COOLDOWN BAR  ══════════════════════ */

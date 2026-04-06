@@ -1,6 +1,7 @@
-// Updated 3/12/26 @ 7AM
+// Updated 4/6/26 @ 2pm
 // js/entities/singularityBomb.js
 import { CONFIG } from '../utils/config.js';
+import { ImageLoader } from '../utils/imageLoader.js';
 
 // ======================= SPINOR COLLECT EFFECT =======================
 // DOUBLE HELIX RIBBON + COLLECTION FLASH — PLAYS ON PICKUP, ~1 SECOND DURATION
@@ -228,7 +229,6 @@ const BH_SMOKE = {
   MAX_PARTICLES:    22,    // LOW CAP — ALWAYS-ON EFFECT, MUST BE LIGHT ON PERF
   SPAWN_RATE:       3.5,   // PARTICLES PER SECOND
   SMOKE_FRAMES:     9,
-  SMOKE_SPRITE:     './images/smoke.png',
   SPAWN_RADIUS_MIN: 180,   // INNER SPAWN RING (PX FROM BH CENTER)
   SPAWN_RADIUS_MAX: 340,   // OUTER SPAWN RING
   SIZE_MIN:         80,
@@ -251,7 +251,7 @@ const BH_SMOKE = {
 
 // ======================= BLACK HOLE SMOKE PARTICLE =======================
 class BHSmokeParticle {
-  constructor(bhX, bhY, smokeSprite, smokeFrameWidth) {
+  constructor(bhX, bhY) {
     // SPAWN AT RANDOM ANGLE, RANDOM RADIUS IN THE SPAWN RING AROUND THE BH
     const angle  = Math.random() * Math.PI * 2;
     const radius = BH_SMOKE.SPAWN_RADIUS_MIN + Math.random() * (BH_SMOKE.SPAWN_RADIUS_MAX - BH_SMOKE.SPAWN_RADIUS_MIN);
@@ -266,11 +266,8 @@ class BHSmokeParticle {
     this.speed     = BH_SMOKE.BASE_SPEED + Math.random() * BH_SMOKE.SPEED_VARIANCE;
     this.rotation  = Math.random() * Math.PI * 2;
     this.rotSpeed  = (Math.random() < 0.5 ? -1 : 1) * (BH_SMOKE.SELF_ROTATE_SPEED + Math.random() * 0.5);
-
-    this.smokeSprite     = smokeSprite;
-    this.smokeFrameWidth = smokeFrameWidth;
-    this.isDead          = false;
-    this.distToCenter    = radius;
+    this.isDead    = false;
+    this.distToCenter = radius;
   }
 
   update(dt, targetX, targetY) {
@@ -299,7 +296,9 @@ class BHSmokeParticle {
   }
 
   draw(ctx) {
-    if (!this.smokeSprite || this.smokeFrameWidth <= 0) return;
+    const sprite = ImageLoader.get('smoke');
+    if (!sprite) return;
+    const frameWidth = sprite.width / BH_SMOKE.SMOKE_FRAMES;
 
     const progress = 1 - (this.life / this.maxLife);
     let envelope;
@@ -319,10 +318,9 @@ class BHSmokeParticle {
     ctx.globalAlpha = this.peakAlpha * Math.max(0, envelope);
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
-    const sx = this.frame * this.smokeFrameWidth;
     ctx.drawImage(
-      this.smokeSprite,
-      sx, 0, this.smokeFrameWidth, this.smokeSprite.height,
+      sprite,
+      this.frame * frameWidth, 0, frameWidth, sprite.height,
       -drawSize / 2, -drawSize / 2, drawSize, drawSize
     );
     ctx.restore();
@@ -332,25 +330,16 @@ class BHSmokeParticle {
 // ======================= BLACK HOLE SMOKE SYSTEM =======================
 class BHSmokeSystem {
   constructor() {
-    this.particles       = [];
-    this.spawnAccum      = 0;
-    this.smokeSprite     = new Image();
-    this.smokeFrameWidth = 0;
-    this.spriteLoaded    = false;
-
-    this.smokeSprite.src = BH_SMOKE.SMOKE_SPRITE;
-    this.smokeSprite.onload = () => {
-      this.spriteLoaded    = true;
-      this.smokeFrameWidth = this.smokeSprite.width / BH_SMOKE.SMOKE_FRAMES;
-    };
+    this.particles  = [];
+    this.spawnAccum = 0;
   }
 
   update(dt, bhX, bhY, isActive) {
     // SPAWN ONLY WHILE BLACK HOLE IS ACTIVE OR COLLAPSING
-    if (isActive && this.spriteLoaded && this.particles.length < BH_SMOKE.MAX_PARTICLES) {
+    if (isActive && ImageLoader.isLoaded('smoke') && this.particles.length < BH_SMOKE.MAX_PARTICLES) {
       this.spawnAccum += BH_SMOKE.SPAWN_RATE * dt;
       while (this.spawnAccum >= 1 && this.particles.length < BH_SMOKE.MAX_PARTICLES) {
-        this.particles.push(new BHSmokeParticle(bhX, bhY, this.smokeSprite, this.smokeFrameWidth));
+        this.particles.push(new BHSmokeParticle(bhX, bhY));
         this.spawnAccum -= 1;
       }
     } else if (!isActive) {
@@ -384,7 +373,6 @@ export class BabyBlackHole {
     this._rippleTimer      = 0;
     this._hawking          = [];
     this._dead             = false;
-    this._bossStunApplied  = false;
 
     this._bossOrbitActive  = false; // BOSS ORBIT STATE
     this._bossOrbitAngle   = 0;
@@ -576,27 +564,6 @@ export class BabyBlackHole {
     const cy     = window.innerHeight * C.BH_WANDER_BIAS_Y;
     this._wanderTargetX = Math.max(margin, Math.min(window.innerWidth  - margin, cx + (Math.random() * 2 - 1) * C.BH_WANDER_X));
     this._wanderTargetY = Math.max(margin, Math.min(window.innerHeight - margin, cy + (Math.random() * 2 - 1) * C.BH_WANDER_Y));
-  }
-
-  // ── MINI HAWKING BURST  ────────────────────────────────────
-  _spawnEnemyConsumptionBurst(x, y) {
-    const C       = CONFIG.SINGULARITY_BOMB;
-    const palette = ['#e25513', '#ff8a55', '#ffb48a', '#c71585', '#ff6030', '#ffff88'];
-    const count   = 10;
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
-      const speed = C.HAWKING_SPEED * (0.25 + Math.random() * 0.45);
-      const life  = 0.28 + Math.random() * 0.3;
-      this._hawking.push({
-        x, y,
-        vx:      Math.cos(angle) * speed,
-        vy:      Math.sin(angle) * speed,
-        color:   palette[Math.floor(Math.random() * palette.length)],
-        size:    1 + Math.random() * 2.5,
-        life,
-        maxLife: life,
-      });
-    }
   }
 
   // ── BOSS ORBIT — TRAPS WORM HEAD IN CIRCULAR ORBIT, BODY FOLLOWS VIA IK CHAIN ─

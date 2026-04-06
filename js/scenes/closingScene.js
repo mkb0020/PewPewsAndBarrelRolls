@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 1:30AM
+// Updated 4/6/26 @ 2pm
 // scenes/closingScene.js
 import { ImageLoader } from '../utils/imageLoader.js';
 
@@ -228,7 +228,7 @@ class SpaceWhale {
       ctx.lineTo(this._tail[i + 1].x, this._tail[i + 1].y);
       ctx.shadowColor  = 'rgba(95,0,209,0.5)';
       ctx.shadowBlur   = 24;
-      ctx.lineWidth    = Math.max(1, 44.5 - i * 3);
+      ctx.lineWidth = Math.max(2, 44.5 - i * 2.75);
       ctx.strokeStyle  = `rgba(95,0,209,${0.7 * this._alpha})`;
       ctx.stroke();
     }
@@ -241,7 +241,7 @@ class SpaceWhale {
       ctx.shadowBlur  = 2;
       ctx.translate(last.x, last.y);
       ctx.rotate(this._tailAngle);
-      ctx.drawImage(fluke, -8, -20, 45, 45);
+      ctx.drawImage(fluke, -8, -24, 45, 45);
       ctx.restore();
     }
 

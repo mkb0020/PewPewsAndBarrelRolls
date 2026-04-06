@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 1:30AM
+// Updated 4/6/26 @ 2pm
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -36,7 +36,7 @@ const WORM = {
   ATTACK_INTERVAL_MIN: 1,  // AI — MINIMUM SECONDS BETWEEN ATTACKS
   ATTACK_INTERVAL_MAX: 2, // AI — MAXIMUM SECONDS BETWEEN ATTACKS
   ATTACK_DURATION:    5,
-  BABY_ATTACK_DURATION: 4,  
+  BABY_ATTACK_DURATION: 5,  
   BABY_SPIT_DURATION:   0.8, // SECONDS MOUTH STAYS OPEN WHEN BABY WORMS ARE EXPELLED
   ATTACK_FPS:         7,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
@@ -70,7 +70,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           300,
+  HEALTH:           30,
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
   RAGE_TRIGGER_THRESHOLD: 0.3,
@@ -84,7 +84,6 @@ const SUCTION = {
   MAX_PARTICLES:    60,    // HARD CAP FOR PERFORMANCE
   SPAWN_RATE:       6,     // PARTICLES PER SECOND DURING ATTACK
   SMOKE_FRAMES:     9,     
-  SMOKE_SPRITE:     './images/smoke.png',
   SIZE_MIN:         100,    
   SIZE_MAX:         170,   
   BASE_SPEED:       500,   // BASE TRAVEL SPEED PX/S
@@ -105,7 +104,7 @@ const SUCTION = {
 
 // ======================= SUCTION PARTICLE =======================
 class SuctionParticle {
-  constructor(smokeSprite, smokeFrameWidth) { // SPAWN JUST OUTSIDE A RANDOM SCREEN EDGE
+  constructor() { // SPAWN JUST OUTSIDE A RANDOM SCREEN EDGE
     const w = window.innerWidth;
     const h = window.innerHeight;
     const edge = Math.floor(Math.random() * 4);
@@ -124,10 +123,7 @@ class SuctionParticle {
     this.speed      = SUCTION.BASE_SPEED + Math.random() * SUCTION.SPEED_VARIANCE;
     this.rotation   = Math.random() * Math.PI * 2; 
     this.rotSpeed   = -(SUCTION.SELF_ROTATE_SPEED + Math.random() * 0.8); // CCW SELF-SPIN (NEGATIVE = COUNTER-CLOCKWISE)
-
-    this.smokeSprite     = smokeSprite;
-    this.smokeFrameWidth = smokeFrameWidth;
-    this.isDead          = false;
+    this.isDead     = false;
   }
 
   update(dt, targetX, targetY) {  // VECTOR FROM PARTICLE TO WORM MOUTH
@@ -165,7 +161,9 @@ class SuctionParticle {
   }
 
   draw(ctx) {
-    if (!this.smokeSprite || this.smokeFrameWidth <= 0) return;
+    const sprite = ImageLoader.get('smoke');
+    if (!sprite) return;
+    const frameWidth = sprite.width / SUCTION.SMOKE_FRAMES;
 
     const progress = 1 - (this.life / this.maxLife); // ENVELOPE: FADE IN → PEAK → FADE OUT /  0=fresh, 1=dead
     let envelope;
@@ -186,10 +184,9 @@ class SuctionParticle {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
 
-    const sx = this.frame * this.smokeFrameWidth;
     ctx.drawImage(
-      this.smokeSprite,
-      sx, 0, this.smokeFrameWidth, this.smokeSprite.height,
+      sprite,
+      this.frame * frameWidth, 0, frameWidth, sprite.height,
       -drawSize / 2, -drawSize / 2, drawSize, drawSize
     );
     ctx.restore();
@@ -199,28 +196,15 @@ class SuctionParticle {
 // ======================= SUCTION PARTICLE SYSTEM =======================
 class SuctionParticleSystem {
   constructor() {
-    this.particles      = [];
-    this.spawnAccum     = 0;    // ACCUMULATOR FOR FRACTIONAL SPAWN
-    this.smokeSprite    = new Image();
-    this.smokeFrameWidth = 0;
-    this.spriteLoaded   = false;
-
-    this.smokeSprite.src = SUCTION.SMOKE_SPRITE;
-    this.smokeSprite.onload = () => {
-      this.spriteLoaded    = true;
-      this.smokeFrameWidth = this.smokeSprite.width / SUCTION.SMOKE_FRAMES;
-      // console.log('✔ Suction smoke sprite loaded');
-    };
-    this.smokeSprite.onerror = () => {
-      console.warn('⚠ Suction smoke sprite not found');
-    };
+    this.particles  = [];
+    this.spawnAccum = 0;    // ACCUMULATOR FOR FRACTIONAL SPAWN
   }
 
   update(dt, isAttacking, targetX, targetY) {  // CALL EVERY FRAME WHILE ATTACK IS ACTIVE - SPAWN NEW PARTICLES ONLY DURING ACTIVE ATTACK LOOP
     if (isAttacking && this.particles.length < SUCTION.MAX_PARTICLES) {
       this.spawnAccum += SUCTION.SPAWN_RATE * dt;
       while (this.spawnAccum >= 1 && this.particles.length < SUCTION.MAX_PARTICLES) {
-        this.particles.push(new SuctionParticle(this.smokeSprite, this.smokeFrameWidth));
+        this.particles.push(new SuctionParticle());
         this.spawnAccum -= 1;
       }
     } else if (!isAttacking) {
@@ -251,8 +235,6 @@ export class WormBoss {
     this.phaseOffset  = Math.random() * Math.PI * 2; // RANDOMISE START POSE
     this.z            = WORM.START_Z;
     this.baseScale    = 0;
-    this.headFrame = WORM.FRAME_HEAD; // USED IN enterRageMode
-    this.headFrameTime = 0;
     this.health       = WORM.HEALTH;
     this.maxHealth    = WORM.HEALTH;
     this.isDead       = false;
@@ -292,7 +274,6 @@ export class WormBoss {
 
     this.isRaging     = false; // RAGE MODE
     this.onRageStart  = null;
-    this.rageBufferTimer = 0;
     this._rageWaitingForHit = false; // TRUE WHEN HP HITS 30% MID-ATTACK — ARMS HIT-TRIGGER
     this._rageOnNextHit     = false; // TRUE WHEN ATTACK ENDS AND RAGE IS STILL PENDING — FIRES ON FIRST PLAYER HIT
     this.freeze = false;
@@ -372,6 +353,11 @@ export class WormBoss {
       initialPopOffset: 80,          //HOW FAR THE HEAD POPS DURING OPENING
       stepPerSegment: WORM.SEGMENT_SPACING * 0.55, // HOW MUCH HEAD ADVANCES PER NEW SEGMENT
       normalFadeCount: 0,   // HOW MANY NORMAL SEGMENTS (FROM TAIL) HAVE STARTED FADING
+      // ── GLITCH EFFECT STATE ──
+      glitchIntensity: 0,   // 0→1 RAMPS UP DURING TRANSFORM, FADES AFTER EMERGENCE
+      glitchTimer:     0,   // ACCUMULATOR FOR SLICE SPAWNING
+      glitchSlices:    [],  // ACTIVE SCANLINE DISPLACEMENT BARS
+      glitchActive:    false,
     };
     // console.log('✔ WormBoss initialized');
   }
@@ -411,7 +397,6 @@ export class WormBoss {
     this._lungePhase         = 'rearBack';
 
     this.isRaging = false;
-    this.rageBufferTimer = 0;
     this._rageWaitingForHit = false;
     this._rageOnNextHit     = false;
 
@@ -437,7 +422,11 @@ export class WormBoss {
       _rt.normalAlphas.fill(1); 
       _rt.drips = []; 
       _rt.emerged = false;
-      _rt.normalFadeCount = 0;           
+      _rt.normalFadeCount = 0;
+      _rt.glitchIntensity = 0;
+      _rt.glitchTimer     = 0;
+      _rt.glitchSlices    = [];
+      _rt.glitchActive    = false;           
       for (let _i = 0; _i < WORM.NUM_SEGMENTS; _i++) {
         _rt.rageSegs[_i].x = WORM.SPAWN_OFFSET_X;
         _rt.rageSegs[_i].y = WORM.SPAWN_OFFSET_Y;
@@ -450,7 +439,6 @@ export class WormBoss {
   applyBlackHoleStun(duration) {
     this.stunTimer = Math.max(this.stunTimer, duration); 
     // console.log(`💜 Worm stunned for ${duration}s by Singularity Bomb`);
-    if (this.onStunned) this.onStunned(duration);
   }
 
   // CALLED BY bossBattle.readyForBattle() WHEN THE RISER ENDS AND BOSS MUSIC STARTS - STARTS THE ATTACK COUNTDOWN SO THE FIRST ATTACK NEVER FIRES DURING THE INTRO
@@ -471,10 +459,6 @@ export class WormBoss {
 }
 
 
-  forceNeutralHead() { 
-    this.headFrame = WORM.FRAME_HEAD;
-    this.headFrameTime = 0;
-  }
   // ======================= INSIDE-OUT RAGE TRANSFORM =======================
     startRageTransform() {
       const rt = this._rageTransform;
@@ -488,7 +472,11 @@ export class WormBoss {
       rt.normalAlphas.fill(1);
       rt.drips  = [];
       rt.emerged = false;
-      rt.normalFadeCount = 0;               
+      rt.normalFadeCount = 0;
+      rt.glitchIntensity = 0;
+      rt.glitchTimer     = 0;
+      rt.glitchSlices    = [];
+      rt.glitchActive    = false;
 
       rt.headAlphaNormal = 1.0;
       rt.headAlphaRage = 0.0;
@@ -543,6 +531,10 @@ export class WormBoss {
     }
     rt.active = false;
     rt.drips  = [];
+    if (rt.glitchActive) {
+      rt.glitchActive = false;
+      this._deactivateGlitchOverlay();
+    }
   }
 
     _updateRageTransform(dt) {
@@ -636,6 +628,51 @@ export class WormBoss {
         if (d.life <= 0) rt.drips.splice(i, 1);
       }
 
+      // ── GLITCH STATE MACHINE ──
+      // ARM: kick off as soon as the freeze drops and the transform is live
+      if (!rt.glitchActive && rt.active && !rt.emerged && !this.freeze) {
+        rt.glitchActive = true;
+        this._activateGlitchOverlay();
+      }
+      if (rt.glitchActive) {
+        if (rt.emerged) {
+          // WIND DOWN after full emergence
+          rt.glitchIntensity = Math.max(0, rt.glitchIntensity - dt * 2.5);
+          if (rt.glitchIntensity <= 0) {
+            rt.glitchActive = false;
+            this._deactivateGlitchOverlay();
+          }
+        } else if (!this.freeze) {
+          // RAMP UP during the inside-out crawl
+          rt.glitchIntensity = Math.min(1, rt.glitchIntensity + dt * 2.2);
+        }
+
+        // SPAWN SCANLINE SLICES — faster / thicker as intensity builds
+        rt.glitchTimer += dt;
+        const spawnRate = 0.045 - rt.glitchIntensity * 0.03; // 45ms → 15ms
+        if (rt.glitchTimer >= spawnRate) {
+          rt.glitchTimer = 0;
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          const glitchColors = ['255,0,80', '0,255,200', '180,0,255', '255,200,0', '0,180,255'];
+          const life = 0.04 + Math.random() * 0.12;
+          rt.glitchSlices.push({
+            y:       Math.random() * h,
+            offsetX: (Math.random() - 0.5) * 90 * rt.glitchIntensity,
+            height:  2 + Math.random() * 16 * rt.glitchIntensity,
+            life,
+            maxLife: life,
+            color:   glitchColors[Math.floor(Math.random() * glitchColors.length)],
+            alpha:   0.12 + Math.random() * 0.28,
+          });
+        }
+        // TICK & CULL slices
+        for (let i = rt.glitchSlices.length - 1; i >= 0; i--) {
+          rt.glitchSlices[i].life -= dt;
+          if (rt.glitchSlices[i].life <= 0) rt.glitchSlices.splice(i, 1);
+        }
+      }
+
       if (rt.emerged) return;
 
       // FADE IN RAGE SEGMENTS 
@@ -699,8 +736,94 @@ export class WormBoss {
 
         rt.active = false;
         rt.drips = [];
+        // glitch fades out naturally via the glitchActive wind-down path above
       }
     }
+
+  // ======================= GLITCH OVERLAY HELPERS =======================
+  _activateGlitchOverlay() {
+    const glitchEl = document.getElementById('glitch-lines');
+    if (glitchEl) glitchEl.style.display = 'block';
+    document.body.classList.add('worm-rage-glitch');
+  }
+
+  _deactivateGlitchOverlay() {
+    const glitchEl = document.getElementById('glitch-lines');
+    if (glitchEl) glitchEl.style.display = 'none';
+    document.body.classList.remove('worm-rage-glitch');
+  }
+
+  // ======================= GLITCH DRAW PASS =======================
+  // Called at the END of draw() while the rage transform is active.
+  // Layered over everything so glitch reads on top of both worm passes.
+  _drawGlitchEffects(ctx) {
+    const rt = this._rageTransform;
+    if (!rt.glitchActive && rt.glitchIntensity <= 0) return;
+
+    const gi = rt.glitchIntensity;
+    const w  = window.innerWidth;
+    const h  = window.innerHeight;
+
+    // ── SCANLINE DISPLACEMENT SLICES ──
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    for (const sl of rt.glitchSlices) {
+      const progress = 1 - sl.life / sl.maxLife;
+      const a = sl.alpha * (1 - progress * 0.65) * gi;
+      if (a < 0.005) continue;
+      ctx.globalAlpha = a;
+      ctx.fillStyle   = `rgb(${sl.color})`;
+      ctx.fillRect(sl.offsetX, sl.y, w, sl.height);
+    }
+    ctx.restore();
+
+    // ── CHROMATIC ABERRATION BURST AROUND HEAD ──
+    const head = this.segments[0];
+    if (head && head.drawSize > 1) {
+      const hx  = head.screenX;
+      const hy  = head.screenY;
+      const sz  = head.drawSize;
+      // jitter shifts slightly each frame for nervous energy
+      const jolt = (Math.random() - 0.5) * 14 * gi;
+      const channels = [
+        { dx:  9 * gi + jolt, dy: -5 * gi, r: 255, g: 0,   b: 60  },
+        { dx: -9 * gi + jolt, dy:  5 * gi, r: 0,   g: 255, b: 200 },
+        { dx:  2 * gi + jolt, dy:  9 * gi, r: 160, g: 0,   b: 255 },
+      ];
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (const ch of channels) {
+        const a = (0.10 + Math.random() * 0.12) * gi;
+        ctx.globalAlpha = a;
+        ctx.fillStyle   = `rgb(${ch.r},${ch.g},${ch.b})`;
+        ctx.beginPath();
+        ctx.arc(hx + ch.dx, hy + ch.dy, sz * 0.49, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ── FULL-SCREEN STROBE FLICKER — rare but violent ──
+    if (Math.random() < 0.07 * gi) {
+      ctx.save();
+      ctx.globalAlpha  = (0.05 + Math.random() * 0.09) * gi;
+      ctx.fillStyle    = Math.random() < 0.5 ? '#ffffff' : '#ff0040';
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+    }
+
+    // ── VERTICAL NOISE BARS — sporadic magenta streaks ──
+    if (Math.random() < 0.18 * gi) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = (0.05 + Math.random() * 0.10) * gi;
+      const barX = Math.random() * w;
+      const barW = 1.5 + Math.random() * 5;
+      ctx.fillStyle = '#ff22ff';
+      ctx.fillRect(barX, 0, barW, h);
+      ctx.restore();
+    }
+  }
 
   enterRageMode() {
     this.isRaging = true;
@@ -1405,6 +1528,9 @@ export class WormBoss {
         }
       }
     }
+
+    // ── RAGE TRANSFORM GLITCH PASS (on top of everything) ──
+    this._drawGlitchEffects(ctx);
 
     ctx.restore();
   }
