@@ -1,4 +1,4 @@
-// Updated 4/6/26 @ 6PM
+// Updated 4/7/26 @ 11PM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -31,7 +31,7 @@ const WORM = {
   TRANSITION_DURATION: 0.25, 
   FRAME_ATTACK_START:   3, // FOR SUCTION ATTACK
   FRAME_ATTACK_END:     8, // 0-INDEXED: FRAME 9 = INDEX 8 / END FRAMES FOR SUCTION ATTACK
-  ATTACK_HEAD_SCALE:  0.85, // SCALE MULTIPLIER FOR HEAD DURING ATTACK FRAMES (4-9) — COMPENSATES FOR OVERSIZED SPRITE
+  ATTACK_HEAD_SCALE:  0.9, // SCALE MULTIPLIER FOR HEAD DURING ATTACK FRAMES (4-9) — COMPENSATES FOR OVERSIZED SPRITE
   DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
   ATTACK_INTERVAL_MIN: 1,  // AI — MINIMUM SECONDS BETWEEN ATTACKS
   ATTACK_INTERVAL_MAX: 2, // AI — MAXIMUM SECONDS BETWEEN ATTACKS
@@ -256,6 +256,7 @@ export class WormBoss {
     this._babySpitTimer  = 0;          // COUNTDOWN — MOUTH OPEN BRIEFLY WHEN WORMS ARE EXPELLED
     this._attacksEnabled = false;      // GATED UNTIL readyForBattle() — PREVENTS ATTACKS DURING RISER
     this._attacksLocked = false;       // HARD LOCK
+    this._mouthSnapped = false; 
     this._cellularSpawnFired = false;  // ENSURES onSpawnCellular FIRES EXACTLY ONCE PER ATTACK
     this._cellularSpitTimer  = 0;      // TRACKS TIME SINCE CELLULAR LOOP STARTED (FOR SPIT ANIMATION)
 
@@ -394,6 +395,7 @@ export class WormBoss {
     this._cellularSpitTimer  = 0;
     this._lungeGrowlFired    = false;
     this._lungeSnapFired     = false;
+    this._mouthSnapped       = false;
     this._lungePhase         = 'rearBack';
 
     this.isRaging = false;
@@ -535,6 +537,8 @@ export class WormBoss {
       rt.glitchActive = false;
       this._deactivateGlitchOverlay();
     }
+    rt.glitchIntensity = 0;  
+    rt.glitchSlices    = [];  
   }
 
     _updateRageTransform(dt) {
@@ -570,6 +574,7 @@ export class WormBoss {
           const fadeStart = 0.8;
           const fadeProgress = (overallProgress - fadeStart) / (1 - fadeStart);
           rt.headAlphaNormal = Math.max(0, 1 - fadeProgress * 1.8);
+          rt.normalFadeCount = n; // FADE ALL REMAINING BODY SEGMENTS TOGETHER WITH THE HEAD
         } else {
           rt.headAlphaNormal = 1.0;
         }
@@ -709,7 +714,7 @@ export class WormBoss {
         }
       }
 
-      // COMPLETION CHECK — FULL HAND-OFF
+// COMPLETION CHECK — FULL HAND-OFF
       if (rt.segCount >= n && rt.normalAlphas[0] <= 0 && !rt.emerged) {
         rt.emerged = true;
         rt.rageAlphas.fill(1);
@@ -727,6 +732,11 @@ export class WormBoss {
 
         rt.active = false;
         rt.drips = [];
+        // ── SHUT DOWN GLITCH ──
+        rt.glitchActive    = false;
+        rt.glitchIntensity = 0;
+        rt.glitchSlices    = [];
+        this._deactivateGlitchOverlay();
       }
     }
 
@@ -828,12 +838,19 @@ export class WormBoss {
     this._lungeGrowlFired    = false;
     this._lungeSnapFired     = false;
     this.isSuctionActive = true; 
+    this._mouthSnapped = false;
   }
 
   stopSuctionAttack() {
     this.isSuctionActive = false;
     this.isAttacking = false;
     this.attackType = null;
+  }
+
+    // CALLED BY bossBattle.startEatenDeathSequence() — FREEZES MOUTH CLOSED FOR THE CRUNCH BEAT
+  snapMouthShut() {
+    this._mouthSnapped = true;
+    this.attackFrame   = WORM.FRAME_HEAD; // INDEX 0 — MOUTH CLOSED
   }
 
   // ======================= BLACK HOLE ORBIT API - CALLED EACH FRAME WHILE BLACK HOLE IS ACTIVE =======================
@@ -914,15 +931,24 @@ export class WormBoss {
 
       // UPDATE SCREEN POSITIONS cx / cy CACHED AT TOP OF update()
       const bs = this.baseScale;
+
       for (let i = 0; i < WORM.NUM_SEGMENTS; i++) {
         const seg = this.segments[i];
-        if (seg.isDead) { seg.rippleX = 0; seg.rippleY = 0; continue; }
         const taper  = i / (WORM.NUM_SEGMENTS - 1);
         const aScale = 1.0 - taper * (1.0 - WORM.TAIL_SIZE_RATIO);
+        const scale  = bs * aScale;
+
         seg.screenX  = cx + seg.x * bs;
         seg.screenY  = cy + seg.y * bs;
-        seg.drawSize  = WORM.BASE_SIZE * bs * aScale;
+
+        const attackScale = (i === 0 && this.attackPhase === 'loop' && this.attackType === 'suction')
+          ? WORM.ATTACK_HEAD_SCALE
+          : 1.0;
+
+        seg.drawSize  = WORM.BASE_SIZE * scale * attackScale;
         seg.hitRadius = seg.drawSize * 0.45;
+
+
 
         if (seg.flashTimer <= 0) seg.flashTimer = 0.05 + Math.random() * 0.04;  // RAPID CONTINUOUS FLASH
         else seg.flashTimer -= dt;
@@ -1037,13 +1063,15 @@ export class WormBoss {
 }
 
         if (this.attackType === 'suction') {
-          this.attackFrameTime += dt;
-          const frameDur = 1 / WORM.ATTACK_FPS;
-          if (this.attackFrameTime >= frameDur) {
-            this.attackFrameTime -= frameDur;
-            this.attackFrame++;
-            if (this.attackFrame > WORM.FRAME_ATTACK_END) {
-              this.attackFrame = WORM.FRAME_ATTACK_START;
+          if (!this._mouthSnapped) {  // FREEZE FRAME DURING EATEN-DEATH SNAP
+            this.attackFrameTime += dt;
+            const frameDur = 1 / WORM.ATTACK_FPS;
+            if (this.attackFrameTime >= frameDur) {
+              this.attackFrameTime -= frameDur;
+              this.attackFrame++;
+              if (this.attackFrame > WORM.FRAME_ATTACK_END) {
+                this.attackFrame = WORM.FRAME_ATTACK_START;
+              }
             }
           }
           if (this.attackProgress >= WORM.ATTACK_DURATION) {
@@ -1282,7 +1310,9 @@ export class WormBoss {
 
     // PRE-COMPUTE ATTACK HEAD FRAME — SHARED BY BOTH DRAW PASSES
     let headFrame;
-    if (this.attackPhase === 'loop') {
+      if (this._mouthSnapped) {
+        headFrame = WORM.FRAME_HEAD; // MOUTH CLAMPED SHUT — EATEN-DEATH SNAP
+      } else if (this.attackPhase === 'loop') {
       if (this.attackType === 'cellular') {
         headFrame = (this._cellularSpitTimer < WORM.CELLULAR_SPIT_DURATION)
           ? this.attackFrame : WORM.FRAME_HEAD;

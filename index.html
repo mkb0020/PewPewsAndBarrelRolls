@@ -86,16 +86,124 @@
       <button class="menu-btn gameplay" data-mode="gameplay">
         <span class="btn-label">&#9654; &nbsp; PLAY</span>
       </button>
+      <button class="menu-btn howto" id="howto-btn">
+        <span class="btn-label">** NOTES FOR TESTERS **</span>
+      </button>
       <button class="menu-btn boss" data-mode="bossBattle">
         <span class="btn-label">&#9760; &nbsp; to the worm! </span>
       </button>
       <!-- DEV ONLY — TENTACLE PARAMETER TUNING SANDBOX -->
-      <!--<button class="menu-btn dev-lab" data-mode="tentacleLab">
+      <button class="menu-btn dev-lab" data-mode="tentacleLab">
         <span class="btn-label">🐙 &nbsp; tentacle lab</span>
-      </button>-->
+      </button>
     </div>
 
     <div class="menu-footer">© Wormholes All The Way Down</div>
+
+    <!--<div id="howto-modal" class="howto-modal">
+    <div class="howto-modal-content">
+      <div class="howto-modal-header">
+        <h2>📖 HOW TO PLAY</h2>
+        <button class="howto-close" id="howto-close">&times;</button>
+      </div>
+      <div class="howto-modal-body">
+        <p><strong>Wormholes All The Way Down</strong> is a fast‑paced arcade shooter inspired by <em>Starfox 64</em>.  
+        Fly your spacecraft through a collapsing wormhole, fight alien waves, and avoid strange anomalies.  
+        Survive <strong>5 enemy waves</strong> – each with new attack patterns – then face the <strong>giant wormhole worm boss</strong>.</p>
+
+        <div class="controls-grid">
+          <div class="control-col">
+            <h3>🖥️ DESKTOP</h3>
+            <ul>
+              <li><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> – Move</li>
+              <li><kbd>SPACE</kbd> – Lasers</li>
+              <li><kbd>Q</kbd> / <kbd>E</kbd> – Barrel roll</li>
+              <li><kbd>Right Shift</kbd> – Speed boost</li>
+              <li><kbd>F</kbd> – Singularity Bomb</li>
+            </ul>
+          </div>
+          <div class="control-col">
+            <h3>📱 MOBILE</h3>
+            <ul>
+              <li>🕹️ Joystick – Move</li>
+              <li><kbd>A</kbd> – Lasers</li>
+              <li><kbd>B</kbd> – Barrel roll</li>
+              <li><kbd>X</kbd> – Speed boost</li>
+              <li><kbd>Y</kbd> – Singularity Bomb</li>
+            </ul>
+          </div>
+        </div>
+        <p class="modal-tip">💡 Tip: Use barrel rolls to deflect small projectiles!</p>
+      </div>
+    </div>
+    </div>-->
+
+    <div id="howto-modal" class="howto-modal"> <!-- TEMPORARY FOR PLAYTESTERS-->
+    <div class="howto-modal-content">
+      <div class="howto-modal-header">
+        <h2>NOTES FOR TESTING</h2>
+        <button class="howto-close" id="howto-close">&times;</button>
+      </div>
+      <div class="howto-modal-body">
+        <p><strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.3rem">Thanks for testing!</strong></p>
+        <p>Shoot me an email with any feedback @ <strong style="color: #00FFFF; font-family: 'SpaceLetters';">MK.BARRIAULT@outlook.com</strong></p>
+
+        <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.2rem">Specific Feedback I'm looking for:</strong></p>
+          <ul style="font-family: arial">
+            <li>What device did you use? Mobile, PC/Desktop, Mac, etc (if mobile, which phone?)</li>
+            <li>If you used a Mac, did it work? (I've only tested on a windows machine)</li>
+            <li>Are controls intuitive?</li>
+            <li>Did you beat it?</li>
+            <li>Is it too hard, too easy, or a decent balance of challenging but beat-able?</li>
+            <li>Did you notice any lagging?  If so, where? (Some visual elements are fairly heavy on the GPU) </li>
+          </ul>
+
+        <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">Optional:</strong> Collect data that will be super helpful for balancing stats!</p>
+          <ul style="font-family: arial">
+            <li>After the opening scene - press the backtick key (`)</li>
+            <li>A little panel will open on the right (pictured below)</li>
+            <li>Hit "Start" under "Session Recorder" and press the backtick again</li>
+            <li>Continue playing  </li>
+            <li>Once you're done, hit the backtick one more time </li>
+            <li>Click "Stop + Export" - This will download a .json file </li>
+            <li>Email the file to MK.BARRIAULT@outlook.com</li>
+          </ul>
+          <p><img src="./images/sessionRecorder.png" class="recorder-img"></p>
+        <p> <strong style="color: #00FFFF; font-family: 'SpaceLetters'; font-size: 1.2rem">Controls</strong></p>
+        <div class="controls-grid">
+          <div class="control-col">
+            <h3>🖥️ DESKTOP</h3>
+            <ul>
+              <li><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> – Move</li>
+              <li><kbd>SPACE</kbd> – Lasers</li>
+              <li><kbd>Q</kbd> / <kbd>E</kbd> – Barrel roll</li>
+              <li><kbd>Right Shift</kbd> – Speed boost</li>
+              <li><kbd>F</kbd> – Singularity Bomb</li>
+            </ul>
+          </div>
+          <div class="control-col">
+            <h3>📱 MOBILE</h3>
+            <ul>
+              <li>🕹️ Joystick – Move</li>
+              <li><kbd>A</kbd> – Lasers</li>
+              <li><kbd>B</kbd> – Barrel roll</li>
+              <li><kbd>X</kbd> – Speed boost</li>
+              <li><kbd>Y</kbd> – Singularity Bomb</li>
+            </ul>
+          </div>
+        </div>
+
+          <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">This version is the development version so there are a couple extra features that you can check out:</strong></p>
+          <ul style="font-family: arial">
+            <li>In the Session Recorder Panel, there's also a <strong>"Playtest Bot"</strong> - if you click "Toggle Bot", a bot will start playing.  He's actually pretty good and kinda fun to watch</li>
+            <li>The <strong>"TO THE WORM"</strong> button takes you straight to the final boss battle </li>
+            <li><strong>"Tentacle Lab"</strong> is a fun little sandbox - A few of the enemies have proceedurally created tentacles.  I used the lab to figure out the physics and aesthetic for each of the tentacle-based creatures.  It's fun to move the sliders to extreme values and watch the tentacles go crazy.  I ended up using this concept for another game that's in super early development, <a href="https://mkb0020.itch.io/tentacles" style="color: #58E84C">Tentacles</a>.  Feel free to check it out!  PW is "HunterBiden"</li>
+
+          </ul>
+      </div>
+    </div>
+    </div>
+
   </div>
 
 

@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 4am
+// Updated 4/7/26 @ 11PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -319,8 +319,17 @@ function wireShipOnDeath() { // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WI
     const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
 
     if (livesLeft <= 0 && inWormBattle) { // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
-      babyWormManager.clear(); // CLEAR BABY WORMS BEFORE VORTEX BEGINS SO THEY DON'T LATCH ON POST-RESET
+      babyWormManager.clear();
       bossBattleScene.startWormholeGameOver(ship);
+      return;
+    }
+
+    // SUCTION KILL WITH LIVES LEFT — SPIRAL INTO MOUTH, SNAP SHUT, THEN "YOU DIED"
+    if (inWormBattle && bossBattleScene.isSuctionActive) {
+      babyWormManager.clear();
+      bossBattleScene.startEatenDeathSequence(ship, () => {
+        transitionScene.handleDeath(livesLeft, inWormBattle);
+      });
       return;
     }
 
@@ -335,14 +344,13 @@ function wireShipOnDeath() { // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WI
       ocularPrism.active = false;
       ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
       ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
-      fractalCascade.reset(); // CANCEL ANY ACTIVE FRACTAL CASCADE
+      fractalCascade.reset();
     }
 
     transitionScene.handleDeath(livesLeft, inWormBattle);
   };
 }
-wireShipOnDeath(); // INITIAL WIRE-UP
-
+wireShipOnDeath();
 // ==================== HUD HELPERS ====================
 function updateHPBar(hp, maxHP) {
   const pct   = Math.max(0, (hp / maxHP) * 100);

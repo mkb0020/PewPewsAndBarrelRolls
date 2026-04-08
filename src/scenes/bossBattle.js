@@ -1,4 +1,4 @@
-// Updated 3/26/26 @ 5PM
+// Updated 4/7/26 @ 11PM
 // bossBattle.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -119,6 +119,7 @@ export class BossBattleScene {
 
     //  WORMHOLE GAME OVER STATE
     this._wormholeActive = false;
+    this._eatenSequenceActive = false;
     this._vortex         = null;
 
     this._larvaSystem = new LarvaSystem();
@@ -272,6 +273,7 @@ export class BossBattleScene {
     this._warningSounded    = false;
     this._battleReady       = false;
     this._wormholeActive    = false;
+    this._eatenSequenceActive = false;
     this._vortex            = null;
     this._distortTimer      = 0;
     this.rageStarted        = false;
@@ -295,58 +297,83 @@ export class BossBattleScene {
     // console.log('⚔ Battle ready — boss damage unlocked');
   }
 
-  /**
-   * BOSS GAME OVER SEQUENCE — SWALLOWS THE SHIP THEN PLAYS THE VORTEX.
-   * CALLED FROM main.js INSTEAD OF transitionScene.handleDeath() WHEN
-   * livesLeft === 0 AND THE PLAYER IS IN THE BOSS BATTLE.
-   * WORKS REGARDLESS OF WHICH ATTACK IS CURRENTLY ACTIVE.
-   */
-  startWormholeGameOver(ship) {
-    if (this._wormholeActive) return;
-    this._wormholeActive = true;
+    /**
+     * BOSS GAME OVER SEQUENCE — SWALLOWS THE SHIP THEN PLAYS THE VORTEX.
+     * CALLED FROM main.js INSTEAD OF transitionScene.handleDeath() WHEN
+     * livesLeft === 0 AND THE PLAYER IS IN THE BOSS BATTLE.
+     * WORKS REGARDLESS OF WHICH ATTACK IS CURRENTLY ACTIVE.
+     */
+    startWormholeGameOver(ship) {
+      if (this._wormholeActive) return;
+      this._wormholeActive = true;
 
-    this.audio.stopMusic();
-    this.audio.playGameOver2();
-    if (this.singularityBombManager) this.singularityBombManager.deployEnabled = false;
+      this.audio.stopMusic();
+      this.audio.playGameOver2();
+      if (this.singularityBombManager) this.singularityBombManager.deployEnabled = false;
 
-    // HARD-CLEAR CELLULAR DISTORT — PREVENTS REVERSED CONTROLS, INVERTED SHIP COLORS,
-    // AND MAGENTA TRACERS FROM CARRYING OVER INTO THE WORMHOLE VORTEX SCENE
-    ship._cellularDistortActive = false;
-    this._distortTimer          = 0;
-    this.cellularAttack.reset();
+      // HARD-CLEAR CELLULAR DISTORT — PREVENTS REVERSED CONTROLS, INVERTED SHIP COLORS,
+      // AND MAGENTA TRACERS FROM CARRYING OVER INTO THE WORMHOLE VORTEX SCENE
+      ship._cellularDistortActive = false;
+      this._distortTimer          = 0;
+      this.cellularAttack.reset();
 
-    this.wormBoss.forceSuction(); // FORCE WORM INTO SUCTION VISUALS
+      this.wormBoss.forceSuction(); // FORCE WORM INTO SUCTION VISUALS
 
-    ship.onDeath = null;  // NULL OUT onDeath SO THE CONSUMED ANIMATION DOESN'T RE-TRIGGER THE DEATH FLOW
+      ship.onDeath = null;  // NULL OUT onDeath SO THE CONSUMED ANIMATION DOESN'T RE-TRIGGER THE DEATH FLOW
 
-    // REVIVE SHIP JUST LONG ENOUGH TO PLAY THE CONSUMED ANIMATION
-    ship.isAlive             = true;
-    ship.isInvincible        = true;
-    ship.invincibilityTimer  = 9999;
-    ship.hp                  = 1;
-    ship.consumedMode        = false;
-    ship._consumedDeathFired = false;
-    ship.suctionScale        = Math.max(ship.suctionScale, 0.7); // ENSURE VISIBLE PULL-IN
+      // REVIVE SHIP JUST LONG ENOUGH TO PLAY THE CONSUMED ANIMATION
+      ship.isAlive             = true;
+      ship.isInvincible        = true;
+      ship.invincibilityTimer  = 9999;
+      ship.hp                  = 1;
+      ship.consumedMode        = false;
+      ship._consumedDeathFired = false;
+      ship.suctionScale        = Math.max(ship.suctionScale, 0.7); // ENSURE VISIBLE PULL-IN
 
-    ship.onConsumedComplete = () => { // WHEN CONSUMED ANIMATION COMPLETES → LAUNCH VORTEX
-      ship.onConsumedComplete  = null;
-      this.wormBoss.isActive   = false;  // SHIP IS IN THE MOUTH — WORM GONE BEFORE VORTEX BEGINS
-      import('../visuals/wormholeVortex.js').then(({ WormholeVortex }) => {
-        this._vortex            = new WormholeVortex();
-        this._vortex.onComplete = () => {
-          this._vortex         = null;
-          this._wormholeActive = false;
-          this.onWormholeGameOver?.();
-        };
-        const shipSprite = ImageLoader.get('ship');
-        this._vortex.start(shipSprite);
-      });
-    };
+      ship.onConsumedComplete = () => { // WHEN CONSUMED ANIMATION COMPLETES → LAUNCH VORTEX
+        ship.onConsumedComplete  = null;
+        this.wormBoss.isActive   = false;  // SHIP IS IN THE MOUTH — WORM GONE BEFORE VORTEX BEGINS
+        import('../visuals/wormholeVortex.js').then(({ WormholeVortex }) => {
+          this._vortex            = new WormholeVortex();
+          this._vortex.onComplete = () => {
+            this._vortex         = null;
+            this._wormholeActive = false;
+            this.onWormholeGameOver?.();
+          };
+          const shipSprite = ImageLoader.get('ship');
+          this._vortex.start(shipSprite);
+        });
+      };
 
-    // SEND SHIP SPIRALING INTO THE WORM'S MOUTH
-    const head = this.wormBoss.getHeadPosition();
-    ship.enterConsumed(head.x, head.y);
-  }
+      // SEND SHIP SPIRALING INTO THE WORM'S MOUTH
+      const head = this.wormBoss.getHeadPosition();
+      ship.enterConsumed(head.x, head.y);
+    }
+
+ startEatenDeathSequence(ship, onComplete) {
+      if (this._eatenSequenceActive) return;
+      this._eatenSequenceActive = true;
+
+      ship.onDeath     = null;
+      ship.consumedMode = true; // PREVENT _updateSuction FROM APPLYING FURTHER PULL
+
+      // SHIP IS ALREADY SPIRALED IN AND TINY AT THE MOUTH — SKIP enterConsumed,
+      // WHICH REQUIRES TRAVEL DISTANCE TO COMPLETE. JUST SNAP AND CUT.
+      // BRIEF BEAT SO THE TINY SHIP IS VISIBLE AT THE MOUTH BEFORE THE CHOMP
+      setTimeout(() => {
+        this.wormBoss.snapMouthShut();
+        this.audio.playWormSnap();
+
+        // END THE SUCTION ATTACK SO THE WORM DOESN'T KEEP LOOPING IT
+        this.wormBoss.stopSuctionAttack();
+
+        setTimeout(() => {
+          this._eatenSequenceActive   = false;
+          this.wormBoss._mouthSnapped = false; // UNFREEZE FOR NEXT ATTACK CYCLE
+          onComplete();
+        }, 500);
+      }, 200);
+    }
 
   //  GETTERS 
   get isSuctionActive() {
@@ -514,6 +541,7 @@ enterRageSequence() {
 
   // BAR 4 / THE DROP (10.667s = 4 bars @ 90BPM) — TRANSFORMATION COMPLETE, SUCTION ATTACK FIRES
   setTimeout(() => {
+      this.ship.setRageSuction(false);      // CLEAR RAGE INVINCIBILITY — SHIP CAN NOW DIE FROM SUCTION
       this.wormBoss.startSuctionAttack();   // FORCE FIRST POST-RAGE ATTACK
       this.wormBoss.enableAllAttacks();     // IMMEDIATELY UNLOCK AI AFTER
       this.ship.canShoot = true;

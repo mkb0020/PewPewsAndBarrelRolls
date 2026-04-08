@@ -1,4 +1,4 @@
-// menu.js
+// Updated 4/7/26 @ 11PM// menu.js
 import { setMobileMode } from '../utils/controls.js';
 
 const DEV_MODE = true;
@@ -21,13 +21,16 @@ export class Menu {
     this._atmosBuffer  = null;
     this._atmosRawProm = null;
 
+    this._howtoModal   = null;
+    this._howtoCloseBtn = null;
+
     if (DEV_MODE) this._overlay?.classList.add('dev-mode');
   }
 
   // ======================= PUBLIC: SHOW =======================
   show(starfield, onStart) {
     this._starfield = starfield;
-    this._onStart   = onStart ?? null; // CALLED SYNCHRONOUSLY INSIDE THE GAME MODE CLICK — WHILE STILL IN USER GESTURE
+    this._onStart   = onStart ?? null;
 
     if (!this._overlay) {
       console.error('[Menu] #menu-overlay not found in DOM');
@@ -72,8 +75,6 @@ export class Menu {
   _onPhotoAck() {
     if (!this._photoScreen?.classList.contains('visible')) return;
 
-    // START ATMOSPHERE HERE — THIS IS THE FIRST USER GESTURE, EARLIER THAN DEVICE SELECT.
-    // THE CLICK UNLOCKS THE AudioContext SO WE KICK OFF THE FADE-IN IMMEDIATELY.
     this._startAtmosphere();
 
     this._photoScreen.classList.remove('visible');
@@ -93,10 +94,10 @@ export class Menu {
       return;
     }
 
-    this._deviceScreen.classList.remove('visible', 'exit'); // RESET STATE IN CASE show() IS CALLED MORE THAN ONCE (E.G. AFTER RESTART)
+    this._deviceScreen.classList.remove('visible', 'exit');
     this._deviceScreen.style.display = '';
 
-    this._deviceScreen.querySelector('#device-btn-desktop') // { once: true } — CLEANS UP LISTENERS AUTOMATICALLY AFTER FIRST CLICK
+    this._deviceScreen.querySelector('#device-btn-desktop')
       ?.addEventListener('click', () => this._onDeviceSelect(false), { once: true });
     this._deviceScreen.querySelector('#device-btn-mobile')
       ?.addEventListener('click', () => this._onDeviceSelect(true),  { once: true });
@@ -105,8 +106,6 @@ export class Menu {
   _onDeviceSelect(mobile) {
     if (!this._deviceScreen?.classList.contains('visible')) return;
     setMobileMode(mobile);
-    // NOTE: _startAtmosphere() HAS ALREADY BEEN CALLED FROM _onPhotoAck() —
-    // NO NEED TO CALL IT AGAIN HERE.
 
     const blackout = this._overlay?.querySelector('#menu-blackout');
     if (blackout) blackout.classList.add('fade-out');
@@ -134,11 +133,53 @@ export class Menu {
       btn.addEventListener('click', () => this._select(btn.dataset.mode));
     });
 
+    const howtoBtn = this._overlay?.querySelector('#howto-btn');
+    if (howtoBtn) {
+      howtoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._openHowToModal();
+      });
+    }
+
+    this._howtoModal = this._overlay?.querySelector('#howto-modal');
+    this._howtoCloseBtn = this._overlay?.querySelector('#howto-close');
+
+    if (this._howtoCloseBtn) {
+      this._howtoCloseBtn.addEventListener('click', () => this._closeHowToModal());
+    }
+
+    if (this._howtoModal) {
+      this._howtoModal.addEventListener('click', (e) => {
+        if (e.target === this._howtoModal) this._closeHowToModal();
+      });
+    }
+
+    const escHandler = (e) => {
+      if (e.key === 'Escape' && this._howtoModal?.classList.contains('open')) {
+        this._closeHowToModal();
+      }
+    };
+    window.addEventListener('keydown', escHandler);
+    this._escHandler = escHandler;
+
     this._onKey = (e) => {
       if (e.code === 'Digit1') this._select('gameplay');
       if (e.code === 'Digit2') this._select('bossBattle');
     };
     window.addEventListener('keydown', this._onKey);
+  }
+
+  // ======================= HOW TO PLAY MODAL =======================
+  _openHowToModal() {
+    if (this._howtoModal) {
+      this._howtoModal.classList.add('open');
+    }
+  }
+
+  _closeHowToModal() {
+    if (this._howtoModal) {
+      this._howtoModal.classList.remove('open');
+    }
   }
 
   // ======================= GAME MODE SELECTED =======================
@@ -148,15 +189,16 @@ export class Menu {
 
     if (this._onStart) { this._onStart(); this._onStart = null; }
 
-    this._stopAtmosphere(); // FADES OUT, THEN CLOSES THE CONTEXT
+    this._closeHowToModal();
+
+    this._stopAtmosphere();
 
     this._overlay?.classList.remove('visible');
     window.removeEventListener('keydown', this._onKey);
+    if (this._escHandler) window.removeEventListener('keydown', this._escHandler);
 
-    // KEEP STARFIELD RAF RUNNING THROUGH THE MENU'S EXIT FADE
-    // SO THERE'S NO GAP BEFORE THE OPENING SCENE TAKES OVER
     setTimeout(() => {
-      cancelAnimationFrame(this._rafId); // OPENING SCENE WILL START ITS OWN LOOP NOW
+      cancelAnimationFrame(this._rafId);
       this._overlay?.classList.add('hidden');
       this._resolve({ mode, enemyCount });
     }, 650);
@@ -182,16 +224,15 @@ export class Menu {
 
       const source    = this._atmosContext.createBufferSource();
       source.buffer   = this._atmosBuffer;
-      source.loop     = true; // SAMPLE-ACCURATE GAPLESS LOOP
+      source.loop     = true;
 
       const gain      = this._atmosContext.createGain();
-      gain.gain.value = 0; // START SILENT — FADE IN BELOW
+      gain.gain.value = 0;
 
       source.connect(gain);
       gain.connect(this._atmosContext.destination);
       source.start(0);
 
-      // FADE IN TO TARGET VOLUME OVER ~1.5s
       const TARGET_VOLUME = 0.6;
       const FADE_IN_SEC   = 1.5;
       gain.gain.setValueAtTime(0, this._atmosContext.currentTime);
@@ -212,8 +253,6 @@ export class Menu {
   }
 
   _stopAtmosphere() {
-    // FADE OUT OVER ~0.8s, THEN CLOSE THE CONTEXT SO IT DOESN'T LINGER.
-    // GAME AUDIO CREATES ITS OWN AudioContext SEPARATELY.
     if (this._atmosGain && this._atmosContext) {
       const FADE_OUT_SEC = 0.8;
       this._atmosGain.gain.setTargetAtTime(0, this._atmosContext.currentTime, FADE_OUT_SEC / 3);
@@ -225,9 +264,8 @@ export class Menu {
           this._atmosBuffer  = null;
         }
         console.log('♫ Menu atmosphere stopped (fade-out complete)');
-      }, FADE_OUT_SEC * 1000 + 200); // SMALL BUFFER AFTER FADE COMPLETES
+      }, FADE_OUT_SEC * 1000 + 200);
     } else {
-      // CONTEXT EXISTS BUT GAIN NODE DOESN'T (E.G. STILL LOADING) — CLOSE IMMEDIATELY
       this._stopAtmosphereSource();
       if (this._atmosContext) {
         this._atmosContext.close().catch(() => {});
@@ -241,7 +279,6 @@ export class Menu {
   _animateStarfield() {
     const cockpit = this._cockpitImg;
 
-    // FADE IN COCKPIT OVER ~1s WHILE MENU OPENS
     const FADE_MS = 1000;
     const fadeStart = performance.now();
     const fadeTick = (now) => {
@@ -260,14 +297,12 @@ export class Menu {
       this._rafId = requestAnimationFrame(tick);
       const dt = Math.min((now - this._lastTime) / 1000, 0.05);
       this._lastTime = now;
-      this._starfield.opacity = Math.min(this._starfield.opacity + dt * 1.2, 1); // MATCHES ~1s FADE
+      this._starfield.opacity = Math.min(this._starfield.opacity + dt * 1.2, 1);
       this._starfield.update(dt);
       this._starfield.render();
     };
     this._rafId = requestAnimationFrame(tick);
   }
-
-  // ======================= TUNNEL ANIMATION =======================
 
 
   hide() {

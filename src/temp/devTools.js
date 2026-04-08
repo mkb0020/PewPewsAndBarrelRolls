@@ -213,28 +213,28 @@ export const DevTools = {
     panel.appendChild(recorderSection);
 
     // BALANCE SLIDERS
-    const buildHeading = (text) => {
-      const h = document.createElement('div');
-      h.textContent = text;
-      h.style.fontWeight = '600';
-      h.style.margin = '10px 0 6px 0';
-      return h;
-    };
+    //const buildHeading = (text) => {
+     // const h = document.createElement('div');
+    //  h.textContent = text;
+    //  h.style.fontWeight = '600';
+    //  h.style.margin = '10px 0 6px 0';
+    //  return h;
+    //};
 
-    panel.appendChild(buildHeading('Balance Tuning'));
+    //panel.appendChild(buildHeading('Balance Tuning'));
 
-    this.addSlider(panel, 'SHIP HP', CONFIG.SHIP_HP, 'MAX_HP', 20, 300, 1);
-    this.addSlider(panel, 'ENEMY SPAWN MIN', CONFIG.ENEMIES, 'SPAWN_INTERVAL_MIN', 0.5, 10, 0.1);
-    this.addSlider(panel, 'ENEMY SPAWN MAX', CONFIG.ENEMIES, 'SPAWN_INTERVAL_MAX', 0.5, 12, 0.1);
-    this.addSlider(panel, 'GLIP GLOP HP', CONFIG.ENEMIES.TYPES.BASIC, 'HEALTH', 1, 30, 1);
-    this.addSlider(panel, 'PHIL HP', CONFIG.ENEMIES.TYPES.FAST, 'HEALTH', 1, 30, 1);
-    this.addSlider(panel, 'GLORK HP', CONFIG.ENEMIES.TYPES.TANK, 'HEALTH', 1, 40, 1);
-    this.addSlider(panel, 'ZIP ZAP HP', CONFIG.ENEMIES.TYPES.ZIGZAG, 'HEALTH', 1, 30, 1);
-    this.addSlider(panel, 'FLIM FLAM HP', CONFIG.ENEMIES.TYPES.FLIMFLAM, 'HEALTH', 1, 40, 1);
-    this.addSlider(panel, 'WAVE WORM HP', CONFIG.WAVE_WORM, 'HEALTH', 1, 80, 1);
-    this.addSlider(panel, 'COSMIC PRISMS', CONFIG.COSMIC_PRISM, 'SPAWN_INTERVAL', 5, 90, 1);
-    this.addSlider(panel, 'TESSERACT FRAGMENTS', CONFIG.TESSERACT_FRAGMENT, 'SPAWN_INTERVAL', 5, 90, 1);
-    this.addSlider(panel, 'SPINORS', CONFIG.SINGULARITY_BOMB, 'SPAWN_INTERVAL', 10, 120, 1);
+   // this.addSlider(panel, 'SHIP HP', CONFIG.SHIP_HP, 'MAX_HP', 20, 300, 1);
+   // this.addSlider(panel, 'ENEMY SPAWN MIN', CONFIG.ENEMIES, 'SPAWN_INTERVAL_MIN', 0.5, 10, 0.1);
+   // this.addSlider(panel, 'ENEMY SPAWN MAX', CONFIG.ENEMIES, 'SPAWN_INTERVAL_MAX', 0.5, 12, 0.1);
+   // this.addSlider(panel, 'GLIP GLOP HP', CONFIG.ENEMIES.TYPES.BASIC, 'HEALTH', 1, 30, 1);
+   // this.addSlider(panel, 'PHIL HP', CONFIG.ENEMIES.TYPES.FAST, 'HEALTH', 1, 30, 1);
+   // this.addSlider(panel, 'GLORK HP', CONFIG.ENEMIES.TYPES.TANK, 'HEALTH', 1, 40, 1);
+   // this.addSlider(panel, 'ZIP ZAP HP', CONFIG.ENEMIES.TYPES.ZIGZAG, 'HEALTH', 1, 30, 1);
+   // this.addSlider(panel, 'FLIM FLAM HP', CONFIG.ENEMIES.TYPES.FLIMFLAM, 'HEALTH', 1, 40, 1);
+   // this.addSlider(panel, 'WAVE WORM HP', CONFIG.WAVE_WORM, 'HEALTH', 1, 80, 1);
+   // this.addSlider(panel, 'COSMIC PRISMS', CONFIG.COSMIC_PRISM, 'SPAWN_INTERVAL', 5, 90, 1);
+    //this.addSlider(panel, 'TESSERACT FRAGMENTS', CONFIG.TESSERACT_FRAGMENT, 'SPAWN_INTERVAL', 5, 90, 1);
+   // this.addSlider(panel, 'SPINORS', CONFIG.SINGULARITY_BOMB, 'SPAWN_INTERVAL', 10, 120, 1);
 
     document.body.appendChild(panel);
     this.panel = panel;

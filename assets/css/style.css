@@ -1,4 +1,4 @@
-/* Updated 3/19/26 @ 10am*/
+/* Updated 4/7/26 @ 11PM*/
 @font-face {
   font-family: 'SpaceLetters'; 
   src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
@@ -13,6 +13,16 @@ body { margin:0; overflow:hidden; background:#000; }
 canvas { display:block; position: fixed; top: 0; left: 0; }
     #three-canvas { z-index: 1; }
     #game-canvas { z-index: 9995; pointer-events: none; }
+
+
+.recorder-img{
+  height: 350px;
+  width: auto;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+  margin-top: 1rem;
+  left: 50%;
+  transform: translateX(50%);
+}
 
 /* ========================= MOBILE CONTROLS ========================= */
     #mobile-controls {
@@ -618,6 +628,187 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 
+
+
+/* HOW TO PLAY MODAL */
+.howto-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(30px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s, opacity 0.2s ease;
+}
+
+.howto-modal.open {
+  visibility: visible;
+  opacity: 1;
+}
+
+.howto-modal-content {
+  background: rgba(5, 0, 9, 0.699);
+  backdrop-filter: blur(50px);
+  border: 1px solid #2a6f8f7b;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+  font-family: 'SpaceLetters';
+  color: #c4e6f1;
+}
+
+.howto-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #2a6f8f;
+  background: rgba(5, 0, 9, 0.699);
+}
+
+.howto-modal-header h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg,  #00FFFF, #67FEBD);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 18px #aa44ff88);
+}
+
+.howto-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #9bb8c4;
+  transition: 0.2s;
+}
+
+.howto-close:hover {
+  color: #FF0000;
+}
+
+.howto-modal-body {
+  padding: 1.5rem;
+}
+
+.howto-modal-body p {
+  line-height: 1.4;
+  margin-bottom: 1rem;
+  font-family: arial;
+}
+
+.controls-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.control-col {
+  flex: 1;
+  background: rgba(183, 183, 183, 0.089);
+  backdrop-filter: blur(50px);
+  border-radius: 20px;
+  box-shadow:
+      0 6px 32px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(60,210,160,0.06) inset,
+      0 0 24px rgba(60,210,160,0.04) inset;
+  padding: 1rem;
+  border-radius: 16px;
+}
+
+.control-col h3 {
+  margin-top: 0;
+  color: #c4b5fd;
+  font-size: 1.2rem;
+}
+
+.control-col ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.control-col li {
+  margin: 0.6rem 0;
+  font-size: 0.9rem;
+}
+
+kbd {
+  background: #ffffff34;
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-family: monospace;
+  font-weight: bold;
+  color: #c4b5fd;
+  box-shadow: inset 0 1px 0 #00FFFF, 0 1px 0 #0a0f12;
+  margin: 0 2px;
+}
+
+.modal-tip {
+  background: #ffffff34;
+  padding: 0.5rem;
+  border-radius: 12px;
+  text-align: center;
+  font-style: italic;
+}
+
+.howto-modal-content::-webkit-scrollbar {
+  width: 8px;
+  background-color: #000000;
+}
+
+.howto-modal-content::-webkit-scrollbar-track {
+  background: #000000;
+  border-radius: 10px;
+  margin: 8px 0;
+}
+
+.howto-modal-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00ffff, #67FEBD);
+  border-radius: 10px;
+  border: 1px solid #00FFFF;
+}
+
+.howto-modal-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #00ffff, #67FEBD);
+  cursor: pointer;
+}
+
+.howto-modal-content {
+  scrollbar-width: thin;
+  scrollbar-color: #00ffff #170032;
+}
+
+
+
+@media (max-width: 600px) {
+  .controls-grid {
+    flex-direction: column;
+  }
+  .howto-modal-content {
+    width: 95%;
+  }
+  .howto-modal-header h2 {
+    font-size: 1.2rem;
+  }
+}
+
+
 /* ── TENTACLE LAB DEV BUTTON —  ──────────────────────────── */
 
 .dev-mode .menu-btn.dev-lab {
@@ -1051,7 +1242,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 @keyframes rageFlicker {
   0%   { filter: none; }
   33%  { filter: hue-rotate(40deg) saturate(1.4); }
-  66%  { filter: brightness(1.15) contrast(1.1); }
+  66%  { filter: brightness(1.0) contrast(1.1); }
   100% { filter: none; }
 }
 
