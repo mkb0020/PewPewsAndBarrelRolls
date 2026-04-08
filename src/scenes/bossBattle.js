@@ -131,6 +131,26 @@ export class BossBattleScene {
     this._wormMaxHP        = CONFIG.WORM?.HEALTH ?? 300; // NOT FINALIZED
     this.cellularAttack = new CellularAttack();
     this._distortTimer  = 0;  // COUNTDOWN — CLEARS ship._cellularDistortActive WHEN DONE 
+    
+    this._bncEl     = document.getElementById('break-node-counter');
+    this._bncKilled = document.getElementById('bnc-killed');
+    this._bncTotal  = document.getElementById('bnc-total');
+    this._bncScore  = this._bncEl?.querySelector('.bnc-score');
+    
+    if (this.cellularAttack) {
+      this.cellularAttack.onBreakNodeUpdate = (killed, total) => {
+        if (!this._bncKilled || !this._bncTotal) return;
+        this._bncKilled.textContent = killed;
+        this._bncTotal.textContent  = total;
+        
+        if (killed > 0 && this._bncScore) {
+          this._bncScore.classList.remove('popping');
+          void this._bncScore.offsetWidth; 
+          this._bncScore.classList.add('popping');
+        }
+      };
+    }
+    
     this._wireCallbacks();  //  WIRE WORM BOSS CALLBACKS
     // console.log('✔ BossBattleScene initialized');
   }
@@ -231,6 +251,7 @@ export class BossBattleScene {
       this.projectileManager.createExplosion(wormHit.x, wormHit.y);
 
       if (wormHit.killed) {
+        this.babyWormManager.clear();   
         this.scoreManager.addScore(500, wormHit.x, wormHit.y);
         this.audio.stopMusic();
         this.audio.playWormDeath1();
@@ -286,6 +307,9 @@ export class BossBattleScene {
     this.wormBoss.freeze = false;
     if (ship) ship.setRageSuction(false);
     if (this.singularityBombManager) this.singularityBombManager.isBossBattle = false;
+    
+    // ✨ NEW: Hide break‑node counter on reset
+    if (this._bncEl) this._bncEl.classList.add('hidden');
   }
 
   /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
@@ -448,8 +472,12 @@ export class BossBattleScene {
     wormBoss.onSpawnCellular = (mx, my) => { // CELLULAR AUTOMATTACK — WORM SPITS THE SEED; INFECTION BEGINS
       audio.playCellularSeed();
       this.cellularAttack.start(mx, my);
+      
+      if (this._bncEl) this._bncEl.classList.remove('hidden');
 
       this.cellularAttack.onAttackEnd = (didSucceed) => { // SUCCESS — PLAYER DESTROYED ENOUGH BREAK NODES
+        if (this._bncEl) this._bncEl.classList.add('hidden');
+        
         if (didSucceed) {
           audio.playCellularSuccess();
           scoreManager.addScore(300, window.innerWidth * 0.5, window.innerHeight * 0.5);

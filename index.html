@@ -158,6 +158,13 @@
             <li>Did you notice any lagging?  If so, where? (Some visual elements are fairly heavy on the GPU) </li>
           </ul>
 
+        <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.2rem">Known Issues:</strong></p>
+          <ul style="font-family: arial">
+            <li>Wave 2 enemy attack SFX occasionally fires when it's attack is not active</li>
+            <li>Sometimes if you die during the boss battle, the "You Died" screen doesn't pull up - if you notice this, let me know what the boss was doing when it happened.</li>
+            <li>Not so much an issue, but I'm currently redesigning some of the worms so there may be a some that look weird.</li>
+          </ul>
+
         <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">Optional:</strong> Collect data that will be super helpful for balancing stats!</p>
           <ul style="font-family: arial">
             <li>After the opening scene - press the backtick key (`)</li>
@@ -291,7 +298,15 @@
   <div id="boss-hp-text">150 / 150</div>
 </div>
 
-
+<!-- ========================= CELLULAR AUTOMATTACK COUNTER ========================= -->
+<div id="break-node-counter" class="break-node-counter hidden">
+  <span class="bnc-label">BREAK NODES</span>
+  <span class="bnc-score">
+    <span id="bnc-killed">0</span>
+    <span class="bnc-sep"> / </span>
+    <span id="bnc-total">10</span>
+  </span>
+</div>
 <!-- ========================= WAVE HUD ========================= -->
 <div id="wave-hud" class="hidden">
 

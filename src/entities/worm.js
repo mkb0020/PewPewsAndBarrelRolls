@@ -1,4 +1,4 @@
-// Updated 4/7/26 @ 11PM
+// Updated 4/8/26 @ 2:30AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -640,29 +640,44 @@ export class WormBoss {
       }
       if (rt.glitchActive) {
         if (rt.emerged) {
-          // WIND DOWN — handled in update() loop since rt.active is already false by this point
         } else if (!this.freeze) {
           rt.glitchIntensity = Math.min(1, rt.glitchIntensity + dt * 2.2);
         }
 
-        // SPAWN SCANLINE SLICES
-        rt.glitchTimer += dt;
-        const spawnRate = 0.045 - rt.glitchIntensity * 0.03;
-        if (rt.glitchTimer >= spawnRate) {
-          rt.glitchTimer = 0;
-          const h = window.innerHeight;
-          const glitchColors = ['255,0,80', '0,255,200', '180,0,255', '255,200,0', '0,180,255'];
-          const life = 0.04 + Math.random() * 0.12;
-          rt.glitchSlices.push({
-            y:       Math.random() * h,
-            offsetX: (Math.random() - 0.5) * 90 * rt.glitchIntensity,
-            height:  2 + Math.random() * 16 * rt.glitchIntensity,
-            life,
-            maxLife: life,
-            color:   glitchColors[Math.floor(Math.random() * glitchColors.length)],
-            alpha:   0.12 + Math.random() * 0.28,
-          });
-        }
+    // SPAWN GLITCH TEARS
+      rt.glitchTimer += dt;
+      const spawnRate = 0.028 - rt.glitchIntensity * 0.022;
+      if (rt.glitchTimer >= spawnRate) {
+        rt.glitchTimer = 0;
+
+        const h = window.innerHeight;
+        const intensity = rt.glitchIntensity;
+
+        const glitchColors = [
+          '255,40,40',   // BRIGHT RED
+          '220,10,10',   // CRIMSON
+          '180,30,30',   // DARK RED
+          '255,90,70',   // WARM RED
+          '140,0,0',     // DARK DARK RED
+          '101,115,131', // DARK COOL GREY
+          '42,52,57', // DARK GREY
+          '144,144,192'  // COOL GREY
+        ];
+
+        const life = 0.035 + Math.random() * 0.11;
+
+        rt.glitchSlices.push({
+          y:          Math.random() * h,
+          baseOffset: (Math.random() - 0.5) * 110 * intensity,
+          height:     1.5 + Math.random() * 11 * intensity,
+          life,
+          maxLife:    life,
+          color:      glitchColors[Math.floor(Math.random() * glitchColors.length)],
+          alpha:      0.18 + Math.random() * 0.32,
+          segments:   8 + Math.floor(Math.random() * 12)
+        });
+      }
+
         for (let i = rt.glitchSlices.length - 1; i >= 0; i--) {
           rt.glitchSlices[i].life -= dt;
           if (rt.glitchSlices[i].life <= 0) rt.glitchSlices.splice(i, 1);
@@ -762,16 +777,32 @@ export class WormBoss {
     const w  = window.innerWidth;
     const h  = window.innerHeight;
 
-    // ── SCANLINE DISPLACEMENT SLICES ──
+    // ── SCANLINE DISPLACEMENT TEARS 
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
+
     for (const sl of rt.glitchSlices) {
-      const progress = 1 - sl.life / sl.maxLife;
-      const a = sl.alpha * (1 - progress * 0.65) * gi;
-      if (a < 0.005) continue;
+      const progress = 1 - (sl.life / sl.maxLife);
+      let a = sl.alpha * (1 - progress * 0.75) * gi;
+      if (a < 0.008) continue;
+
       ctx.globalAlpha = a;
-      ctx.fillStyle   = `rgb(${sl.color})`;
-      ctx.fillRect(sl.offsetX, sl.y, w, sl.height);
+      ctx.fillStyle = `rgb(${sl.color})`;
+
+      let x = 0;
+      const segmentCount = sl.segments || 12;
+      const avgSegWidth = window.innerWidth / segmentCount;
+
+      for (let i = 0; i < segmentCount; i++) {
+        const jitter = (Math.random() - 0.5) * 14 * gi;
+        const segOffset = sl.baseOffset + jitter;
+        const segWidth = avgSegWidth * (0.6 + Math.random() * 0.9);
+
+        ctx.fillRect(x + segOffset, sl.y, segWidth, sl.height);
+
+        x += segWidth + (2 + Math.random() * 12); 
+        if (x >= window.innerWidth) break;
+      }
     }
     ctx.restore();
 
@@ -817,6 +848,29 @@ export class WormBoss {
       ctx.fillRect(Math.random() * w, 0, 1.5 + Math.random() * 5, h);
       ctx.restore();
     }
+
+    // ── EXTRA DIGITAL STATIC ──
+    if (Math.random() < 0.45 * gi) {
+      ctx.save();
+      ctx.globalAlpha = (0.03 + Math.random() * 0.07) * gi;
+      ctx.fillStyle = Math.random() < 0.6 ? '#ad0017' : '#9090C0';  
+      for (let i = 0; i < 80; i++) {
+        const nx = Math.random() * window.innerWidth;
+        const ny = Math.random() * window.innerHeight;
+        ctx.fillRect(nx, ny, 1.5 + Math.random() * 3, 1);
+      }
+      ctx.restore();
+    }
+
+    if (Math.random() < 0.09 * gi) {
+      ctx.save();
+      ctx.globalAlpha = 0.22 * gi;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = Math.random() < 0.7 ? '#ff3333' : '#cccccc';
+      ctx.fillRect(0, Math.random() * window.innerHeight, window.innerWidth, 3 + Math.random() * 8);
+      ctx.restore();
+    }
+
   }
 
   enterRageMode() {

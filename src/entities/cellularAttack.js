@@ -10,6 +10,8 @@ export class CellularAttack {
     // CALLBACKS — WIRE IN bossBattle.js
     this.onAttackEnd     = null;  // (didSucceed: bool) → void
     this.onCollapseBurst = null;  // ([{x, y}]) → void
+    this.onBreakNodeUpdate = null; // (killed: int, total: int) → void
+    
 
     // ── ATTACK STATE ──
     this.isActive        = false;
@@ -64,6 +66,7 @@ export class CellularAttack {
     this._attackTimer      = CONFIG.CELLULAR_ATTACK.ATTACK_DURATION;
     this._breakNodesKilled = 0;
     this._didSucceed       = false;
+    this.onBreakNodeUpdate?.(0, CONFIG.CELLULAR_ATTACK.BREAK_NODES_TO_WIN); 
     this._collapseParticles = [];
     this._successParticles  = [];
     this._damageAccum      = 0;
@@ -204,6 +207,7 @@ export class CellularAttack {
         this.grid[gy * this.cols + gx] = 0;
         this._breakNodes.splice(bi, 1);
         this._breakNodesKilled++;
+        this.onBreakNodeUpdate?.(this._breakNodesKilled, CONFIG.CELLULAR_ATTACK.BREAK_NODES_TO_WIN); 
         this._checkWinCondition();
         return { hit: true, sx: cx, sy: cy };
       }
