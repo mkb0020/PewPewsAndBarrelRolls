@@ -12,7 +12,7 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 2 — + ZIP ZAP 
     types:      ['BASIC', 'ZIGZAG'],
-    weights:    [0.1,    0.9], //  TESTING
+    weights:    [0.4,    0.6], //  TESTING
     maxEnemies: 6,
   },
   { // WAVE 3 — + PHIL 
@@ -22,12 +22,12 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 4 — + GLORK 
     types:      ['BASIC', 'ZIGZAG', 'FAST',  'TANK'],
-    weights:    [0.3,    0.3,     0.1,    0.3],  // TESTING
+    weights:    [0.3,    0.2,     0.2,    0.3],  // TESTING
     maxEnemies: 6,
   },
   { // WAVE 5 — + FLIM FLAM 
     types:      ['BASIC', 'ZIGZAG', 'FAST',  'TANK',  'FLIMFLAM'],
-    weights:    [0.25,    0.2,     0.1,    0.2,    0.25], //  TESTING
+    weights:    [0.2,    0.2,     0.1,    0.2,    0.3], //  TESTING
     maxEnemies: 6,
   },
 ];

@@ -478,7 +478,7 @@ export class CellularAttack {
     }
     ctx.restore();
 
-    // ── PASS 2: DAMAGING — MAGENTA (age DAMAGE_AGE → BREAK_AGE-1) — KEEP AS-IS ──
+    // ── PASS 2: DAMAGING — MAGENTA (age DAMAGE_AGE → BREAK_AGE-1) ──
     ctx.save();
     ctx.shadowBlur  = C.GLOW_DAMAGING;
     ctx.shadowColor = '#ff00cc';

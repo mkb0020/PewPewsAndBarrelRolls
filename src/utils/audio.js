@@ -9,10 +9,10 @@ export class AudioManager {
     this.isMuted    = false;
     this._preMuteVolume = 1.0;
 
-    this.MUSIC_VOLUME        = 0.4;
+    this.MUSIC_VOLUME        = 0.6;
     this.RAGE_MUSIC_VOLUME = 1.5; 
     this.CREDITS_MUSIC_VOLUME = 0.6; 
-    this.LASER_VOLUME        = 0.4;
+    this.LASER_VOLUME        = 0.35;
     this.ENEMY_LASER_VOLUME  = 0.3;
     this.IMPACT_VOLUME       = 0.1;
     this.SPAWN_VOLUME        = 0.5;
