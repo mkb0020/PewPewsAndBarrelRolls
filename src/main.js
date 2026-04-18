@@ -1,4 +1,4 @@
-// Updated 4/17/26 @ 5PM
+// Updated 4/18/26 @ 2PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -552,6 +552,7 @@ let _bombHoldTimer       = null; // SINGULARITY BOMB — HOLD-TO-FIRE PREVENTS A
 
 let currentMode       = 'bossBattle'; 
 let currentEnemyCount = 5;
+let _gameStarted      = false;  // SET AFTER OPENING SCENE — GATES CURSOR HIDING
 
 // ==================== KEYBOARD SHORTCUTS ====================
 function deployBomb() {
@@ -610,13 +611,14 @@ window.addEventListener('keyup', (e) => {
 });
 
 // ==================== MOUSE CONTROLS ====================
-gameCanvas.addEventListener('mousedown', (e) => {
+// NOTE: LISTENERS ON window (NOT gameCanvas) — #game-canvas HAS pointer-events:none SO CANVAS EVENTS NEVER FIRE
+window.addEventListener('mousedown', (e) => {
   if (e.button === 0 && !isPaused) {  // LEFT CLICK — SHOOT
     doShoot();
   }
 });
 
-gameCanvas.addEventListener('contextmenu', (e) => {
+window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   if (isPaused || !ship.isAlive || ship.isBarrelRolling) return;
   // DIRECTION INFERRED FROM SHIP TILT — NEGATIVE ROTATION = TILTED LEFT = ROLL LEFT
@@ -851,6 +853,11 @@ function gameLoop() {
 
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   if (bot.enabled) bot.tickBlocked(dt); // MUST RUN EVEN WHEN isBlocking — DRAINS RESET TIMER WHILE DIED SCREEN IS UP
+
+  // HIDE CURSOR DURING GAMEPLAY; SHOW ON PAUSE / OVERLAY / MENU
+  document.body.classList.toggle('hide-cursor',
+    _gameStarted && !isPaused && !transitionScene.isBlocking && !closingScene.isActive());
+
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
   // CANVAS SCREEN SHAKE — TRANSLATES THE ENTIRE DRAW PASS FOR IMPACT FEEL
@@ -1051,6 +1058,7 @@ async function startup() {
 
   await openingScene.play(true); 
   // console.log('✔ Opening scene complete');
+  _gameStarted = true;  // CURSOR HIDING NOW ACTIVE;
 
   // DEV TOOLS (SLIDERS + SESSION RECORDER)
   DevTools.init();
