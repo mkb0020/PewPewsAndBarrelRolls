@@ -1,4 +1,4 @@
-// Updated at 3/15/26 @ 3:30PM
+// Updated at 4/18/26 @ 5:30AM
 
 import { CONFIG } from '../utils/config.js';
 
@@ -47,6 +47,11 @@ export const SessionRecorder = {
       enemyKills: 0,
       enemySpawns: 0,
       playerDamageCount: 0,
+      hpHealCount: 0,
+      totalHpHealed: 0,
+      fractalCascadeCount: 0,
+      slimeAttackCount: 0,
+      ocularPrismCount: 0,
       bossBattleDuration: null,
       avgTimeToKill: null,
     };
@@ -77,6 +82,19 @@ export const SessionRecorder = {
           break;
         case 'boss_battle_end':
           bossEnd = evt.time;
+          break;
+        case 'hp_heal':
+          summary.hpHealCount++;
+          summary.totalHpHealed += evt.amount ?? 0;
+          break;
+        case 'fractal_cascade_attack':
+          summary.fractalCascadeCount++;
+          break;
+        case 'slime_attack':
+          summary.slimeAttackCount++;
+          break;
+        case 'ocular_prism_attack':
+          summary.ocularPrismCount++;
           break;
       }
     }

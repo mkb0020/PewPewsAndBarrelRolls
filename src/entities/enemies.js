@@ -1,4 +1,4 @@
-// Updated 3/28/26 @ 5am
+// Updated 4/18/26 @ 5:30am
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -573,6 +573,12 @@ export class EnemyManager {
     this._prismCooldownUntil   = 0;  // BLOCKS NEW FLIMFLAM TELEGRAPHS WHILE PRISM IS ACTIVE
     this._slimeCooldownUntil   = 0;  // BLOCKS NEW TANK TELEGRAPHS WHILE SLIME ATTACK IS ACTIVE
 
+    // GLOBAL INTER-SPECIAL WINDOW — SET BY gameplay.js PER WAVE + WORM KILL MILESTONE.
+    // AFTER *ANY* SPECIAL FIRES, ALL OTHER SPECIALS ARE BLOCKED FOR _globalSpecialWindowMs.
+    // HIGH VALUE = HARD SEPARATION. 0 = FULL OVERLAP ALLOWED.
+    this._globalSpecialWindowMs      = 0;
+    this._globalSpecialCooldownUntil = 0;
+
     //  WAVE CONTROL  
     this._allowedTypes    = null;   
     this._spawnWeights    = null;  
@@ -615,6 +621,11 @@ export class EnemyManager {
 
   setMaxCount(n) {
     this._maxCount = n;
+  }
+
+  // CALLED BY gameplay.js ON WAVE START AND EACH WORM KILL — STEPS DOWN THE SEPARATION WINDOW
+  setGlobalSpecialWindow(ms) {
+    this._globalSpecialWindowMs = Math.max(0, ms);
   }
 
   spawnEnemy() {
@@ -660,9 +671,10 @@ export class EnemyManager {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
       // COMPUTE ONCE PER ENEMY — PASSED INTO update() SO THE STATE MACHINE CAN GATE ITSELF
-      const cascadeAvailable = !fractalClaimed && Date.now() >= this._fractalCooldownUntil;
-      const prismAvailable   = !prismClaimed   && Date.now() >= this._prismCooldownUntil;
-      const slimeAvailable   = !slimeClaimed   && Date.now() >= this._slimeCooldownUntil;
+      const globalReady      = Date.now() >= this._globalSpecialCooldownUntil;
+      const cascadeAvailable = globalReady && !fractalClaimed && Date.now() >= this._fractalCooldownUntil;
+      const prismAvailable   = globalReady && !prismClaimed   && Date.now() >= this._prismCooldownUntil;
+      const slimeAvailable   = globalReady && !slimeClaimed   && Date.now() >= this._slimeCooldownUntil;
       enemy.update(dt, this.time, curve, playerProgress, cascadeAvailable, prismAvailable, slimeAvailable);
 
       if (enemy.pendingLaser) { // COLLECT ANY LASER THIS ENEMY WANTS TO FIRE THIS FRAME
@@ -675,7 +687,8 @@ export class EnemyManager {
       // FLIM FLAM OCULAR PRISM — FIRE WHEN TELEGRAPHING COMPLETES / BLOCK NEW PRISM TELEGRAPHS UNTIL THE PRISM'S ACTIVE DURATION EXPIRES
       if (enemy.pendingOcularPrism) {
         this.onOcularPrism?.(window.innerWidth, window.innerHeight);
-        this._prismCooldownUntil = Date.now() + (CONFIG.OCULAR_PRISM.DURATION + CONFIG.OCULAR_PRISM.FADE_DURATION) * 1000;
+        this._prismCooldownUntil         = Date.now() + (CONFIG.OCULAR_PRISM.DURATION + CONFIG.OCULAR_PRISM.FADE_DURATION) * 1000;
+        this._globalSpecialCooldownUntil = Date.now() + this._globalSpecialWindowMs;
         enemy.pendingOcularPrism = false;
       }
 
@@ -696,7 +709,8 @@ export class EnemyManager {
       // COLLECT SLIME ATTACK (TANK / GLORK ONLY) / BLOCK NEW SLIME TELEGRAPHS UNTIL WARP + RECOVER + COOLDOWN EXPIRES (7.2 + 1.8 + 5.0s)
       if (enemy.pendingSlime) {
         this.onSlimeAttack?.(enemy.x, enemy.y);
-        this._slimeCooldownUntil = Date.now() + 14000;
+        this._slimeCooldownUntil         = Date.now() + 14000;
+        this._globalSpecialCooldownUntil = Date.now() + this._globalSpecialWindowMs;
         enemy.pendingSlime = false;
       }
 
@@ -709,7 +723,8 @@ export class EnemyManager {
       if (enemy.pendingFractalCascade) {
         this.onFractalCascade?.();
         // RECORD WHEN THIS ATTACK FIRED — BLOCKS NEW TELEGRAPHS UNTIL COOLDOWN EXPIRES
-        this._fractalCooldownUntil = Date.now() + CONFIG.FRACTAL_CASCADE.COOLDOWN_MS;
+        this._fractalCooldownUntil       = Date.now() + CONFIG.FRACTAL_CASCADE.COOLDOWN_MS;
+        this._globalSpecialCooldownUntil = Date.now() + this._globalSpecialWindowMs;
         enemy.pendingFractalCascade = false;
       }
 
@@ -756,7 +771,7 @@ checkLaserHits(shipX, shipY, isBarrelRolling = false) {
         }
     }
 
-    return { damage: totalDamage, deflected };   // ← CHANGED RETURN
+    return { damage: totalDamage, deflected };   
 }
  
   checkCollisions(shipX, shipY) {  // CHECK ALL ENEMIES FOR BODY COLLISION WITH SHIP - RETURNS TOTAL DAMAGE DEALT THIS FRAME
@@ -776,9 +791,11 @@ checkLaserHits(shipX, shipY, isBarrelRolling = false) {
   clear() {
     this.enemies = [];
     this.lasers  = [];
-    this._fractalCooldownUntil = 0; // RESET ON WAVE CLEAR / GAME RESTART — FRESH SLATE
-    this._prismCooldownUntil   = 0;
-    this._slimeCooldownUntil   = 0;
+    this._fractalCooldownUntil       = 0; // RESET ON WAVE CLEAR / GAME RESTART — FRESH SLATE
+    this._prismCooldownUntil         = 0;
+    this._slimeCooldownUntil         = 0;
+    this._globalSpecialWindowMs      = 0;
+    this._globalSpecialCooldownUntil = 0;
   }
   getCount()   { return this.enemies.length; }
 }

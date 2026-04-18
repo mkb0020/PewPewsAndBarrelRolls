@@ -1,4 +1,4 @@
-// Updated 4/7/26 @ 11PM
+// Updated 4/17/26 @ 5PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -104,6 +104,7 @@ enemyManager.onOcularPrism = (w, h) => {
   if (ocularPrism.activate(w, h)) {
     ocularPrism._stopPrism?.();  
     ocularPrism._stopPrism = audio.startLoopPrism();
+    SessionRecorder.log('ocular_prism_attack');
   }
 };
 enemyManager.onSlimeTelegraph = () => {
@@ -114,6 +115,7 @@ enemyManager.onSlimeTelegraph = () => {
 enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   ImageLoader.load('slimeDrip');
   slimeAttack.trigger(glorkX, glorkY);
+  SessionRecorder.log('slime_attack');
 };
 enemyManager.onEnemyKilled = (type) => {
   // STOP ORPHANED TELEGRAPH SFX IF THE ENEMY WHO STARTED IT DIES MID-TELEGRAPH
@@ -135,8 +137,9 @@ enemyManager.onFractalTelegraph = () => {
   audio._stopFractalCode = audio.startFractalCode();
 };
 enemyManager.onFractalCascade = () => {
-  audio._stopFractalCode?.(); audio._stopFractalCode = null; // ← needs the underscore
+  audio._stopFractalCode?.(); audio._stopFractalCode = null;
   fractalCascade.activate();
+  SessionRecorder.log('fractal_cascade_attack');
 };
 fractalCascade.onRecompile = () => {
   audio.startFractalCode(); // RECOMPILE SNAP — BRIEF SECOND HIT OF SAME ASSET
@@ -420,7 +423,7 @@ function triggerScreenShake(strength, duration) {
 
 // ==================== SHOOT ====================
 function doShoot() {
-  if (isPaused || ship.isBarrelRolling) return;
+  if (isPaused) return;
   const crosshairPos = crosshair.getPosition();
   const shootData    = ship.shoot(crosshairPos.x, crosshairPos.y);
   if (shootData) {
@@ -566,7 +569,7 @@ window.addEventListener('keydown', (e) => {
     ui.update(isMuted, isPaused);
     return;
   }
-  if (e.code === 'Space' && !isPaused && !ship.isBarrelRolling) {
+  if (e.code === 'Space' && !isPaused) {
     e.preventDefault();
     doShoot();
     return;

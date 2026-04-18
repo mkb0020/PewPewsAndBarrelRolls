@@ -1,4 +1,4 @@
-// Updated 3/19/26 @ 11:45am
+// Updated 4/17/26 @ 10:45am
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -521,6 +521,7 @@ export class Ship {
   heal(amount) {
     if (!this.isAlive) return;
     this.hp = Math.min(this.maxHP, this.hp + amount);
+    SessionRecorder.log('hp_heal', { amount, hp: this.hp });
     if (this.onHPChange) this.onHPChange(this.hp, this.maxHP);
     this._healGlow = 1;
   }

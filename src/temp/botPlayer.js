@@ -1,5 +1,6 @@
-// Updated 3/22/26 @ 10PM
+// Updated 4/18/26 @ 5:30AM
 // JS/TEMP/BOTPLAYER.JS
+// BOT'S NAME: "NOODLE"
 //
 // ─── PLAYTEST BOT — AUTOMATED PLAYER FOR BALANCE SIMULATION ─────────────────
 //
@@ -87,10 +88,46 @@ const BOT = {
 
   MOVE_DEADZONE:             26,    // px — STOP STEERING IF ALREADY THIS CLOSE TO TARGET
 
+  // ── STRESS SYSTEM ─────────────────────────────────────────────────────────
+  STRESS_HP_WEIGHT:          0.35,  // CONTRIBUTION FROM LOW HP
+  STRESS_DAMAGE_WEIGHT:      0.30,  // CONTRIBUTION FROM RECENT DAMAGE
+  STRESS_ENEMY_WEIGHT:       0.35,  // CONTRIBUTION FROM NEARBY COMBAT ENEMIES
+  STRESS_ENEMY_RADIUS:       280,   // px — "NEARBY" THRESHOLD
+  STRESS_ENEMY_CAP:          3,     // ENEMY COUNT THAT MAXES THIS COMPONENT
+  STRESS_RISE_RATE:          0.12,  // HOW FAST STRESS CLIMBS (LERP FACTOR PER FRAME)
+  STRESS_DECAY_RATE:         0.025, // HOW FAST STRESS FALLS (SLOW — RECOVERY TAKES TIME)
+  DAMAGE_DECAY_RATE:         18,    // HP/s AT WHICH RECENT-DAMAGE MEMORY FADES
+
+  // ── IMPERFECTION RANGES ──
+  AIM_NOISE_AMP_MIN:         0.02,  // NEAR-PERFECT AIM WHEN CALM
+  AIM_NOISE_AMP_MAX:         0.20,  // SHAKY AIM WHEN OVERWHELMED
+  AIM_NOISE_SPEED:           1.5,   // WOBBLE FREQUENCY
+  SHOOT_CHANCE_MIN:          0.97,  // FIRES ALMOST EVERY ELIGIBLE FRAME WHEN CALM
+  SHOOT_CHANCE_MAX:          0.72,  // HESITANT TRIGGER WHEN STRESSED
+  REACTION_MIN:              0.06,  // FAST TARGET ACQUISITION WHEN CALM (s)
+  REACTION_MAX:              0.30,  // SLOW ACQUISITION UNDER PRESSURE (s)
+  MOVE_IMPRECISION_MIN:       8,    // px NAV NOISE WHEN CALM
+  MOVE_IMPRECISION_MAX:      42,    // px NAV NOISE WHEN STRESSED
+
+  // ── BRAIN FART (STRESS) ─────────────────────
+  BRAIN_FART_STRESS_MIN:     0.62,  // STRESS LEVEL BELOW WHICH BRAIN FARTS NEVER OCCUR
+  BRAIN_FART_CHANCE_MAX:     0.003, // PER-FRAME CHANCE AT MAXIMUM STRESS
+  BRAIN_FART_DURATION_MIN:   0.35,  // SHORTEST CONFUSION WINDOW (s)
+  BRAIN_FART_DURATION_MAX:   0.70,  // LONGEST CONFUSION WINDOW (s)
+
+  // ── TARGET LOCK ──────
+  LOCK_DURATION_MIN:         0.35,  // SECONDS BEFORE SWITCHING TARGETS WHEN CALM
+  LOCK_DURATION_MAX:         0.80,  // LONGER TUNNEL VISION WHEN STRESSED
+
+  // ── AUTO-CLICK CONTINUE / RESTART ────────────────────────────────────────
+  AUTO_CLICK_DELAY:          2.2,   // SECONDS AFTER OVERLAY APPEARS BEFORE CLICKING
+
   DEFAULT_BATCH:             30,    // DEFAULT NUMBER OF RUNS PER BATCH
-  RESET_DELAY_S:             4.5,   // MUST OUTLAST FULL SHIP DEATH ANIMATION (freeze 0.2s + glitch 2.4s + kabam 0.8s = ~3.4s)
-                                    // FIRING TOO EARLY MEANS _handleContinue() SEES isDeadScreen=false AND SILENTLY BAILS
+  RESET_DELAY_S:             4.5,   // MUST OUTLAST FULL SHIP DEATH ANIMATION
 };
+
+// LINEAR INTERPOLATION HELPER — CLAMPS t TO [0,1] SO CALLERS DON'T NEED TO
+function _lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
 
 // ─────────────────────────────────────────────────────────────────────────────
 export class BotPlayer {
@@ -111,7 +148,7 @@ export class BotPlayer {
     this._resetTimer     = 0;
     this._prevInBoss     = false;  // EDGE-DETECT: FALSE → TRUE TRANSITION
 
-    // CALLBACKS — wire in main.js
+    // CALLBACKS 
     this.onRequestContinue = null;  // () => transitionScene._handleContinue()
     this.onRequestRestart  = null;  // () => transitionScene._handleRestart()
 
@@ -119,8 +156,34 @@ export class BotPlayer {
     this._statsEl = null;
     this._buildOverlay();
     this._attachHotkey();
-  }
 
+    // ── STRESS SYSTEM ────────────────────────────────────────────────────────
+    this._stress       = 0;      // 0=CALM, 1=PANIC! 
+    this._recentDamage = 0;     
+    this._lastShipHP   = null;   
+
+    // ── AIM NOISE  ────────────────────────────────
+    this._aimNoiseX  = 0;
+    this._aimNoiseY  = 0;
+    this._aimPhaseX  = Math.random() * Math.PI * 2;
+    this._aimPhaseY  = Math.random() * Math.PI * 2;
+
+    // ── REACTION DELAY ────────────────────────────────────────────────────────
+    this._reactionTimer   = 0;
+    this._lastAimTarget   = null; 
+
+    // ── BRAIN FART / HIGH STRESS ─────────────────────────────────────
+    this._brainFartTimer  = 0;
+
+    // ── TARGET LOCK —──────────
+    this._lockedTargetId  = null; 
+    this._targetLockTimer = 0;   
+
+    // ── MOVE IMPRECISION (cached per-frame so _setMovementKeys can read it) ───
+    this._currentMoveImprecision = BOT.MOVE_IMPRECISION_MIN;
+    // ── AUTO-CLICK STATE ─────────────────────────────────────────────────────
+    this._autoClickTimer = 0;
+  }
   // ── LIFECYCLE ──────────────────────────────────────────────────────────────
 
   enable() {
@@ -172,7 +235,12 @@ export class BotPlayer {
    * @param {number} dt
    */
   tickBlocked(dt) {
-    if (!this.enabled || !this._resetPending) return;
+    if (!this.enabled) return;
+
+    // AUTO-CLICK CONTINUE / RESTART — bot handles its own death screens via DOM
+    this._tickAutoClick(dt);
+
+    if (!this._resetPending) return;
     this._resetTimer -= dt;
     if (this._resetTimer <= 0) {
       this._resetPending = false;
@@ -282,9 +350,33 @@ export class BotPlayer {
       return null;
     }
 
+    // ── STRESS & IMPERFECTION ──────────────────────────────────────────────
+
+    this._updateRecentDamage(dt, ship);
+    this._computeStress(ship, enemies);
+    const stress = this._stress;
+
+    // Derive all imperfection parameters from stress
+    const aimNoiseAmp   = _lerp(BOT.AIM_NOISE_AMP_MIN,     BOT.AIM_NOISE_AMP_MAX,    stress);
+    const shootChance   = _lerp(BOT.SHOOT_CHANCE_MIN,       BOT.SHOOT_CHANCE_MAX,     stress);
+    const reactionRange = _lerp(BOT.REACTION_MIN,           BOT.REACTION_MAX,         stress);
+    this._currentMoveImprecision = _lerp(BOT.MOVE_IMPRECISION_MIN, BOT.MOVE_IMPRECISION_MAX, stress);
+
+    // BRAIN FART — only possible above the stress threshold
+    if (this._brainFartTimer > 0) {
+      this._brainFartTimer -= dt;
+    } else if (stress > BOT.BRAIN_FART_STRESS_MIN) {
+      const scaledChance = ((stress - BOT.BRAIN_FART_STRESS_MIN) / (1 - BOT.BRAIN_FART_STRESS_MIN))
+                         * BOT.BRAIN_FART_CHANCE_MAX;
+      if (Math.random() < scaledChance) {
+        this._brainFartTimer = _lerp(BOT.BRAIN_FART_DURATION_MIN, BOT.BRAIN_FART_DURATION_MAX, stress);
+      }
+    }
+    const confused = this._brainFartTimer > 0;
+
     // ── AWARENESS ─────────────────────────────────────────────────────────
 
-    const threats   = this._gatherThreats(enemyLasers, gooProjectiles, enemies, waveWorm, babyWorms, wormBoss, ship);
+    const threats   = confused ? [] : this._gatherThreats(enemyLasers, gooProjectiles, enemies, waveWorm, babyWorms, wormBoss, ship);
     const pickupPts = this._gatherPickups(pickups);
 
     // ── MOVEMENT DECISION — priority: evade > pickup > drift to center ────
@@ -297,34 +389,169 @@ export class BotPlayer {
     const cy = window.innerHeight / 2;
 
     if (evadeDir) {
-      // PROJECT EVADE VECTOR AND CLAMP INSIDE SAFE VIEWPORT BORDER
       tX = Math.max(BOT.EDGE_MARGIN, Math.min(window.innerWidth  - BOT.EDGE_MARGIN, ship.x + evadeDir.x * BOT.EVADE_RANGE));
       tY = Math.max(BOT.EDGE_MARGIN, Math.min(window.innerHeight - BOT.EDGE_MARGIN, ship.y + evadeDir.y * BOT.EVADE_RANGE));
     } else if (pickupTgt) {
       tX = pickupTgt.x;
       tY = pickupTgt.y;
     } else {
-      tX = cx;   // DEFAULT: DRIFT TO SCREEN CENTER (SAFE GROUND)
+      tX = cx;
       tY = cy;
     }
 
     this._setMovementKeys(tX, tY, ship);
 
-    // ── AIMING ────────────────────────────────────────────────────────────
+    // ── AIMING — target lock keeps the bot committed to one enemy ─────────
 
-    const aimTgt = this._pickAimTarget(enemies, waveWorm, wormBoss, inBossBattle, ship);
+    this._targetLockTimer -= dt;
+
+    let aimTgt = null;
+    if (!confused) {
+      if (inBossBattle && wormBoss?.isActive && !wormBoss.isDead) {
+        // Boss battle: always aim at the head, no lock needed
+        const head = wormBoss.segments?.[0];
+        if (head && !head.isDead && head.drawSize > 1) {
+          aimTgt = { x: head.screenX, y: head.screenY };
+        }
+      } else if (this._lockedTargetId !== null && this._targetLockTimer > 0) {
+        // Try to honour the current lock (tunnel vision on existing target)
+        const locked = enemies.find(e => !e.isDead && e.id === this._lockedTargetId
+                                      && e.scale >= BOT.MIN_ENEMY_SCALE_TO_SHOOT);
+        if (locked) aimTgt = { x: locked.x, y: locked.y };
+      }
+
+      if (!aimTgt) {
+        // Lock expired or target gone — pick a new one and start a fresh lock
+        const best = this._pickAimTarget(enemies, waveWorm, wormBoss, inBossBattle, ship);
+        if (best) {
+          aimTgt = best;
+          const lockDur = _lerp(BOT.LOCK_DURATION_MIN, BOT.LOCK_DURATION_MAX, stress)
+                        + Math.random() * 0.15;
+          this._targetLockTimer = lockDur;
+          // Store the ID so we can re-find this enemy next frame
+          const matched = enemies.find(e => !e.isDead && Math.abs(e.x - best.x) < 5 && Math.abs(e.y - best.y) < 5);
+          this._lockedTargetId = matched?.id ?? null;
+        } else {
+          this._lockedTargetId  = null;
+          this._targetLockTimer = 0;
+        }
+      }
+    }
+
+    // REACTION DELAY — reset when target changes (key = rounded position)
+    const tgtKey = aimTgt ? `${Math.round(aimTgt.x / 10)},${Math.round(aimTgt.y / 10)}` : null;
+    if (tgtKey !== this._lastAimTarget) {
+      this._lastAimTarget = tgtKey;
+      this._reactionTimer = reactionRange * (0.5 + Math.random() * 0.5);
+    }
+    if (this._reactionTimer > 0) this._reactionTimer -= dt;
+    const hasReacted = this._reactionTimer <= 0;
+
+    // AIM NOISE — sine-wave wobble scaled by stress
+    this._updateAimNoise(dt, aimNoiseAmp);
+
     let aimNX = 0, aimNY = 0;
-    if (aimTgt) {
-      // CONVERT WORLD TARGET TO NORMALIZED CROSSHAIR INPUT (RELATIVE TO SCREEN CENTER)
+    if (aimTgt && hasReacted) {
       const dx  = aimTgt.x - cx;
       const dy  = aimTgt.y - cy;
       const mag = Math.sqrt(dx * dx + dy * dy) || 1;
-      aimNX =  dx / mag;
-      aimNY = -dy / mag;  // crosshair rawY: positive = up; screen dy is positive-down
+      aimNX = dx / mag + this._aimNoiseX;
+      aimNY = -dy / mag + this._aimNoiseY; // crosshair rawY: positive = up
     }
 
+    // SHOOT HESITATION — miss shots more when stressed
+    const shouldShoot = !!aimTgt && hasReacted && !confused && (Math.random() < shootChance);
+
     this._updateOverlay();
-    return { aimNX, aimNY, shouldShoot: !!aimTgt };
+    return { aimNX, aimNY, shouldShoot };
+  }
+  
+
+  // ── AUTO-CLICK ────────────────────────────────────────────────────────────
+
+  /**
+   * Watches for active death/gameover overlays and clicks the right button
+   * after AUTO_CLICK_DELAY seconds. Fully DOM-driven — no reliance on
+   * callback timing so it works reliably with the death animation sequence.
+   */
+  _tickAutoClick(dt) {
+    const diedActive     = document.getElementById('died-overlay')?.classList.contains('active');
+    const gameoverActive = document.getElementById('gameover-overlay')?.classList.contains('active');
+
+    if (diedActive || gameoverActive) {
+      this._autoClickTimer += dt;
+      if (this._autoClickTimer >= BOT.AUTO_CLICK_DELAY) {
+        this._autoClickTimer = 0;
+        if (diedActive) {
+          document.getElementById('btn-continue')?.click();
+        } else {
+          document.getElementById('btn-restart')?.click();
+        }
+      }
+    } else {
+      this._autoClickTimer = 0; // RESET WHEN OVERLAY IS GONE — PREVENTS DOUBLE-FIRE
+    }
+  }
+
+  // ── STRESS SYSTEM ─────────────────────────────────────────────────────────
+
+  /**
+   * Detects HP drops since last frame and accumulates them into _recentDamage,
+   * which decays over time. This gives the stress system a "damage memory"
+   * so getting hit once raises stress even if HP is still high.
+   */
+  _updateRecentDamage(dt, ship) {
+    if (this._lastShipHP !== null && ship.hp < this._lastShipHP) {
+      this._recentDamage += (this._lastShipHP - ship.hp);
+    }
+    this._lastShipHP = ship.hp;
+    this._recentDamage = Math.max(0, this._recentDamage - BOT.DAMAGE_DECAY_RATE * dt);
+  }
+
+  /**
+   * Computes stress (0–1) from three inputs:
+   *   HP level   — low HP = high stress
+   *   Recent damage — getting hit spikes stress even with HP to spare
+   *   Nearby enemies — multiple enemies in range = pressure
+   *
+   * Stress rises quickly but falls slowly, matching how real players feel:
+   * one bad moment can rattle you for several seconds.
+   */
+  _computeStress(ship, enemies) {
+    const hpPct    = ship.hp / (ship.maxHP || 100);
+    const hpStress = 1 - hpPct;
+
+    const nearbyCount = enemies.filter(e => {
+      if (e.isDead || e.scale < 0.50) return false;
+      const dx = e.x - ship.x, dy = e.y - ship.y;
+      return (dx * dx + dy * dy) < BOT.STRESS_ENEMY_RADIUS * BOT.STRESS_ENEMY_RADIUS;
+    }).length;
+    const enemyStress  = Math.min(1, nearbyCount / BOT.STRESS_ENEMY_CAP);
+    const damageStress = Math.min(1, this._recentDamage / 40);
+
+    const target = Math.min(1,
+      hpStress    * BOT.STRESS_HP_WEIGHT     +
+      enemyStress * BOT.STRESS_ENEMY_WEIGHT  +
+      damageStress * BOT.STRESS_DAMAGE_WEIGHT,
+    );
+
+    // ASYMMETRIC LERP — spikes fast, decays slow
+    const rate = target > this._stress ? BOT.STRESS_RISE_RATE : BOT.STRESS_DECAY_RATE;
+    this._stress = Math.max(0, Math.min(1, this._stress + (target - this._stress) * rate));
+  }
+
+  // ── AIM NOISE ─────────────────────────────────────────────────────────────
+
+  /**
+   * Advances two de-synced sine waves and sets _aimNoiseX/Y.
+   * Amplitude is passed in per-frame from the stress-scaled value so noise
+   * is almost zero when calm and peaks only when the bot is overwhelmed.
+   */
+  _updateAimNoise(dt, amp) {
+    this._aimPhaseX += BOT.AIM_NOISE_SPEED * dt;
+    this._aimPhaseY += BOT.AIM_NOISE_SPEED * 1.13 * dt; // SLIGHT FREQ OFFSET — DESYNC X/Y
+    this._aimNoiseX  = Math.sin(this._aimPhaseX) * amp;
+    this._aimNoiseY  = Math.cos(this._aimPhaseY) * amp;
   }
 
   // ── THREAT GATHERING ──────────────────────────────────────────────────────
@@ -445,8 +672,11 @@ export class BotPlayer {
   // ── MOVEMENT ──────────────────────────────────────────────────────────────
 
   _setMovementKeys(tx, ty, ship) {
-    const dx = tx - ship.x;
-    const dy = ty - ship.y;
+    // ADD STRESS-SCALED POSITION NOISE — 
+    const noiseX = (Math.random() - 0.5) * this._currentMoveImprecision;
+    const noiseY = (Math.random() - 0.5) * this._currentMoveImprecision;
+    const dx = (tx + noiseX) - ship.x;
+    const dy = (ty + noiseY) - ship.y;
     const dz = BOT.MOVE_DEADZONE;
 
     this._clearKeys();
@@ -550,7 +780,7 @@ export class BotPlayer {
     el.innerHTML =
       '<div style="font-weight:bold;letter-spacing:.15em;' +
         'border-bottom:1px solid rgba(0,255,136,0.25);margin-bottom:6px;padding-bottom:4px">' +
-        '🤖 BOT ACTIVE' +
+        '🤖 NOODLE IS NOW PLAYING' +
       '</div>' +
       '<div id="bot-stats-inner">warming up…</div>';
     document.body.appendChild(el);
@@ -563,7 +793,9 @@ export class BotPlayer {
     const n = this._runStats.length;
 
     if (n === 0) {
-      this._statsEl.textContent = this._currentRun ? 'Run 1 — in progress' : 'Waiting…';
+      const stressBar = '█'.repeat(Math.round(this._stress * 8)).padEnd(8, '░');
+      this._statsEl.textContent = (this._currentRun ? 'Run 1 — in progress' : 'Waiting…')
+        + `\nStress: [${stressBar}]`;
       return;
     }
 
@@ -576,6 +808,9 @@ export class BotPlayer {
     const last     = this._runStats[n - 1];
     const inProg   = this._currentRun ? `\nRun ${n + 1} — in progress` : '';
 
+    const stressBar  = '█'.repeat(Math.round(this._stress * 8)).padEnd(8, '░');
+    const stressLabel = this._stress < 0.3 ? 'calm' : this._stress < 0.62 ? 'pressured' : 'stressed';
+
     this._statsEl.textContent =
       `Runs:      ${n}${bStr}${modeTag}\n` +
       `Avg surv:  ${avgSurv}s\n` +
@@ -584,7 +819,9 @@ export class BotPlayer {
       `Boss reach:${bossHits} / ${n}\n` +
       `──────────────────\n` +
       `Last: ${last.survivalTime}s  ${last.score}pts\n` +
-      `      ×${last.livesLost} lives lost` +
+      `      ×${last.livesLost} lives lost\n` +
+      `──────────────────\n` +
+      `Stress: [${stressBar}] ${stressLabel}` +
       inProg;
   }
 
@@ -606,7 +843,7 @@ export class BotPlayer {
     if (!panelEl) return;
 
     const heading = document.createElement('div');
-    heading.textContent = 'Playtest Bot';
+    heading.textContent = 'Playtest Bot: Noodle';
     heading.style.cssText = 'font-weight:600; margin:10px 0 6px 0;';
     panelEl.appendChild(heading);
 
@@ -659,7 +896,7 @@ export class BotPlayer {
     row.appendChild(batchLabel);
     row.appendChild(batchSizeInput);
     row.appendChild(waveOnlyRow);
-    row.appendChild(makeBtn('Toggle Bot  [F8]',       () => this.toggle()));
+    row.appendChild(makeBtn('Let Noodle Play  [F8]',       () => this.toggle()));
     row.appendChild(makeBtn('▶ Start Batch',           () => this.startBatch(parseInt(batchSizeInput.value, 10) || BOT.DEFAULT_BATCH)));
     row.appendChild(makeBtn('⏹ Stop Batch',            () => this.stopBatch()));
     row.appendChild(makeBtn('⬇ Export Results JSON',  () => this.exportResults()));
@@ -697,7 +934,6 @@ export class BotPlayer {
       runs: this._runStats,
     };
 
-    // FIX: ANCHOR MUST BE APPENDED TO DOM BEFORE .click() OR SOME BROWSERS SILENTLY IGNORE IT
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
