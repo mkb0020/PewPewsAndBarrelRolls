@@ -1,4 +1,4 @@
-// Updated at 4/18/26 @ 5:30AM
+// Updated at 4/18/26 @ 6:00PM
 import { CONFIG } from '../utils/config.js';
 import { WAVE_CONFIGS } from '../scenes/gameplay.js';
 
@@ -53,6 +53,8 @@ export const SessionRecorder = {
       fractalCascadeCount: 0,
       slimeAttackCount: 0,
       ocularPrismCount: 0,
+      bossEntryShipHp:    null,  // SHIP HP WHEN BOSS BATTLE BEGAN
+      bossEntryShipLives: null,  // LIVES REMAINING WHEN BOSS BATTLE BEGAN
       bossBattleDuration: null,
       avgTimeToKill: null,
     };
@@ -80,6 +82,8 @@ export const SessionRecorder = {
           break;
         case 'boss_battle_start':
           bossStart = evt.time;
+          summary.bossEntryShipHp    = evt.shipHp    ?? null;
+          summary.bossEntryShipLives = evt.shipLives ?? null;
           break;
         case 'boss_battle_end':
           bossEnd = evt.time;
@@ -203,19 +207,6 @@ export const DevTools = {
     panel.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.05), 0 20px 40px rgba(0,0,0,0.7)';
     panel.style.display = 'none';
 
-    //const title = document.createElement('div');
-    //title.textContent = 'DEV TOOLS';
-    //title.style.fontWeight = '700';
-    //title.style.marginBottom = '10px';
-    //panel.appendChild(title);
-
-   // const hint = document.createElement('div');
-    //hint.innerHTML = 'Toggle: <kbd>`</kbd> · Record: <kbd>F9</kbd> · Export: <kbd>F10</kbd>';
-    //hint.style.fontSize = '11px';
-    //hint.style.opacity = '0.8';
-    //hint.style.marginBottom = '10px';
-    //panel.appendChild(hint);
-
     // SESSION RECORDER SECTION
     const recorderSection = document.createElement('div');
     recorderSection.style.marginBottom = '12px';
@@ -269,30 +260,6 @@ export const DevTools = {
     recorderSection.appendChild(recorderButtons);
 
     panel.appendChild(recorderSection);
-
-    // BALANCE SLIDERS
-    //const buildHeading = (text) => {
-     // const h = document.createElement('div');
-    //  h.textContent = text;
-    //  h.style.fontWeight = '600';
-    //  h.style.margin = '10px 0 6px 0';
-    //  return h;
-    //};
-
-    //panel.appendChild(buildHeading('Balance Tuning'));
-
-   // this.addSlider(panel, 'SHIP HP', CONFIG.SHIP_HP, 'MAX_HP', 20, 300, 1);
-   // this.addSlider(panel, 'ENEMY SPAWN MIN', CONFIG.ENEMIES, 'SPAWN_INTERVAL_MIN', 0.5, 10, 0.1);
-   // this.addSlider(panel, 'ENEMY SPAWN MAX', CONFIG.ENEMIES, 'SPAWN_INTERVAL_MAX', 0.5, 12, 0.1);
-   // this.addSlider(panel, 'GLIP GLOP HP', CONFIG.ENEMIES.TYPES.BASIC, 'HEALTH', 1, 30, 1);
-   // this.addSlider(panel, 'PHIL HP', CONFIG.ENEMIES.TYPES.FAST, 'HEALTH', 1, 30, 1);
-   // this.addSlider(panel, 'GLORK HP', CONFIG.ENEMIES.TYPES.TANK, 'HEALTH', 1, 40, 1);
-   // this.addSlider(panel, 'ZIP ZAP HP', CONFIG.ENEMIES.TYPES.ZIGZAG, 'HEALTH', 1, 30, 1);
-   // this.addSlider(panel, 'FLIM FLAM HP', CONFIG.ENEMIES.TYPES.FLIMFLAM, 'HEALTH', 1, 40, 1);
-   // this.addSlider(panel, 'WAVE WORM HP', CONFIG.WAVE_WORM, 'HEALTH', 1, 80, 1);
-   // this.addSlider(panel, 'COSMIC PRISMS', CONFIG.COSMIC_PRISM, 'SPAWN_INTERVAL', 5, 90, 1);
-    //this.addSlider(panel, 'TESSERACT FRAGMENTS', CONFIG.TESSERACT_FRAGMENT, 'SPAWN_INTERVAL', 5, 90, 1);
-   // this.addSlider(panel, 'SPINORS', CONFIG.SINGULARITY_BOMB, 'SPAWN_INTERVAL', 10, 120, 1);
 
     document.body.appendChild(panel);
     this.panel = panel;

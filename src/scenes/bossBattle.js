@@ -315,7 +315,10 @@ export class BossBattleScene {
   /** CALLED AUTOMATICALLY BY wormBoss.onIntro ONCE RISER FINISHES AND BOSS MUSIC STARTS */
   readyForBattle() {
     this._battleReady = true;
-    SessionRecorder.log('boss_battle_start');
+    SessionRecorder.log('boss_battle_start', {
+      shipHp:    this.ship?.hp    ?? null,
+      shipLives: this.ship?.lives ?? null,
+    });
     this.wormBoss.enableAttacks();  // UNLOCK ATTACK CYCLE — RISER COMPLETE, BATTLE BEGINS
     if (this.singularityBombManager) this.singularityBombManager.deployEnabled = true;
     // console.log('⚔ Battle ready — boss damage unlocked');
