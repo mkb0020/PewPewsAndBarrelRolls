@@ -1,6 +1,7 @@
 // Updated at 4/18/26 @ 5:30AM
-
 import { CONFIG } from '../utils/config.js';
+import { WAVE_CONFIGS } from '../scenes/gameplay.js';
+
 
 
 export const SessionRecorder = {
@@ -111,11 +112,50 @@ export const SessionRecorder = {
     return summary;
   },
 
+  _snapshotConfig() {
+    const C = CONFIG;
+    const types = {};
+    for (const [key, t] of Object.entries(C.ENEMIES.TYPES)) {
+      types[key] = {
+        HEALTH:          t.HEALTH,
+        LASER_INTERVAL:  t.LASER_INTERVAL,
+        COMBAT_DURATION: t.COMBAT_DURATION,
+        ...(key === 'FLIMFLAM' ? {
+          PRISM_FIRST_DELAY_MIN: t.PRISM_FIRST_DELAY_MIN,
+          PRISM_FIRST_DELAY_MAX: t.PRISM_FIRST_DELAY_MAX,
+          PRISM_COOLDOWN_MIN:    t.PRISM_COOLDOWN_MIN,
+          PRISM_COOLDOWN_MAX:    t.PRISM_COOLDOWN_MAX,
+        } : {}),
+      };
+    }
+    return {
+      COSMIC_PRISM:    { HEAL_AMOUNT: C.COSMIC_PRISM.HEAL_AMOUNT },
+      ENEMIES: {
+        SPAWN_INTERVAL_MIN: C.ENEMIES.SPAWN_INTERVAL_MIN,
+        SPAWN_INTERVAL_MAX: C.ENEMIES.SPAWN_INTERVAL_MAX,
+        TYPES: types,
+      },
+      SLIME_ATTACK: {
+        FIRST_ATTACK_MIN: C.SLIME_ATTACK.FIRST_ATTACK_MIN,
+        FIRST_ATTACK_MAX: C.SLIME_ATTACK.FIRST_ATTACK_MAX,
+        REPEAT_INTERVAL:  C.SLIME_ATTACK.REPEAT_INTERVAL,
+      },
+      FRACTAL_CASCADE: {
+        FIRST_DELAY_MIN: C.FRACTAL_CASCADE.FIRST_DELAY_MIN,
+        FIRST_DELAY_MAX: C.FRACTAL_CASCADE.FIRST_DELAY_MAX,
+        COOLDOWN_MIN:    C.FRACTAL_CASCADE.COOLDOWN_MIN,
+        COOLDOWN_MAX:    C.FRACTAL_CASCADE.COOLDOWN_MAX,
+      },
+      WAVE_CONFIGS,
+    };
+  },
+
   download() {
     const payload = {
       meta: {
         generatedAt: new Date().toISOString(),
       },
+      configSnapshot: this._snapshotConfig(),
       summary: this._computeSummary(),
       events: this.events,
     };

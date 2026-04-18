@@ -20,7 +20,7 @@ import { WaveWormManager } from '../entities/waveWorm.js';
 //   → WINDOW ~4–8S = 2 CAN OVERLAP (ONE ENDS BEFORE NEXT ONE BLOCKED)
 //   → WINDOW 0     = ALL 3 CAN FIRE SIMULTANEOUSLY
 
-const WAVE_CONFIGS = [
+export const WAVE_CONFIGS = [
   { // WAVE 1 — GLIP GLOP ONLY (JELLYFISH) — TUTORIAL PRESSURE
     types:          ['BASIC'],
     weights:        [1.00],
@@ -45,14 +45,14 @@ const WAVE_CONFIGS = [
   },
   { // WAVE 4 — + GLORK  |  SLIME BECOMES MEANINGFUL
     types:          ['BASIC', 'ZIGZAG', 'FAST', 'TANK'],
-    weights:        [0.20,    0.20,     0.20,   0.40],
+    weights:        [0.30,    0.20,     0.20,   0.30],
     maxEnemies:     7,
     // GLORK-HEAVY. TWO SPECIALS (FRACTAL + SLIME) — START SEPARATED, CONVERGE.
     specialWindows: [20000, 14000, 8000, 3000, 0],   // 5 KILLS → INDICES 0–4
   },
   { // WAVE 5 — + FLIM FLAM  |  CHAOS PEAK
     types:          ['BASIC', 'ZIGZAG', 'FAST', 'TANK', 'FLIMFLAM'],
-    weights:        [0.15,    0.15,     0.10,   0.20,   0.40],
+    weights:        [0.25,    0.15,     0.10,   0.20,   0.30],
     maxEnemies:     9,
     // STARTS WITH ZERO OVERLAP POSSIBLE. BY KILL 4: FULL THREE-WAY CHAOS.
     specialWindows: [30000, 20000, 8000, 2000, 0],   // 5 KILLS → INDICES 0–4

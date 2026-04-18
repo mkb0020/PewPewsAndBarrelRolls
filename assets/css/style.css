@@ -659,7 +659,7 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   border: 1px solid #2a6f8f7b;
   border-top-left-radius: 30px;
   border-bottom-left-radius: 30px;
-  max-width: 700px;
+  max-width: 800px;
   width: 90%;
   max-height: 85vh;
   overflow-y: auto;
@@ -744,8 +744,8 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
 }
 
 .control-col li {
-  margin: 0.6rem 0;
-  font-size: 0.9rem;
+  margin: 0.9rem 0;
+  font-size: 1rem;
 }
 
 kbd {
@@ -753,10 +753,14 @@ kbd {
   border-radius: 6px;
   padding: 0.2rem 0.5rem;
   font-family: monospace;
-  font-weight: bold;
   color: #c4b5fd;
   box-shadow: inset 0 1px 0 #00FFFF, 0 1px 0 #0a0f12;
   margin: 0 2px;
+}
+
+.mouse-icon{
+  width: 30px;
+  height: auto;
 }
 
 .modal-tip {

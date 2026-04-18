@@ -105,7 +105,7 @@ export const CONFIG = {
   MAX_PIXEL_RATIO: 2,
 
   ENEMIES: {
-    MAX_COUNT: 1, //  TESTING
+    MAX_COUNT: 1, //  I DON'T THINK THIS IS USED ANYMORE
     SPAWN_INTERVAL_MIN: 3.0, 
     SPAWN_INTERVAL_MAX: 6.0,
     SPAWN_DISTANCE: 400, 
@@ -166,7 +166,7 @@ export const CONFIG = {
         COLLISION_DAMAGE: 10, // DECREASED FROM 35
         LASER_COLOR: '#ff0000',
         LASER_INTERVAL: 2.5, // INCREASED FROM 2
-        COMBAT_DURATION: 16.0,
+        COMBAT_DURATION: 9.0,
         WANDER_SPEED: 30,
         WANDER_X: 90,
         WANDER_Y: 60,
@@ -251,7 +251,7 @@ export const CONFIG = {
         ANIM_SPEED:    0,        
         SPLINE_COLOR:  '#6f407c', 
 
-        COLLISION_DAMAGE: 10, // REDUCED FROM 20
+        COLLISION_DAMAGE: 10, // NO LONGER USED
         LASER_COLOR: '#FF0000',
         LASER_INTERVAL: 2, // INCREASED FROM 2
         HOVER_DURATION_MIN: 0.7,
@@ -261,7 +261,7 @@ export const CONFIG = {
         BOB_SPEED: 4.5,
         ROAM_X: 240,
         ROAM_Y: 155,
-        COMBAT_DURATION: 11.0,
+        COMBAT_DURATION: 9.0,
         PRISM_FIRST_DELAY_MIN: 1,
         PRISM_FIRST_DELAY_MAX: 2.5,
         PRISM_COOLDOWN_MIN:    5.0,

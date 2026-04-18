@@ -548,6 +548,7 @@ let _screenShakeTimer    = 0;   // CANVAS-LEVEL SCREEN SHAKE — COUNTS DOWN FRO
 let _screenShakeStrength = 0;   // PEAK PIXEL DISPLACEMENT
 let _screenShakeDuration = 1;   // TOTAL SHAKE DURATION (STORED FOR DECAY CALCULATION)
 let _totalElapsed        = 0;   // RUNNING GAME-TIME CLOCK IN SECONDS — USED BY BOT FOR RUN TIMING
+let _bombHoldTimer       = null; // SINGULARITY BOMB — HOLD-TO-FIRE PREVENTS ACCIDENTAL DEPLOYS
 
 let currentMode       = 'bossBattle'; 
 let currentEnemyCount = 5;
@@ -586,22 +587,42 @@ window.addEventListener('keydown', (e) => {
     audio.playBarrelRoll();
     return;
   }
-  if (e.code === 'KeyF') {
+  if (e.code === 'KeyR' && !isPaused && ship.isAlive && !_bombHoldTimer) {
     e.preventDefault();
-    deployBomb();
+    _bombHoldTimer = setTimeout(() => {
+      deployBomb();
+      _bombHoldTimer = null;
+    }, 400);
     return;
   }
-  if (e.code === 'ShiftRight') {
+  if ((e.code === 'ShiftRight' || e.code === 'ShiftLeft') && !isPaused) {
     e.preventDefault();
     ship.activateBoost();
     return;
   }
 });
 
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'KeyR') {
+    clearTimeout(_bombHoldTimer);
+    _bombHoldTimer = null;
+  }
+});
+
+// ==================== MOUSE CONTROLS ====================
+gameCanvas.addEventListener('mousedown', (e) => {
+  if (e.button === 0 && !isPaused) {  // LEFT CLICK — SHOOT
+    doShoot();
+  }
+});
 
 gameCanvas.addEventListener('contextmenu', (e) => {
   e.preventDefault();
-  deployBomb();
+  if (isPaused || !ship.isAlive || ship.isBarrelRolling) return;
+  // DIRECTION INFERRED FROM SHIP TILT — NEGATIVE ROTATION = TILTED LEFT = ROLL LEFT
+  const direction = ship.currentRotation < 0 ? -1 : 1;
+  ship.startBarrelRoll(direction);
+  audio.playBarrelRoll();
 });
 
 // ==================== BUTTON EVENTS ====================
