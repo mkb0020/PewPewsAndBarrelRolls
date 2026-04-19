@@ -1,4 +1,4 @@
-// Updated at 4/18/26 @ 6:00PM
+// Updated at 4/19/26 @ 3:00PM
 import { CONFIG } from '../utils/config.js';
 import { WAVE_CONFIGS } from '../scenes/gameplay.js';
 
@@ -31,6 +31,23 @@ export const SessionRecorder = {
     else this.start();
   },
 
+  endSession(reason = 'unknown') { // AUTOMATICALLY ENDS SESSION RECORDER AND DOWNLOADS JSON
+  if (!this.recording) return;
+  this.log('session_end_trigger', { reason }); 
+  this.stop(); 
+},
+
+  // CALLED BY BOTPLAYER AT THE START OF EACH NEW RUN — RESETS EVENTS WITHOUT DOWNLOADING.
+  // KEEPS SESSIONS CLEAN PER RUN WITHOUT SPAMMING DOWNLOAD FILES.
+  restartForBot() {
+    this.recording = false;
+    this.events    = [];
+    this.startTime = performance.now();
+    this.recording = true;
+    this.log('session_start', { source: 'bot' });
+    DevTools?.updateRecorderUI?.();
+  },
+
   log(type, data = {}) {
     if (!this.recording) return;
     this.events.push({
@@ -57,6 +74,12 @@ export const SessionRecorder = {
       bossEntryShipLives: null,  // LIVES REMAINING WHEN BOSS BATTLE BEGAN
       bossBattleDuration: null,
       avgTimeToKill: null,
+      // ── PROGRESS TRACKING ───────────────────────────────────────────────────
+      waveReached:  null,   // HIGHEST WAVE NUMBER ENTERED (1-BASED, e.g. "Wave 3")
+      waveCleared:  null,   // HIGHEST WAVE NUMBER FULLY CLEARED (1-BASED)
+      bossReached:  false,  // DID PLAYER REACH THE BOSS BATTLE?
+      gameBeaten:   false,  // DID PLAYER DEFEAT THE WORM BOSS?
+      runOutcome:   null,   // 'game_over' | 'boss_defeated' | 'in_progress'
     };
 
     const spawnTimes = new Map();
@@ -84,6 +107,7 @@ export const SessionRecorder = {
           bossStart = evt.time;
           summary.bossEntryShipHp    = evt.shipHp    ?? null;
           summary.bossEntryShipLives = evt.shipLives ?? null;
+          summary.bossReached        = true;
           break;
         case 'boss_battle_end':
           bossEnd = evt.time;
@@ -101,7 +125,35 @@ export const SessionRecorder = {
         case 'ocular_prism_attack':
           summary.ocularPrismCount++;
           break;
+        // ── PROGRESS EVENTS (logged by main.js) ─────────────────────────────
+        case 'wave_start':
+          if (evt.waveIndex != null) {
+            const waveNum = evt.waveIndex + 1; // CONVERT 0-BASED INDEX → 1-BASED NUMBER
+            if (summary.waveReached === null || waveNum > summary.waveReached) {
+              summary.waveReached = waveNum;
+            }
+          }
+          break;
+        case 'wave_cleared':
+          if (evt.waveIndex != null) {
+            const waveNum = evt.waveIndex + 1;
+            if (summary.waveCleared === null || waveNum > summary.waveCleared) {
+              summary.waveCleared = waveNum;
+            }
+          }
+          break;
+        case 'session_end_trigger':
+          if (evt.reason === 'boss_defeated') summary.gameBeaten = true;
+          summary.runOutcome = evt.reason ?? 'unknown';
+          break;
       }
+    }
+
+    // IF BOSS WAS REACHED AND BOSS BATTLE END WAS LOGGED, CHECK FOR VICTORY
+    if (summary.bossReached && summary.gameBeaten) {
+      summary.runOutcome = 'boss_defeated';
+    } else if (summary.runOutcome === null) {
+      summary.runOutcome = 'in_progress';
     }
 
     if (killDurations.length > 0) {
@@ -172,9 +224,7 @@ export const SessionRecorder = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// Dev Overlay / Live Tuning Panel
-// -----------------------------------------------------------------------------
+
 export const DevTools = {
   panel: null,
   recorderStatusEl: null,
@@ -185,6 +235,7 @@ export const DevTools = {
     this._createPanel();
     this._attachKeyListeners();
     this.updateRecorderUI();
+    SessionRecorder.start(); // AUTO START SESSION RECORDER
   },
 
   _createPanel() {

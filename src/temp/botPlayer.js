@@ -1,4 +1,4 @@
-// Updated 4/18/26 @ 5:30AM
+// UPDATED 4/19/26 @ 3:00PM
 // JS/TEMP/BOTPLAYER.JS
 // BOT'S NAME: "NOODLE"
 //
@@ -69,13 +69,13 @@ import { CONFIG }      from '../utils/config.js';
 
 const BOT = {
   EVADE_LOOKAHEAD_S:        0.20,   // SECONDS AHEAD TO PREDICT THREAT POSITIONS
-  LASER_THREAT_RADIUS:      95,     // px — EVASION BUBBLE AROUND INCOMING LASER
-  GOO_THREAT_RADIUS:        105,    // px — GOO ARC PREDICTION BUBBLE
-  ENEMY_BODY_RADIUS:        115,    // px
-  BABY_WORM_RADIUS:          60,    // px
+  LASER_THREAT_RADIUS:      95,     // PX — EVASION BUBBLE AROUND INCOMING LASER
+  GOO_THREAT_RADIUS:        105,    // PX — GOO ARC PREDICTION BUBBLE
+  ENEMY_BODY_RADIUS:        115,    // PX
+  BABY_WORM_RADIUS:          60,    // PX
   BOSS_SUCTION_THRESHOLD:    0.72,  // SUCTION SCALE — BELOW THIS EVADE THE WORM HEAD
-  EDGE_MARGIN:               70,    // px — KEEP SHIP INSIDE THIS BORDER
-  EVADE_RANGE:              225,    // px — HOW FAR TO PROJECT THE EVADE TARGET
+  EDGE_MARGIN:               70,    // PX — KEEP SHIP INSIDE THIS BORDER
+  EVADE_RANGE:              225,    // PX — HOW FAR TO PROJECT THE EVADE TARGET
 
   PRISM_VALUE:               90,    // HIGHEST PRIORITY
   TESSERACT_VALUE:           55,
@@ -86,34 +86,34 @@ const BOT = {
   MIN_ENEMY_SCALE_TO_SHOOT:  0.45,  // DON'T SHOOT TINY FAR-AWAY ENEMIES
   MIN_WORM_SCALE_TO_SHOOT:   0.42,
 
-  MOVE_DEADZONE:             26,    // px — STOP STEERING IF ALREADY THIS CLOSE TO TARGET
+  MOVE_DEADZONE:             26,    // PX — STOP STEERING IF ALREADY THIS CLOSE TO TARGET
 
   // ── STRESS SYSTEM ─────────────────────────────────────────────────────────
   STRESS_HP_WEIGHT:          0.35,  // CONTRIBUTION FROM LOW HP
   STRESS_DAMAGE_WEIGHT:      0.30,  // CONTRIBUTION FROM RECENT DAMAGE
   STRESS_ENEMY_WEIGHT:       0.35,  // CONTRIBUTION FROM NEARBY COMBAT ENEMIES
-  STRESS_ENEMY_RADIUS:       280,   // px — "NEARBY" THRESHOLD
-  STRESS_ENEMY_CAP:          3,     // ENEMY COUNT THAT MAXES THIS COMPONENT
-  STRESS_RISE_RATE:          0.12,  // HOW FAST STRESS CLIMBS (LERP FACTOR PER FRAME)
-  STRESS_DECAY_RATE:         0.025, // HOW FAST STRESS FALLS (SLOW — RECOVERY TAKES TIME)
-  DAMAGE_DECAY_RATE:         18,    // HP/s AT WHICH RECENT-DAMAGE MEMORY FADES
+  STRESS_ENEMY_RADIUS:       220,   // PX — "NEARBY" THRESHOLD (WAS 280 — TIGHTER)
+  STRESS_ENEMY_CAP:          5,     // ENEMY COUNT THAT MAXES THIS COMPONENT (WAS 3 — WAVE 3 DENSITY NEEDED HIGHER CAP)
+  STRESS_RISE_RATE:          0.07,  // SLOWER STRESS CLIMB — NOODLE STAYS COMPOSED LONGER
+  STRESS_DECAY_RATE:         0.040, // HOW FAST STRESS FALLS (WAS 0.025 — FASTER RECOVERY AFTER THREATS CLEAR)
+  DAMAGE_DECAY_RATE:         26,    // HP/S AT WHICH RECENT-DAMAGE MEMORY FADES (WAS 18 — FADES SOONER)
 
   // ── IMPERFECTION RANGES ──
   AIM_NOISE_AMP_MIN:         0.02,  // NEAR-PERFECT AIM WHEN CALM
-  AIM_NOISE_AMP_MAX:         0.20,  // SHAKY AIM WHEN OVERWHELMED
+  AIM_NOISE_AMP_MAX:         0.11,  // SLIGHTLY SHAKY AT PEAK STRESS
   AIM_NOISE_SPEED:           1.5,   // WOBBLE FREQUENCY
   SHOOT_CHANCE_MIN:          0.97,  // FIRES ALMOST EVERY ELIGIBLE FRAME WHEN CALM
-  SHOOT_CHANCE_MAX:          0.72,  // HESITANT TRIGGER WHEN STRESSED
-  REACTION_MIN:              0.06,  // FAST TARGET ACQUISITION WHEN CALM (s)
-  REACTION_MAX:              0.30,  // SLOW ACQUISITION UNDER PRESSURE (s)
-  MOVE_IMPRECISION_MIN:       8,    // px NAV NOISE WHEN CALM
-  MOVE_IMPRECISION_MAX:      42,    // px NAV NOISE WHEN STRESSED
+  SHOOT_CHANCE_MAX:          0.84,  // MILD HESITATION UNDER STRESS
+  REACTION_MIN:              0.06,  // FAST TARGET ACQUISITION WHEN CALM (S)
+  REACTION_MAX:              0.22,  // SLOWER ACQUISITION UNDER STRESS
+  MOVE_IMPRECISION_MIN:       8,    // PX NAV NOISE WHEN CALM
+  MOVE_IMPRECISION_MAX:      28,    // PX NAV NOISE WHEN STRESSED
 
   // ── BRAIN FART (STRESS) ─────────────────────
-  BRAIN_FART_STRESS_MIN:     0.62,  // STRESS LEVEL BELOW WHICH BRAIN FARTS NEVER OCCUR
-  BRAIN_FART_CHANCE_MAX:     0.003, // PER-FRAME CHANCE AT MAXIMUM STRESS
-  BRAIN_FART_DURATION_MIN:   0.35,  // SHORTEST CONFUSION WINDOW (s)
-  BRAIN_FART_DURATION_MAX:   0.70,  // LONGEST CONFUSION WINDOW (s)
+  BRAIN_FART_STRESS_MIN:     0.78,  // HIGHER THRESHOLD — ONLY PANICS WHEN TRULY OVERWHELMED
+  BRAIN_FART_CHANCE_MAX:     0.0015, // LESS FREQUENT CONFUSION
+  BRAIN_FART_DURATION_MIN:   0.20,  // SHORTER CONFUSION WINDOW
+  BRAIN_FART_DURATION_MAX:   0.45,  // SHORTER MAX CONFUSION
 
   // ── TARGET LOCK ──────
   LOCK_DURATION_MIN:         0.35,  // SECONDS BEFORE SWITCHING TARGETS WHEN CALM
@@ -126,7 +126,7 @@ const BOT = {
   RESET_DELAY_S:             4.5,   // MUST OUTLAST FULL SHIP DEATH ANIMATION
 };
 
-// LINEAR INTERPOLATION HELPER — CLAMPS t TO [0,1] SO CALLERS DON'T NEED TO
+// LINEAR INTERPOLATION HELPER — CLAMPS T TO [0,1] SO CALLERS DON'T NEED TO
 function _lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,11 +146,12 @@ export class BotPlayer {
     this._currentRun     = null;
     this._resetPending   = false;
     this._resetTimer     = 0;
+    this._pendingAction  = null;  // 'CONTINUE' | 'RESTART' — SET WHEN _RESETPENDING ARMS; NEVER INFERRED FROM STALE RUN STATS
     this._prevInBoss     = false;  // EDGE-DETECT: FALSE → TRUE TRANSITION
 
     // CALLBACKS 
-    this.onRequestContinue = null;  // () => transitionScene._handleContinue()
-    this.onRequestRestart  = null;  // () => transitionScene._handleRestart()
+    this.onRequestContinue = null;  // () => TRANSITIONSCENE._HANDLECONTINUE()
+    this.onRequestRestart  = null;  // () => TRANSITIONSCENE._HANDLERESTART()
 
     this._overlay = null;
     this._statsEl = null;
@@ -179,7 +180,7 @@ export class BotPlayer {
     this._lockedTargetId  = null; 
     this._targetLockTimer = 0;   
 
-    // ── MOVE IMPRECISION (cached per-frame so _setMovementKeys can read it) ───
+    // ── MOVE IMPRECISION (CACHED PER-FRAME SO _SETMOVEMENTKEYS CAN READ IT) ───
     this._currentMoveImprecision = BOT.MOVE_IMPRECISION_MIN;
     // ── AUTO-CLICK STATE ─────────────────────────────────────────────────────
     this._autoClickTimer = 0;
@@ -189,23 +190,23 @@ export class BotPlayer {
   enable() {
     this.enabled = true;
     this._overlay.style.display = 'block';
-    // console.log('🤖 Bot enabled — F8 to toggle');
+    // CONSOLE.LOG('🤖 BOT ENABLED — F8 TO TOGGLE');
   }
 
   disable() {
     this.enabled = false;
     this._clearKeys();
     this._overlay.style.display = 'none';
-    // console.log('🤖 Bot disabled');
+    // CONSOLE.LOG('🤖 BOT DISABLED');
   }
 
   toggle() { this.enabled ? this.disable() : this.enable(); }
 
   /**
-   * Start an automated batch of N full games.
-   * In waveOnlyMode (default) each run ends when the boss battle begins —
-   * giving clean wave 1–5 data without boss deaths contaminating the stats.
-   * @param {number} size
+   * START AN AUTOMATED BATCH OF N FULL GAMES.
+   * IN WAVEONLYMODE (DEFAULT) EACH RUN ENDS WHEN THE BOSS BATTLE BEGINS —
+   * GIVING CLEAN WAVE 1–5 DATA WITHOUT BOSS DEATHS CONTAMINATING THE STATS.
+   * @param {NUMBER} SIZE
    */
   startBatch(size = BOT.DEFAULT_BATCH) {
     this._batchTarget  = size;
@@ -215,45 +216,42 @@ export class BotPlayer {
     this._resetPending = false;
     this._prevInBoss   = false;
     this.enable();
-    const modeLabel = this.waveOnlyMode ? 'waves 1–5 only' : 'full game';
-    console.log(`🤖 Batch started — ${size} runs queued (${modeLabel})`);
+    const modeLabel = this.waveOnlyMode ? 'WAVES 1–5 ONLY' : 'FULL GAME';
+    console.log(`🤖 BATCH STARTED — ${size} RUNS QUEUED (${modeLabel})`);
   }
 
   stopBatch() {
     this._batchActive = false;
     this._updateOverlay();
     console.log(
-      `🤖 Batch complete — ${this._runStats.length} runs recorded. ` +
-      `Call bot.exportResults() to download JSON.`
+      `🤖 BATCH COMPLETE — ${this._runStats.length} RUNS RECORDED. ` +
+      `CALL BOT.EXPORTRESULTS() TO DOWNLOAD JSON.`
     );
   }
 
   /**
-   * Called every frame from main.js OUTSIDE the transitionScene.isBlocking gate.
-   * Ticks the reset-pending countdown so it always drains even while the died/
-   * gameover overlay is visible (at which point bot.update() stops being called).
-   * @param {number} dt
+   * CALLED EVERY FRAME FROM MAIN.JS OUTSIDE THE TRANSITIONSCENE.ISBLOCKING GATE.
+   * TICKS THE RESET-PENDING COUNTDOWN SO IT ALWAYS DRAINS EVEN WHILE THE DIED/
+   * GAMEOVER OVERLAY IS VISIBLE (AT WHICH POINT BOT.UPDATE() STOPS BEING CALLED).
+   * @param {NUMBER} DT
    */
   tickBlocked(dt) {
     if (!this.enabled) return;
 
-    // AUTO-CLICK CONTINUE / RESTART — bot handles its own death screens via DOM
+    // AUTO-CLICK CONTINUE / RESTART — BOT HANDLES ITS OWN DEATH SCREENS VIA DOM
     this._tickAutoClick(dt);
 
     if (!this._resetPending) return;
     this._resetTimer -= dt;
     if (this._resetTimer <= 0) {
-      this._resetPending = false;
-      this._prevInBoss   = false;  // RESET EDGE DETECTOR FOR NEXT RUN
-      const last = this._runStats[this._runStats.length - 1];
-      // RESTART RULES:
-      //   bossReached=true  → ALWAYS RESTART (RUN ENDED CLEANLY AT BOSS ENTRY; RESET TO WAVE 1)
-      //   livesAtEnd=0      → ALWAYS RESTART (GAME OVER)
-      //   died w/ lives left → CONTINUE (RESPAWN ON CURRENT WAVE, USE REMAINING LIVES)
-      if ((last?.bossReached) || (last?.livesAtEnd ?? 0) <= 0) {
-        this.onRequestRestart?.();
-      } else {
+      this._resetPending  = false;
+      this._prevInBoss    = false;  // RESET EDGE DETECTOR FOR NEXT RUN
+      const action        = this._pendingAction;
+      this._pendingAction = null;
+      if (action === 'continue') {
         this.onRequestContinue?.();
+      } else {
+        this.onRequestRestart?.();
       }
     }
   }
@@ -261,12 +259,12 @@ export class BotPlayer {
   // ── MAIN FRAME UPDATE ──────────────────────────────────────────────────────
 
   /**
-   * Call every frame from main.js when bot.enabled is true.
-   * Returns control intent for main.js to act on; null if bot is idle / waiting.
+   * CALL EVERY FRAME FROM MAIN.JS WHEN BOT.ENABLED IS TRUE.
+   * RETURNS CONTROL INTENT FOR MAIN.JS TO ACT ON; NULL IF BOT IS IDLE / WAITING.
    *
-   * @param {number} dt
-   * @param {object} snap
-   * @returns {{ aimNX: number, aimNY: number, shouldShoot: boolean } | null}
+   * @param {NUMBER} DT
+   * @param {OBJECT} SNAP
+   * @returns {{ AIMNX: NUMBER, AIMNY: NUMBER, SHOULDSHOOT: BOOLEAN } | NULL}
    */
   update(dt, snap) {
     if (!this.enabled) return null;
@@ -281,63 +279,57 @@ export class BotPlayer {
 
     if (!this._currentRun && ship.isAlive && !this._resetPending) {
       this._currentRun = { startTime: elapsed, startLives: ship.lives, startScore: score };
+      // RESTART SESSION RECORDER FOR EACH RUN SO EVENTS STAY CLEAN PER-RUN.
+      // RESTARTFORBOT() RESETS EVENTS WITHOUT TRIGGERING A DOWNLOAD.
+      window.SessionRecorder?.restartForBot?.();
     }
 
     // ── WAVE-ONLY MODE: TREAT BOSS BATTLE ENTRY AS A CLEAN RUN END ───────
-    // DETECTS THE FRAME inBossBattle FIRST BECOMES TRUE — THAT'S THE END OF WAVE 5.
+    // DETECTS THE FRAME INBOSSBATTLE FIRST BECOMES TRUE — THAT'S THE END OF WAVE 5.
     // WE FINISH THE RUN IMMEDIATELY AND RESTART WITHOUT WAITING FOR THE BOT TO DIE.
     if (this.waveOnlyMode && inBossBattle && !this._prevInBoss && this._currentRun && !this._resetPending) {
-      this._finishRun(elapsed, score, ship.lives, true /* bossReached */);
+      this._finishRun(elapsed, score, ship.lives, true /* BOSSREACHED */);
       if (this._batchActive && this._runStats.length >= this._batchTarget) {
         this.stopBatch();
       } else {
-        this._resetPending = true;
-        this._resetTimer   = BOT.RESET_DELAY_S;
+        this._resetPending  = true;
+        this._resetTimer    = BOT.RESET_DELAY_S;
+        this._pendingAction = 'restart'; // BOSS REACHED = END OF WAVE RUN → RESTART FROM WAVE 1
       }
     }
     this._prevInBoss = inBossBattle;
 
     // ── NORMAL DEATH HANDLING (FIRES WHEN BOT DIES DURING WAVES 1–5) ─────
-    // A "run" spans all 3 lives — only finalize it when lives hit 0 (game over).
-    // Mid-run deaths just set _resetPending so tickBlocked() fires onRequestContinue.
-    if (this._currentRun && !ship.isAlive) {
+    // A "RUN" SPANS ALL 3 LIVES — ONLY FINALIZE IT WHEN LIVES HIT 0 (GAME OVER).
+    // MID-RUN DEATHS SET _PENDINGACTION='CONTINUE' SO TICKBLOCKED() FIRES ONREQUESTCONTINUE.
+    if (this._currentRun && !ship.isAlive && !this._resetPending) {
       if (ship.lives <= 0) {
         // GAME OVER — THIS RUN IS TRULY DONE
         this._finishRun(elapsed, score, ship.lives, false);
         if (this._batchActive && this._runStats.length >= this._batchTarget) {
           this.stopBatch();
         } else {
-          this._resetPending = true;
-          this._resetTimer   = BOT.RESET_DELAY_S;
+          this._resetPending  = true;
+          this._resetTimer    = BOT.RESET_DELAY_S;
+          this._pendingAction = 'restart'; // GAME OVER → RESTART FROM WAVE 1
         }
       } else {
         // MID-RUN DEATH — CONTINUE WITH REMAINING LIVES, DON'T END THE RUN
-        this._resetPending = true;
-        this._resetTimer   = BOT.RESET_DELAY_S;
+        // _PENDINGACTION='CONTINUE' IS THE KEY FIX: PREVIOUSLY THIS FELL THROUGH TO STALE
+        // RUN-STATS LOGIC WHICH DEFAULTED TO 'RESTART' ON THE FIRST DEATH OF ANY RUN.
+        this._resetPending  = true;
+        this._resetTimer    = BOT.RESET_DELAY_S;
+        this._pendingAction = 'continue'; // LIVES REMAIN → RESPAWN ON CURRENT WAVE
       }
     }
 
-    // ── WAITING TO RESTART ─────────────────────────────────────────────────
+    // ── WAITING TO RESTART / CONTINUE ─────────────────────────────────────
 
     if (!ship.isAlive || this._resetPending) {
       this._clearKeys();
-      if (this._resetPending) {
-        this._resetTimer -= dt;
-        if (this._resetTimer <= 0) {
-          this._resetPending = false;
-          this._prevInBoss   = false;  // RESET EDGE DETECTOR FOR NEXT RUN
-          const last = this._runStats[this._runStats.length - 1];
-          // RESTART RULES:
-          //   bossReached=true  → ALWAYS RESTART (RUN ENDED CLEANLY AT BOSS ENTRY; RESET TO WAVE 1)
-          //   livesAtEnd=0      → ALWAYS RESTART (GAME OVER)
-          //   died w/ lives left → CONTINUE (RESPAWN ON CURRENT WAVE, USE REMAINING LIVES)
-          if ((last?.bossReached) || (last?.livesAtEnd ?? 0) <= 0) {
-            this.onRequestRestart?.();
-          } else {
-            this.onRequestContinue?.();
-          }
-        }
-      }
+      // NOTE: TIMER IS TICKED EXCLUSIVELY IN TICKBLOCKED() — WHICH RUNS EVERY FRAME
+      // REGARDLESS OF THE ISBLOCKING GATE. DO NOT DECREMENT HERE TO AVOID DOUBLE-TICKING
+      // DURING THE BRIEF WINDOW WHERE SHIP IS DEAD BUT THE OVERLAY HASN'T BLOCKED YET.
       this._updateOverlay();
       return null;
     }
@@ -356,13 +348,13 @@ export class BotPlayer {
     this._computeStress(ship, enemies);
     const stress = this._stress;
 
-    // Derive all imperfection parameters from stress
+    // DERIVE ALL IMPERFECTION PARAMETERS FROM STRESS
     const aimNoiseAmp   = _lerp(BOT.AIM_NOISE_AMP_MIN,     BOT.AIM_NOISE_AMP_MAX,    stress);
     const shootChance   = _lerp(BOT.SHOOT_CHANCE_MIN,       BOT.SHOOT_CHANCE_MAX,     stress);
     const reactionRange = _lerp(BOT.REACTION_MIN,           BOT.REACTION_MAX,         stress);
     this._currentMoveImprecision = _lerp(BOT.MOVE_IMPRECISION_MIN, BOT.MOVE_IMPRECISION_MAX, stress);
 
-    // BRAIN FART — only possible above the stress threshold
+    // BRAIN FART — ONLY POSSIBLE ABOVE THE STRESS THRESHOLD
     if (this._brainFartTimer > 0) {
       this._brainFartTimer -= dt;
     } else if (stress > BOT.BRAIN_FART_STRESS_MIN) {
@@ -375,14 +367,16 @@ export class BotPlayer {
     const confused = this._brainFartTimer > 0;
 
     // ── AWARENESS ─────────────────────────────────────────────────────────
-
-    const threats   = confused ? [] : this._gatherThreats(enemyLasers, gooProjectiles, enemies, waveWorm, babyWorms, wormBoss, ship);
+    // ALWAYS GATHER THREATS, EVEN DURING BRAIN FART.
+    // BRAIN FART ONLY AFFECTS AIMING AND SHOOTING, NOT EVASION.
+    const threats   = this._gatherThreats(enemyLasers, gooProjectiles, enemies, waveWorm, babyWorms, wormBoss, ship);
     const pickupPts = this._gatherPickups(pickups);
 
-    // ── MOVEMENT DECISION — priority: evade > pickup > drift to center ────
+    // ── MOVEMENT DECISION — PRIORITY: EVADE > PICKUP > DRIFT TO CENTER ────
 
     const evadeDir  = this._evadeDirection(threats, ship);
-    const pickupTgt = this._bestPickup(pickupPts);
+    //PASS SHIP TO _BESTPICKUP SO DISTANCE IS MEASURED FROM SHIP POSITION, NOT SCREEN CENTER
+    const pickupTgt = this._bestPickup(pickupPts, ship);
 
     let tX, tY;
     const cx = window.innerWidth  / 2;
@@ -401,34 +395,34 @@ export class BotPlayer {
 
     this._setMovementKeys(tX, tY, ship);
 
-    // ── AIMING — target lock keeps the bot committed to one enemy ─────────
+    // ── AIMING — TARGET LOCK KEEPS THE BOT COMMITTED TO ONE ENEMY ─────────
 
     this._targetLockTimer -= dt;
 
     let aimTgt = null;
     if (!confused) {
       if (inBossBattle && wormBoss?.isActive && !wormBoss.isDead) {
-        // Boss battle: always aim at the head, no lock needed
+        // BOSS BATTLE: ALWAYS AIM AT THE HEAD, NO LOCK NEEDED
         const head = wormBoss.segments?.[0];
         if (head && !head.isDead && head.drawSize > 1) {
           aimTgt = { x: head.screenX, y: head.screenY };
         }
       } else if (this._lockedTargetId !== null && this._targetLockTimer > 0) {
-        // Try to honour the current lock (tunnel vision on existing target)
+        // TRY TO HONOUR THE CURRENT LOCK (TUNNEL VISION ON EXISTING TARGET)
         const locked = enemies.find(e => !e.isDead && e.id === this._lockedTargetId
                                       && e.scale >= BOT.MIN_ENEMY_SCALE_TO_SHOOT);
         if (locked) aimTgt = { x: locked.x, y: locked.y };
       }
 
       if (!aimTgt) {
-        // Lock expired or target gone — pick a new one and start a fresh lock
+        // LOCK EXPIRED OR TARGET GONE — PICK A NEW ONE AND START A FRESH LOCK
         const best = this._pickAimTarget(enemies, waveWorm, wormBoss, inBossBattle, ship);
         if (best) {
           aimTgt = best;
           const lockDur = _lerp(BOT.LOCK_DURATION_MIN, BOT.LOCK_DURATION_MAX, stress)
                         + Math.random() * 0.15;
           this._targetLockTimer = lockDur;
-          // Store the ID so we can re-find this enemy next frame
+          // STORE THE ID SO WE CAN RE-FIND THIS ENEMY NEXT FRAME
           const matched = enemies.find(e => !e.isDead && Math.abs(e.x - best.x) < 5 && Math.abs(e.y - best.y) < 5);
           this._lockedTargetId = matched?.id ?? null;
         } else {
@@ -438,7 +432,7 @@ export class BotPlayer {
       }
     }
 
-    // REACTION DELAY — reset when target changes (key = rounded position)
+    // REACTION DELAY — RESET WHEN TARGET CHANGES (KEY = ROUNDED POSITION)
     const tgtKey = aimTgt ? `${Math.round(aimTgt.x / 10)},${Math.round(aimTgt.y / 10)}` : null;
     if (tgtKey !== this._lastAimTarget) {
       this._lastAimTarget = tgtKey;
@@ -447,7 +441,7 @@ export class BotPlayer {
     if (this._reactionTimer > 0) this._reactionTimer -= dt;
     const hasReacted = this._reactionTimer <= 0;
 
-    // AIM NOISE — sine-wave wobble scaled by stress
+    // AIM NOISE — SINE-WAVE WOBBLE SCALED BY STRESS
     this._updateAimNoise(dt, aimNoiseAmp);
 
     let aimNX = 0, aimNY = 0;
@@ -456,10 +450,10 @@ export class BotPlayer {
       const dy  = aimTgt.y - cy;
       const mag = Math.sqrt(dx * dx + dy * dy) || 1;
       aimNX = dx / mag + this._aimNoiseX;
-      aimNY = -dy / mag + this._aimNoiseY; // crosshair rawY: positive = up
+      aimNY = -dy / mag + this._aimNoiseY; // CROSSHAIR RAWY: POSITIVE = UP
     }
 
-    // SHOOT HESITATION — miss shots more when stressed
+    // SHOOT HESITATION — MISS SHOTS MORE WHEN STRESSED
     const shouldShoot = !!aimTgt && hasReacted && !confused && (Math.random() < shootChance);
 
     this._updateOverlay();
@@ -470,9 +464,9 @@ export class BotPlayer {
   // ── AUTO-CLICK ────────────────────────────────────────────────────────────
 
   /**
-   * Watches for active death/gameover overlays and clicks the right button
-   * after AUTO_CLICK_DELAY seconds. Fully DOM-driven — no reliance on
-   * callback timing so it works reliably with the death animation sequence.
+   * WATCHES FOR ACTIVE DEATH/GAMEOVER OVERLAYS AND CLICKS THE RIGHT BUTTON
+   * AFTER AUTO_CLICK_DELAY SECONDS. FULLY DOM-DRIVEN — NO RELIANCE ON
+   * CALLBACK TIMING SO IT WORKS RELIABLY WITH THE DEATH ANIMATION SEQUENCE.
    */
   _tickAutoClick(dt) {
     const diedActive     = document.getElementById('died-overlay')?.classList.contains('active');
@@ -496,9 +490,9 @@ export class BotPlayer {
   // ── STRESS SYSTEM ─────────────────────────────────────────────────────────
 
   /**
-   * Detects HP drops since last frame and accumulates them into _recentDamage,
-   * which decays over time. This gives the stress system a "damage memory"
-   * so getting hit once raises stress even if HP is still high.
+   * DETECTS HP DROPS SINCE LAST FRAME AND ACCUMULATES THEM INTO _RECENTDAMAGE,
+   * WHICH DECAYS OVER TIME. THIS GIVES THE STRESS SYSTEM A "DAMAGE MEMORY"
+   * SO GETTING HIT ONCE RAISES STRESS EVEN IF HP IS STILL HIGH.
    */
   _updateRecentDamage(dt, ship) {
     if (this._lastShipHP !== null && ship.hp < this._lastShipHP) {
@@ -509,13 +503,13 @@ export class BotPlayer {
   }
 
   /**
-   * Computes stress (0–1) from three inputs:
-   *   HP level   — low HP = high stress
-   *   Recent damage — getting hit spikes stress even with HP to spare
-   *   Nearby enemies — multiple enemies in range = pressure
+   * COMPUTES STRESS (0–1) FROM THREE INPUTS:
+   *   HP LEVEL   — LOW HP = HIGH STRESS
+   *   RECENT DAMAGE — GETTING HIT SPIKES STRESS EVEN WITH HP TO SPARE
+   *   NEARBY ENEMIES — MULTIPLE ENEMIES IN RANGE = PRESSURE
    *
-   * Stress rises quickly but falls slowly, matching how real players feel:
-   * one bad moment can rattle you for several seconds.
+   * STRESS RISES QUICKLY BUT FALLS SLOWLY, MATCHING HOW REAL PLAYERS FEEL:
+   * ONE BAD MOMENT CAN RATTLE YOU FOR SEVERAL SECONDS.
    */
   _computeStress(ship, enemies) {
     const hpPct    = ship.hp / (ship.maxHP || 100);
@@ -535,7 +529,7 @@ export class BotPlayer {
       damageStress * BOT.STRESS_DAMAGE_WEIGHT,
     );
 
-    // ASYMMETRIC LERP — spikes fast, decays slow
+    // ASYMMETRIC LERP — SPIKES FAST, DECAYS SLOW
     const rate = target > this._stress ? BOT.STRESS_RISE_RATE : BOT.STRESS_DECAY_RATE;
     this._stress = Math.max(0, Math.min(1, this._stress + (target - this._stress) * rate));
   }
@@ -543,9 +537,9 @@ export class BotPlayer {
   // ── AIM NOISE ─────────────────────────────────────────────────────────────
 
   /**
-   * Advances two de-synced sine waves and sets _aimNoiseX/Y.
-   * Amplitude is passed in per-frame from the stress-scaled value so noise
-   * is almost zero when calm and peaks only when the bot is overwhelmed.
+   * ADVANCES TWO DE-SYNCED SINE WAVES AND SETS _AIMNOISEX/Y.
+   * AMPLITUDE IS PASSED IN PER-FRAME FROM THE STRESS-SCALED VALUE SO NOISE
+   * IS ALMOST ZERO WHEN CALM AND PEAKS ONLY WHEN THE BOT IS OVERWHELMED.
    */
   _updateAimNoise(dt, amp) {
     this._aimPhaseX += BOT.AIM_NOISE_SPEED * dt;
@@ -555,14 +549,11 @@ export class BotPlayer {
   }
 
   // ── THREAT GATHERING ──────────────────────────────────────────────────────
-
   _gatherThreats(lasers, goos, enemies, waveWorm, babyWorms, wormBoss, ship) {
     const threats = [];
     const la      = BOT.EVADE_LOOKAHEAD_S;
     const gravity = CONFIG.GOO_PROJECTILE.GRAVITY;
-
-    // ── ENEMY LASER BOLTS — LINEAR POSITION PREDICTION
-    for (const l of lasers) {
+    for (const l of lasers) {     // ── ENEMY LASER BOLTS — LINEAR POSITION PREDICTION
       if (l.isDead) continue;
       threats.push({
         fx: l.x + l.dirX * l.speed * la,
@@ -572,8 +563,7 @@ export class BotPlayer {
       });
     }
 
-    // ── GOO ARCS — APPROXIMATE THE PARABOLA WITH A MIDPOINT GRAVITY STEP
-    for (const g of goos) {
+    for (const g of goos) {     // ── GOO ARCS — APPROXIMATE THE PARABOLA WITH A MIDPOINT GRAVITY STEP
       if (g.isDead || g.impacting) continue;
       const vyMid = g.vy + gravity * la * 0.5;
       threats.push({
@@ -586,23 +576,20 @@ export class BotPlayer {
 
     // ── LARGE ENEMY BODIES (BODY-COLLISION RISK WHEN AT COMBAT SCALE)
     for (const e of enemies) {
-      if (e.isDead || e.scale < 0.68) continue;
+      if (e.isDead || e.scale < 0.55) continue;
       threats.push({ fx: e.x, fy: e.y, r: BOT.ENEMY_BODY_RADIUS, w: 0.8 });
     }
 
-    // ── WAVE WORM (LARGER BUBBLE — IT'S FAST AT HIGH SCALE)
-    if (waveWorm && !waveWorm.isDead && waveWorm.scale > 0.45) {
+    if (waveWorm && !waveWorm.isDead && waveWorm.scale > 0.45) {     // ── WAVE WORM (LARGER BUBBLE — IT'S FAST AT HIGH SCALE)
       threats.push({ fx: waveWorm.x, fy: waveWorm.y, r: BOT.ENEMY_BODY_RADIUS * 1.5, w: 1.1 });
     }
 
-    // ── BABY WORMS (SEEKING; IGNORE LATCHED ONES — BARREL ROLL HANDLES THOSE)
-    for (const b of (babyWorms ?? [])) {
+    for (const b of (babyWorms ?? [])) {     // ── BABY WORMS (SEEKING; IGNORE LATCHED ONES — BARREL ROLL HANDLES THOSE)
       if (b.isDead || b.isLatched) continue;
       threats.push({ fx: b.x, fy: b.y, r: BOT.BABY_WORM_RADIUS, w: 0.75 });
     }
 
-    // ── BOSS SUCTION — WORM HEAD BECOMES A GRAVITY WELL WHEN SHIP IS SHRINKING
-    if (wormBoss?.isActive && !wormBoss.isDead && ship.suctionScale < BOT.BOSS_SUCTION_THRESHOLD) {
+    if (wormBoss?.isActive && !wormBoss.isDead && ship.suctionScale < BOT.BOSS_SUCTION_THRESHOLD) {     // ── BOSS SUCTION — WORM HEAD BECOMES A GRAVITY WELL WHEN SHIP IS SHRINKING
       const head = wormBoss.segments?.[0];
       if (head && !head.isDead) {
         threats.push({ fx: head.screenX, fy: head.screenY, r: 300, w: 2.2 });
@@ -621,8 +608,7 @@ export class BotPlayer {
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist >= t.r) continue;
 
-      const strength = (1 - dist / t.r) * t.w;
-      // IF SHIP IS EXACTLY ON TOP OF A THREAT, PICK A RANDOM ESCAPE DIRECTION
+      const strength = (1 - dist / t.r) * t.w;       // IF SHIP IS EXACTLY ON TOP OF A THREAT, PICK A RANDOM ESCAPE DIRECTION
       const nx = dist > 0.5 ? dx / dist : Math.random() * 2 - 1;
       const ny = dist > 0.5 ? dy / dist : Math.random() * 2 - 1;
       evX += nx * strength;
@@ -635,8 +621,7 @@ export class BotPlayer {
     return { x: evX / mag, y: evY / mag };
   }
 
-  // ── PICKUP LOGIC ──────────────────────────────────────────────────────────
-
+  // ── PICKUP LOGIC 
   _gatherPickups({ prisms = [], tesseracts = [], singularityItems = [] }) {
     const list = [];
 
@@ -653,14 +638,12 @@ export class BotPlayer {
     return list;
   }
 
-  _bestPickup(list) {
+  _bestPickup(list, ship) {
     let best = null, bestScore = BOT.MIN_PICKUP_SCORE;
-    const cx = window.innerWidth  / 2;
-    const cy = window.innerHeight / 2;
 
     for (const p of list) {
-      const dx    = p.x - cx;
-      const dy    = p.y - cy;
+      const dx    = p.x - ship.x;
+      const dy    = p.y - ship.y;
       const dist  = Math.sqrt(dx * dx + dy * dy);
       const score = p.v - dist * BOT.DIST_PENALTY_PER_PX;
       if (score > bestScore) { bestScore = score; best = p; }
@@ -669,10 +652,8 @@ export class BotPlayer {
     return best;
   }
 
-  // ── MOVEMENT ──────────────────────────────────────────────────────────────
-
-  _setMovementKeys(tx, ty, ship) {
-    // ADD STRESS-SCALED POSITION NOISE — 
+  // ── MOVEMENT 
+  _setMovementKeys(tx, ty, ship) { // ADD STRESS-SCALED POSITION NOISE — 
     const noiseX = (Math.random() - 0.5) * this._currentMoveImprecision;
     const noiseY = (Math.random() - 0.5) * this._currentMoveImprecision;
     const dx = (tx + noiseX) - ship.x;
@@ -697,21 +678,17 @@ export class BotPlayer {
     virtualKeys['arrowright'] = false;
   }
 
-  // ── AIMING ────────────────────────────────────────────────────────────────
-
-  _pickAimTarget(enemies, waveWorm, wormBoss, inBossBattle, ship) {
+  _pickAimTarget(enemies, waveWorm, wormBoss, inBossBattle, ship) {  // ── AIMING 
     let best = null, bestScore = -Infinity;
 
-    // BOSS BATTLE: ALWAYS AIM AT THE WORM HEAD
-    if (inBossBattle && wormBoss?.isActive && !wormBoss.isDead) {
+    if (inBossBattle && wormBoss?.isActive && !wormBoss.isDead) {  // BOSS BATTLE: ALWAYS AIM AT THE WORM HEAD
       const head = wormBoss.segments?.[0];
       if (head && !head.isDead && head.drawSize > 1) {
         return { x: head.screenX, y: head.screenY };
       }
     }
 
-    // REGULAR ENEMIES: SCORE BY SIZE * PROXIMITY, SLIGHT BONUS FOR TANK (HIGH HP = MORE WORTH KILLING)
-    for (const e of enemies) {
+    for (const e of enemies) {  // REGULAR ENEMIES: SCORE BY SIZE * PROXIMITY, SLIGHT BONUS FOR TANK (HIGH HP = MORE WORTH KILLING)
       if (e.isDead || e.scale < BOT.MIN_ENEMY_SCALE_TO_SHOOT) continue;
       const dx    = e.x - ship.x;
       const dy    = e.y - ship.y;
@@ -733,12 +710,11 @@ export class BotPlayer {
   }
 
   // ── RUN TRACKING ──────────────────────────────────────────────────────────
-
   /**
-   * @param {number}  elapsed
-   * @param {number}  score
-   * @param {number}  livesAtEnd
-   * @param {boolean} bossReached  TRUE WHEN RUN ENDED BY REACHING BOSS (WAVE-ONLY MODE SUCCESS)
+   * @param {NUMBER}  ELAPSED
+   * @param {NUMBER}  SCORE
+   * @param {NUMBER}  LIVESATEND
+   * @param {BOOLEAN} BOSSREACHED  TRUE WHEN RUN ENDED BY REACHING BOSS (WAVE-ONLY MODE SUCCESS)
    */
   _finishRun(elapsed, score, livesAtEnd, bossReached = false) {
     if (!this._currentRun) return;
@@ -794,40 +770,39 @@ export class BotPlayer {
 
     if (n === 0) {
       const stressBar = '█'.repeat(Math.round(this._stress * 8)).padEnd(8, '░');
-      this._statsEl.textContent = (this._currentRun ? 'Run 1 — in progress' : 'Waiting…')
-        + `\nStress: [${stressBar}]`;
+      this._statsEl.textContent = (this._currentRun ? 'RUN 1 — IN PROGRESS' : 'WAITING…')
+        + `\nSTRESS: [${stressBar}]`;
       return;
     }
 
-    const modeTag  = this.waveOnlyMode ? ' [waves 1–5]' : '';
+    const modeTag  = this.waveOnlyMode ? ' [WAVES 1–5]' : '';
     const bStr     = this._batchActive ? ` / ${this._batchTarget}` : '';
     const avgSurv  = (this._runStats.reduce((s, r) => s + r.survivalTime, 0) / n).toFixed(1);
     const avgScore = Math.round(this._runStats.reduce((s, r) => s + r.score, 0) / n);
     const avgLost  = (this._runStats.reduce((s, r) => s + r.livesLost, 0) / n).toFixed(1);
     const bossHits = this._runStats.filter(r => r.bossReached).length;
     const last     = this._runStats[n - 1];
-    const inProg   = this._currentRun ? `\nRun ${n + 1} — in progress` : '';
+    const inProg   = this._currentRun ? `\nRUN ${n + 1} — IN PROGRESS` : '';
 
     const stressBar  = '█'.repeat(Math.round(this._stress * 8)).padEnd(8, '░');
-    const stressLabel = this._stress < 0.3 ? 'calm' : this._stress < 0.62 ? 'pressured' : 'stressed';
+    const stressLabel = this._stress < 0.3 ? 'CALM' : this._stress < 0.62 ? 'PRESSURED' : 'STRESSED';
 
     this._statsEl.textContent =
-      `Runs:      ${n}${bStr}${modeTag}\n` +
-      `Avg surv:  ${avgSurv}s\n` +
-      `Avg score: ${avgScore}\n` +
-      `Avg lives: ${avgLost} lost\n` +
-      `Boss reach:${bossHits} / ${n}\n` +
+      `RUNS:      ${n}${bStr}${modeTag}\n` +
+      `AVG SURV:  ${avgSurv}S\n` +
+      `AVG SCORE: ${avgScore}\n` +
+      `AVG LIVES: ${avgLost} LOST\n` +
+      `BOSS REACH:${bossHits} / ${n}\n` +
       `──────────────────\n` +
-      `Last: ${last.survivalTime}s  ${last.score}pts\n` +
-      `      ×${last.livesLost} lives lost\n` +
+      `LAST: ${last.survivalTime}S  ${last.score}PTS\n` +
+      `      ×${last.livesLost} LIVES LOST\n` +
       `──────────────────\n` +
-      `Stress: [${stressBar}] ${stressLabel}` +
+      `STRESS: [${stressBar}] ${stressLabel}` +
       inProg;
   }
 
   _attachHotkey() {
     window.addEventListener('keydown', e => {
-      // F8 — toggle bot (F9/F10 are taken by SessionRecorder, backtick by DevTools panel)
       if (e.code === 'F8') { e.preventDefault(); this.toggle(); }
     });
   }
@@ -835,15 +810,14 @@ export class BotPlayer {
   // ── PUBLIC API ────────────────────────────────────────────────────────────
 
   /**
-   * Append bot control buttons to the existing DevTools panel.
-   * Call after DevTools.init(): bot.mountToDevPanel(DevTools.panel)
-   * @param {HTMLElement} panelEl
+   * APPEND BOT CONTROL BUTTONS TO THE EXISTING DEVTOOLS PANEL - CALL AFTER DEVTOOLS.INIT(): BOT.MOUNTTODEVPANEL(DEVTOOLS.PANEL)
+   * @param {HTMLELEMENT} PANEL EL
    */
   mountToDevPanel(panelEl) {
     if (!panelEl) return;
 
     const heading = document.createElement('div');
-    heading.textContent = 'Playtest Bot: Noodle';
+    heading.textContent = 'PLAYTEST BOT: NOODLE';
     heading.style.cssText = 'font-weight:600; margin:10px 0 6px 0;';
     panelEl.appendChild(heading);
 
@@ -870,7 +844,7 @@ export class BotPlayer {
                                    'border:1px solid rgba(255,255,255,0.2); color:white; font-size:11px;';
 
     const batchLabel = document.createElement('div');
-    batchLabel.textContent = 'Batch size:';
+    batchLabel.textContent = 'BATCH SIZE:';
     batchLabel.style.cssText = 'font-size:11px; opacity:0.7;';
 
     // WAVE-ONLY MODE TOGGLE
@@ -884,7 +858,7 @@ export class BotPlayer {
       this.waveOnlyMode = waveOnlyCheck.checked;
     });
     const waveOnlyLabel = document.createElement('label');
-    waveOnlyLabel.textContent = 'Waves 1–5 only';
+    waveOnlyLabel.textContent = 'WAVES 1–5 ONLY';
     waveOnlyLabel.style.cssText = 'cursor:pointer; opacity:0.85;';
     waveOnlyLabel.addEventListener('click', () => {
       waveOnlyCheck.checked = !waveOnlyCheck.checked;
@@ -896,21 +870,21 @@ export class BotPlayer {
     row.appendChild(batchLabel);
     row.appendChild(batchSizeInput);
     row.appendChild(waveOnlyRow);
-    row.appendChild(makeBtn('Let Noodle Play  [F8]',       () => this.toggle()));
-    row.appendChild(makeBtn('▶ Start Batch',           () => this.startBatch(parseInt(batchSizeInput.value, 10) || BOT.DEFAULT_BATCH)));
-    row.appendChild(makeBtn('⏹ Stop Batch',            () => this.stopBatch()));
-    row.appendChild(makeBtn('⬇ Export Results JSON',  () => this.exportResults()));
+    row.appendChild(makeBtn('LET NOODLE PLAY  [F8]',       () => this.toggle()));
+    row.appendChild(makeBtn('▶ START BATCH',           () => this.startBatch(parseInt(batchSizeInput.value, 10) || BOT.DEFAULT_BATCH)));
+    row.appendChild(makeBtn('⏹ STOP BATCH',            () => this.stopBatch()));
+    row.appendChild(makeBtn('⬇ EXPORT RESULTS JSON',  () => this.exportResults()));
 
     panelEl.appendChild(row);
   }
 
-  /** @returns {Array} Copy of per-run stat objects */
+  /** @returns {ARRAY} COPY OF PER-RUN STAT OBJECTS */
   getResults() { return [...this._runStats]; }
 
-  /** Download a JSON file with full run stats + summary */
+  /** DOWNLOAD A JSON FILE WITH FULL RUN STATS + SUMMARY */
   exportResults() {
     if (!this._runStats.length) {
-      console.warn('🤖 No bot results to export yet.');
+      console.warn('🤖 NO BOT RESULTS TO EXPORT YET.');
       return;
     }
     const n        = this._runStats.length;
@@ -944,6 +918,6 @@ export class BotPlayer {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);  // FREE MEMORY AFTER CLICK
 
-    console.log(`🤖 Exported ${n} runs.`);
+    console.log(`🤖 EXPORTED ${n} RUNS.`);
   }
 }

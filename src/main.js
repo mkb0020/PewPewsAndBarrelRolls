@@ -1,4 +1,4 @@
-// Updated 4/18/26 @ 2PM
+// Updated 4/19/26 @ 3:00PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -31,10 +31,8 @@ import { SingularityBombManager }                    from './entities/singularit
 import { EnemyDeathManager }                         from './visuals/enemyDeath.js';
 import { FractalCascade }                            from './entities/fractalCascade.js';
 import { DevTools, SessionRecorder }                  from './temp/devTools.js';
-import { BotPlayer }                                 from './temp/botPlayer.js';  // FIX 1: was '../temp/botPlayer.js'
+import { BotPlayer }                                 from './temp/botPlayer.js';  
 
-
-// console.log('=== YOU HAVE NOW ENTERED THE WORMHOLE! ===');
 // ==================== CANVAS ====================
 const gameCanvas    = document.createElement('canvas');
 gameCanvas.id       = 'game-canvas';
@@ -185,6 +183,7 @@ gameplayScene.onWormKill = (kills, required) => {
 };
 
 gameplayScene.onWaveStart = (waveIndex) => {
+  SessionRecorder.log('wave_start', { waveIndex });  // TRACK PROGRESS — WHICH WAVE DID PLAYER REACH?
   updateWaveCounter(0, waveWormManager.getRequired());
   showWaveHUD(true);
   audio.playWaveStart();
@@ -197,6 +196,7 @@ gameplayScene.onWaveStart = (waveIndex) => {
 };
 
 gameplayScene.onWaveCleared = (waveIndex) => {
+  SessionRecorder.log('wave_cleared', { waveIndex }); // TRACK HOW FAR PLAYER PROGRESSED
   unlockWaveBadge(waveIndex);
   audio.playImpact();
 
@@ -286,6 +286,7 @@ wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, du
 // ==================== WORM DEATH → CLOSING SCENE ====================
 wormBoss.onDeath = () => {
   SessionRecorder.log('boss_battle_end');
+  SessionRecorder.endSession('boss_defeated'); 
   audio.stopMusic();
   ship.exitCinematic();
   // HARD-CLEAR SUCTION STATE — PREVENTS SCALED-DOWN SHIP CARRYING INTO CLOSING SCENE
@@ -536,7 +537,10 @@ transitionScene.onContinue = () => {
   }
 };
 
-transitionScene.onGameOver = () => audio.playGameOver1();
+transitionScene.onGameOver = () => {
+  audio.playGameOver1();
+  SessionRecorder.endSession('game_over'); // CAPTURE PROGRESS SNAPSHOT ON GAME OVER
+};
 
 // ==================== GAME STATE ====================
 let isPaused           = false;

@@ -1,4 +1,7 @@
 // transitions.js
+import { DevTools, SessionRecorder }                  from '../temp/devTools.js';
+
+
 export class TransitionScene {
 
   constructor() {
@@ -42,6 +45,7 @@ export class TransitionScene {
   handleDeath(livesLeft, inWormBattle) {
     if (livesLeft <= 0) {
       this._isGameOver = true;
+      SessionRecorder.endSession('game_over'); // NOT SURE IF THIS IS THE CORRECT PLACEMENT
       this._showGameOver();
     } else {
       this._showDied(inWormBattle, livesLeft);
