@@ -1,4 +1,4 @@
-// Updated 3/24/26 @ 2AM
+// Updated 4/21/26 @ 12:00PM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -26,6 +26,7 @@ export class AudioManager {
     this._bossBuffer         = null;
     this._rageBuffer         = null; 
     this._creditsBuffer      = null;
+    this._survivalBuffer     = null;  // SURVIVAL MODE LOOP
     this._musicSource        = null;
     this._introSource        = null;
     this._musicGain          = null;
@@ -81,6 +82,8 @@ export class AudioManager {
         .then(buf => { this._rageBuffer  = buf; console.log('✔ Rage music buffer ready'); return buf; }); 
       this._creditsDecodePromise = this._prefetchAndDecode('./audio/credits.m4a')
         .then(buf => { this._creditsBuffer = buf; console.log('✔ Credits music buffer ready'); return buf; });
+      this._prefetchAndDecode('./audio/survival.wav')
+        .then(buf => { this._survivalBuffer = buf; console.log('✔ Survival music buffer ready'); });
 
       //  PRELOAD GAME OVER MUSIC
       this._prefetchAndDecode('./audio/gameover1.m4a')
@@ -254,6 +257,31 @@ export class AudioManager {
     };
     if (!this._creditsBuffer) {
       this._creditsDecodePromise.then(() => { if (!this.isMuted) play(); });
+      return;
+    }
+    play();
+  }
+
+  startSurvivalMusic(fadeDuration = 2.0) {
+    if (this.isMuted) return;
+    const play = () => {
+      if (!this._survivalBuffer || !this.context) return;
+      this._stopMusicSource();
+      const source  = this.context.createBufferSource();
+      source.buffer = this._survivalBuffer;
+      source.loop   = true;
+      source.connect(this._musicGain);
+      this._musicGain.gain.setValueAtTime(0, this.context.currentTime);
+      this._musicGain.gain.linearRampToValueAtTime(this.MUSIC_VOLUME, this.context.currentTime + fadeDuration);
+      source.start(0);
+      this._musicSource = source;
+    };
+    if (!this._survivalBuffer) {
+      // BUFFER NOT YET READY — PLAY AS SOON AS IT IS
+      this._prefetchAndDecode('./audio/survival.m4a').then(buf => {
+        this._survivalBuffer = buf;
+        if (!this.isMuted) play();
+      });
       return;
     }
     play();

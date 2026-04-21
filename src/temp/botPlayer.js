@@ -1,71 +1,5 @@
-// UPDATED 4/19/26 @ 7:30PM
-// JS/TEMP/BOTPLAYER.JS
+// JS/TEMP/BOTPLAYER.JS - UPDATED 4/21/26 @ 12PM
 // BOT'S NAME: "NOODLE"
-//
-// ─── PLAYTEST BOT — AUTOMATED PLAYER FOR BALANCE SIMULATION ─────────────────
-//
-// CONTROLS: F8 TO TOGGLE ON/OFF. WHEN ACTIVE, THE BOT TAKES OVER MOVEMENT
-// AND AIMING. PLAYER CAN STILL OVERRIDE BY PRESSING KEYS (INPUTS STACK).
-// CONSOLE ACCESS: WINDOW.BOT (SET THIS IN MAIN.JS — SEE STEP 2 BELOW)
-//
-// ── MAIN.JS INTEGRATION — 3 STEPS ───────────────────────────────────────────
-//
-// STEP 1 — IMPORT ALONGSIDE OTHER TEMP MODULES:
-//   IMPORT { BOTPLAYER } FROM '../TEMP/BOTPLAYER.JS';
-//
-// STEP 2 — INSTANTIATE AFTER TRANSITIONSCENE, WIRE CALLBACKS, EXPOSE GLOBALLY:
-//   CONST BOT = NEW BOTPLAYER();
-//   BOT.ONREQUESTCONTINUE = () => TRANSITIONSCENE._HANDLECONTINUE();
-//   BOT.ONREQUESTRESTART  = () => TRANSITIONSCENE._HANDLERESTART();
-//   WINDOW.BOT = BOT;
-//
-// STEP 3 — IN THE MAIN GAME LOOP, AFTER SHIP.UPDATE() AND BEFORE
-//          YOUR SHOOTING / CROSSHAIR CODE, ADD THIS BLOCK:
-//
-//   IF (BOT.ENABLED && !ISPAUSED && !TRANSITIONSCENE.ISBLOCKING) {
-//     CONST INTENT = BOT.UPDATE(DT, {
-//       SHIP: {
-//         X: SHIP.X, Y: SHIP.Y,
-//         HP: SHIP.HP, MAXHP: SHIP.MAXHP,
-//         LIVES: SHIP.LIVES, ISALIVE: SHIP.ISALIVE,
-//         ISINVINCIBLE: SHIP.ISINVINCIBLE,
-//         SUCTIONSCALE: SHIP.SUCTIONSCALE,
-//         BOMBS: SHIP.BOMBS,              // ← SINGULARITY BOMB INVENTORY COUNT
-//       ENEMIES:         ENEMYMANAGER.GETENEMIES(),
-//       ENEMYLASERS:     ENEMYMANAGER.LASERS,
-//       GOOPROJECTILES:  WAVEWORMMANAGER.WORM?.GOOS ?? [],
-//       WAVEWORM:        WAVEWORMMANAGER.WORM,
-//       WORMBOSS:        WORMBOSS,
-//       BABYWORMS:       BABYWORMMANAGER.WORMS,
-//       PICKUPS: {
-//         PRISMS:           COSMICPRISMMANAGER.PRISMS,
-//         TESSERACTS:       TESSERACTFRAGMENTMANAGER.FRAGMENTS,
-//         SINGULARITYITEMS: SINGULARITYBOMBMANAGER._ITEMS,
-//       },
-//       SCORE:        SCOREMANAGER.SCORE,
-//       ELAPSED:      TOTALELAPSED,       // YOUR RUNNING GAME-TIME CLOCK (SECONDS)
-//       INBOSSBATTLE: /* YOUR BOOLEAN */,
-//     });
-//     IF (INTENT) {
-//       CROSSHAIR.SETMOUSEINPUT(INTENT.AIMNX, INTENT.AIMNY);
-//       // IN YOUR SHOOT BLOCK, REPLACE THE FIRE CONDITION WITH:
-//       // IF (INTENT.SHOULDSHOOT && SHIP.CANSHOOT && SHIP.ISALIVE) { ...FIRE... }
-//       // SINGULARITY BOMB — NOODLE USES ONE WHEN STRESS PEAKS:
-//       // IF (INTENT.SHOULDUSEBOMB) { SHIP.USEBOMB?.(); /* OR HOWEVER YOU FIRE IT */ }
-//     }
-//   }
-//
-// ── OPTIONAL — ADD BOT CONTROLS TO THE EXISTING DEVTOOLS PANEL ───────────────
-//   AFTER DEVTOOLS.INIT(), CALL:
-//   BOT.MOUNTTODEVPANEL(DEVTOOLS.PANEL);
-//
-// ── CONSOLE COMMANDS ─────────────────────────────────────────────────────────
-//   WINDOW.BOT.TOGGLE()            — ENABLE / DISABLE
-//   WINDOW.BOT.STARTBATCH(30)      — AUTO-RUN 30 GAMES IN SEQUENCE
-//   WINDOW.BOT.EXPORTRESULTS()     — DOWNLOAD JSON WITH PER-RUN STATS
-//   WINDOW.BOT.GETRESULTS()        — ARRAY OF RUN OBJECTS IN THE CONSOLE
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { virtualKeys } from '../utils/controls.js';
 import { CONFIG }      from '../utils/config.js';
 
@@ -123,7 +57,6 @@ const BOT = {
 
   // ── AUTO-CLICK CONTINUE / RESTART ────────────────────────────────────────
   AUTO_CLICK_DELAY:          2.2,   // SECONDS AFTER OVERLAY APPEARS BEFORE CLICKING
-
   DEFAULT_BATCH:             30,    // DEFAULT NUMBER OF RUNS PER BATCH
   RESET_DELAY_S:             4.5,   // MUST OUTLAST FULL SHIP DEATH ANIMATION
 
@@ -197,7 +130,6 @@ export class BotPlayer {
     this._autoClickTimer = 0;
   }
   // ── LIFECYCLE ──────────────────────────────────────────────────────────────
-
   enable() {
     this.enabled = true;
     this._overlay.style.display = 'block';
@@ -287,7 +219,6 @@ export class BotPlayer {
     } = snap;
 
     // ── RUN LIFECYCLE ──────────────────────────────────────────────────────
-
     if (!this._currentRun && ship.isAlive && !this._resetPending) {
       this._currentRun = { startTime: elapsed, startLives: ship.lives, startScore: score };
       // RESTART SESSION RECORDER FOR EACH RUN SO EVENTS STAY CLEAN PER-RUN.
@@ -335,18 +266,14 @@ export class BotPlayer {
     }
 
     // ── WAITING TO RESTART / CONTINUE ─────────────────────────────────────
-
     if (!ship.isAlive || this._resetPending) {
       this._clearKeys();
-      // NOTE: TIMER IS TICKED EXCLUSIVELY IN TICKBLOCKED() — WHICH RUNS EVERY FRAME
-      // REGARDLESS OF THE ISBLOCKING GATE. DO NOT DECREMENT HERE TO AVOID DOUBLE-TICKING
-      // DURING THE BRIEF WINDOW WHERE SHIP IS DEAD BUT THE OVERLAY HASN'T BLOCKED YET.
+      // NOTE: TIMER IS TICKED EXCLUSIVELY IN TICKBLOCKED() — WHICH RUNS EVERY FRAME - REGARDLESS OF THE ISBLOCKING GATE. DO NOT DECREMENT HERE TO AVOID DOUBLE-TICKING - DURING THE BRIEF WINDOW WHERE SHIP IS DEAD BUT THE OVERLAY HASN'T BLOCKED YET.
       this._updateOverlay();
       return null;
     }
 
-    // ── IN BOSS BATTLE AND NOT WAVE-ONLY — JUST DRIFT TO CENTER AND SHOOT ─
-    // (BASIC PLACEHOLDER; NOT USED IN WAVEONLY MODE BY DEFAULT)
+    // ── IN BOSS BATTLE AND NOT WAVE-ONLY — JUST DRIFT TO CENTER AND SHOOT (BASIC PLACEHOLDER; NOT USED IN WAVEONLY MODE BY DEFAULT)
     if (inBossBattle && this.waveOnlyMode) {
       this._clearKeys();
       this._updateOverlay();
@@ -354,7 +281,6 @@ export class BotPlayer {
     }
 
     // ── STRESS & IMPERFECTION ──────────────────────────────────────────────
-
     this._updateRecentDamage(dt, ship);
     this._computeStress(ship, enemies);
     const stress = this._stress;
@@ -402,13 +328,11 @@ export class BotPlayer {
     if (shouldUseBomb) this._bombCooldown = BOT.BOMB_COOLDOWN_S;
 
     // ── AWARENESS ─────────────────────────────────────────────────────────
-    // ALWAYS GATHER THREATS, EVEN DURING BRAIN FART.
-    // BRAIN FART ONLY AFFECTS AIMING AND SHOOTING, NOT EVASION.
+    // ALWAYS GATHER THREATS, EVEN DURING BRAIN FART. BRAIN FART ONLY AFFECTS AIMING AND SHOOTING, NOT EVASION.
     const threats   = this._gatherThreats(enemyLasers, gooProjectiles, enemies, waveWorm, babyWorms, wormBoss, ship);
     const pickupPts = this._gatherPickups(pickups);
 
     // ── MOVEMENT DECISION — PRIORITY: EVADE > PICKUP > DRIFT TO CENTER ────
-
     const evadeDir  = this._evadeDirection(threats, ship);
     //PASS SHIP TO _BESTPICKUP SO DISTANCE IS MEASURED FROM SHIP POSITION, NOT SCREEN CENTER
     const pickupTgt = this._bestPickup(pickupPts, ship);
@@ -766,7 +690,6 @@ export class BotPlayer {
   }
 
   // ── OVERLAY ───────────────────────────────────────────────────────────────
-
   _buildOverlay() {
     const el = document.createElement('div');
     el.id = 'bot-overlay';
@@ -843,7 +766,6 @@ export class BotPlayer {
   }
 
   // ── PUBLIC API ────────────────────────────────────────────────────────────
-
   /**
    * APPEND BOT CONTROL BUTTONS TO THE EXISTING DEVTOOLS PANEL - CALL AFTER DEVTOOLS.INIT(): BOT.MOUNTTODEVPANEL(DEVTOOLS.PANEL)
    * @param {HTMLELEMENT} PANEL EL
@@ -882,8 +804,7 @@ export class BotPlayer {
     batchLabel.textContent = 'BATCH SIZE:';
     batchLabel.style.cssText = 'font-size:11px; opacity:0.7;';
 
-    // WAVE-ONLY MODE TOGGLE
-    const waveOnlyRow = document.createElement('div');
+    const waveOnlyRow = document.createElement('div'); // WAVE-ONLY MODE TOGGLE
     waveOnlyRow.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:11px;';
     const waveOnlyCheck = document.createElement('input');
     waveOnlyCheck.type    = 'checkbox';

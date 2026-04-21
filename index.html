@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<!-- Updated 3/20/26 @ 3:30am -->
+<!DOCTYPE html> <!-- Updated 4/21/26 @ 12PM -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -8,13 +7,9 @@
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-
-
-
   <script type="module" src="src/main.js"></script>
 
   <img id="opening-cockpit" src="./images/cockpit.gif" alt="" aria-hidden="true">
-
   <div id="glitch-lines" class="glitch-lines"></div>
 
   <div id="opening-terminal">
@@ -26,7 +21,6 @@
     <div id="opening-terminal-text"></div>
     <div class="opening-cursor">█</div>
   </div>
-
 
   <div id="boss-terminal">
     <div class="opening-terminal-header">
@@ -48,9 +42,7 @@
 
   <div id="closing-credits"></div>
 
-
   <div id="menu-overlay">
-    
     <div id="photosensitivity-screen">
       <div class="photo-icon">⚠</div>
       <div class="photo-title">Photosensitivity Warning</div>
@@ -76,8 +68,6 @@
       </div>
     </div>
 
-
-
     <div id="menu-blackout"></div>
     <!--<div class="dev-badge">Dev Mode</div>-->
     <div class="menu-title">Wormholes</div>
@@ -86,14 +76,16 @@
       <button class="menu-btn gameplay" data-mode="gameplay">
         <span class="btn-label">&#9654; &nbsp; PLAY</span>
       </button>
+      <button class="menu-btn survival" data-mode="survival">
+        <span class="btn-label">☠ SURVIVAL</span>
+      </button>
       <button class="menu-btn howto" id="howto-btn">
         <span class="btn-label">** NOTES FOR TESTERS **</span>
       </button>
       <button class="menu-btn boss" data-mode="bossBattle">
         <span class="btn-label">&#9760; &nbsp; to the worm! </span>
       </button>
-      <!-- DEV ONLY — TENTACLE PARAMETER TUNING SANDBOX -->
-      <button class="menu-btn dev-lab" data-mode="tentacleLab">
+      <button class="menu-btn dev-lab" data-mode="tentacleLab"> <!-- DEV ONLY — TENTACLE PARAMETER TUNING SANDBOX -->
         <span class="btn-label">🐙 &nbsp; tentacle lab</span>
       </button>
     </div>
@@ -158,22 +150,15 @@
             <li>Did you notice any lagging?  If so, where? (Some visual elements are fairly heavy on the GPU) </li>
           </ul>
 
-        <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.2rem">Known Issues:</strong></p>
-          <ul style="font-family: arial">
-            <li>Wave 2 enemy attack SFX occasionally fires when it's attack is not active</li>
-            <li>Sometimes if you die during the boss battle, the "You Died" screen doesn't pull up - if you notice this, let me know what the boss was doing when it happened.</li>
-            <li>Not so much an issue, but I'm currently redesigning some of the worms so there may be a some that look weird.</li>
-          </ul>
 
-        <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">Optional:</strong> Collect data that will be super helpful for balancing stats!</p>
+        <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">Recording:</strong> Collect data that will be super helpful for balancing stats!</p>
           <ul style="font-family: arial">
-            <li>After the opening scene - press the backtick key (`)</li>
+            <li>When you start the game, it will automatically start tracking metrics</li>
+            <li>Once you beat the game or get a Game Over, a file will automatically download with a ".json" extension</li>
+            <li>You can upload the file to the feedback form</li>
+            <li>To disable the recording - press the backtick key (`)</li>
             <li>A little panel will open on the right (pictured below)</li>
-            <li>Hit "Start" under "Session Recorder" and press the backtick again</li>
-            <li>Continue playing  </li>
-            <li>Once you're done, hit the backtick one more time </li>
-            <li>Click "Stop + Export" - This will download a .json file </li>
-            <li>Email the file to MK.BARRIAULT@outlook.com</li>
+            <li>Click "Stop + Export" </li>
           </ul>
           <p><img src="./images/sessionRecorder.png" class="recorder-img"></p>
         <p> <strong style="color: #00FFFF; font-family: 'SpaceLetters'; font-size: 1.2rem">Controls</strong></p>
@@ -215,8 +200,6 @@
 
   </div>
 
-
-
   <div id="mobile-controls" class="landscape"> <!-- MOBILE CONTROLS -->
     <div class="joystick">
       <div class="joystick-knob"></div>
@@ -230,8 +213,6 @@
     </div>
   </div>
 
-
-
   <div id="ui-buttons" class="pre-game-hidden">
     <button class="ui-icon" id="btn-sound" aria-label="Toggle sound"></button>
     <button class="ui-icon" id="btn-pause" aria-label="Toggle pause"></button>
@@ -241,110 +222,126 @@
     <div class="pause-title">PAUSED</div>
   </div>
 
-<div id="hud" class="pre-game-hidden">
-  <div class="hud-block" id="score-block">
-    <div class="hud-label">SCORE</div>
-    <div id="score-value">000,000</div>
-  </div>
-</div>
-
-<div id="hp-container" class="pre-game-hidden">
-  <div class="hud-label">HP</div>
-  <div id="hp-bar-track">
-    <div id="hp-bar-fill"></div>
-    <div class="hp-tick" style="left:25%"></div>
-    <div class="hp-tick" style="left:50%"></div>
-    <div class="hp-tick" style="left:75%"></div>
-  </div>
-</div>
-
-<div id="lives-container" class="pre-game-hidden">
-  <img src="./images/lives.png" id="lives-icon" alt="Lives" />
-  <span id="lives-count">X 3</span>
-</div>
-
-<!-- ========================= PHOTON OVERDRIVE BAR ========================= -->
-<div id="photon-overdrive-bar">
-  <div id="photon-overdrive-label">◈ PHOTON OVERDRIVE</div>
-  <div id="photon-overdrive-bar-track">
-    <div id="photon-overdrive-bar-fill"></div>
-  </div>
-</div>
-
-<!-- ========================= BOOST COOLDOWN BAR ========================= -->
-<div id="boost-cooldown-bar">
-  <div id="boost-cooldown-label"> HYPERDRIVE CHARGING </div>
-  <div id="boost-cooldown-bar-track">
-    <div id="boost-cooldown-bar-fill"></div>
-  </div>
-</div>
-
-<!-- ========================= SINGULARITY BOMB HUD ========================= -->
-<div id="bomb-container" class="pre-game-hidden bomb-empty">
-  <div id="bomb-row">
-    <span id="bomb-icon"><img src="images/singularityBomb.png" class="bomb-img"></span> <!-- ⬟ -->
-    <span id="bomb-count">x 0</span>
-  </div>
-</div>
-
-
-<!-- ========================= BOSS HEALTH BAR ========================= -->
-<div id="boss-health-container" class="pre-game-hidden">
-  <div class="hud-label boss-label">WORM</div>
-  <div id="boss-bar-track">
-    <div id="boss-bar-fill"></div>
-    <div class="boss-tick" style="left:25%"></div>
-    <div class="boss-tick" style="left:50%"></div>
-    <div class="boss-tick" style="left:75%"></div>
-  </div>
-  <div id="boss-hp-text">150 / 150</div>
-</div>
-
-<!-- ========================= CELLULAR AUTOMATTACK COUNTER ========================= -->
-<div id="break-node-counter" class="break-node-counter hidden">
-  <span class="bnc-label">BREAK NODES</span>
-  <span class="bnc-score">
-    <span id="bnc-killed">0</span>
-    <span class="bnc-sep"> / </span>
-    <span id="bnc-total">10</span>
-  </span>
-</div>
-<!-- ========================= WAVE HUD ========================= -->
-<div id="wave-hud" class="hidden">
-
-  <div id="wave-counter-block">
-    <span class="hud-label"><img src="images/wormCount.png" class="wormCount-icon"></span>
-    <span id="wave-counter">0 / 3</span>
+  <div id="hud" class="pre-game-hidden">
+    <div class="hud-block" id="score-block">
+      <div class="hud-label">SCORE</div>
+      <div id="score-value">000,000</div>
+    </div>
   </div>
 
-  <div id="wave-badges">
-    <div class="wave-badge greyed" id="wave-badge-0" title="Wave 1"></div>
-    <div class="wave-badge greyed" id="wave-badge-1" title="Wave 2"></div>
-    <div class="wave-badge greyed" id="wave-badge-2" title="Wave 3"></div>
-    <div class="wave-badge greyed" id="wave-badge-3" title="Wave 4"></div>
-    <div class="wave-badge greyed" id="wave-badge-4" title="Wave 5"></div>
+  <div id="hp-container" class="pre-game-hidden">
+    <div class="hud-label">HP</div>
+    <div id="hp-bar-track">
+      <div id="hp-bar-fill"></div>
+      <div class="hp-tick" style="left:25%"></div>
+      <div class="hp-tick" style="left:50%"></div>
+      <div class="hp-tick" style="left:75%"></div>
+    </div>
   </div>
 
-</div>
+  <div id="lives-container" class="pre-game-hidden">
+    <img src="./images/lives.png" id="lives-icon" alt="Lives" />
+    <span id="lives-count">X 3</span>
+  </div>
 
+  <div id="photon-overdrive-bar"> <!--  PHOTON OVERDRIVE BAR  -->
+    <div id="photon-overdrive-label">◈ PHOTON OVERDRIVE</div>
+    <div id="photon-overdrive-bar-track">
+      <div id="photon-overdrive-bar-fill"></div>
+    </div>
+  </div>
 
-<div id="died-overlay">
-  <div class="died-title">YOU DIED</div>
-  <div class="died-sub" id="died-sub">pull yourself up by your bootstraps and get back out there, kiddo!</div>
-  <div class="died-lives" id="died-lives"></div>
-  <button id="btn-continue" class="died-btn">CONTINUE</button>
-</div>
+  <div id="boost-cooldown-bar"> <!--  BOOST COOLDOWN BAR  -->
+    <div id="boost-cooldown-label"> HYPERDRIVE CHARGING </div>
+    <div id="boost-cooldown-bar-track">
+      <div id="boost-cooldown-bar-fill"></div>
+    </div>
+  </div>
 
-<div id="gameover-overlay">
-  <div class="gameover-title">GAME OVER</div>
-  <div class="gameover-sub">you've disappointed everyone</div>
-  <button id="btn-restart" class="gameover-btn">REDEEM YOURSELF</button>
-</div>
+  <div id="bomb-container" class="pre-game-hidden bomb-empty"> <!--  SINGULARITY BOMB HUD  -->
+    <div id="bomb-row">
+      <span id="bomb-icon"><img src="images/singularityBomb.png" class="bomb-img"></span> <!-- ⬟ -->
+      <span id="bomb-count">x 0</span>
+    </div>
+  </div>
 
-<div id="portrait-overlay" aria-hidden="true">
-  <div class="portrait-icon">↻</div>
-  <p class="portrait-message">Put that thang down <br> flip it and <br> reverse it. <br><br> Rotate to landscape</p>
-</div>
+  <div id="boss-health-container" class="pre-game-hidden">   <!--  BOSS HEALTH BAR  -->
+    <div class="hud-label boss-label">WORM</div>
+    <div id="boss-bar-track">
+      <div id="boss-bar-fill"></div>
+      <div class="boss-tick" style="left:25%"></div>
+      <div class="boss-tick" style="left:50%"></div>
+      <div class="boss-tick" style="left:75%"></div>
+    </div>
+    <div id="boss-hp-text">150 / 150</div>
+  </div>
+
+  <div id="break-node-counter" class="break-node-counter hidden"> <!--  CELLULAR AUTOMATTACK COUNTER  -->
+    <span class="bnc-label">BREAK NODES</span>
+    <span class="bnc-score">
+      <span id="bnc-killed">0</span>
+      <span class="bnc-sep"> / </span>
+      <span id="bnc-total">10</span>
+    </span>
+  </div>
+
+  <div id="wave-hud" class="hidden"><!--  WAVE HUD  -->
+    <div id="wave-counter-block">
+      <span class="hud-label"><img src="images/wormCount.png" class="wormCount-icon"></span>
+      <span id="wave-counter">0 / 3</span>
+    </div>
+
+    <div id="wave-badges">
+      <div class="wave-badge greyed" id="wave-badge-0" title="Wave 1"></div>
+      <div class="wave-badge greyed" id="wave-badge-1" title="Wave 2"></div>
+      <div class="wave-badge greyed" id="wave-badge-2" title="Wave 3"></div>
+      <div class="wave-badge greyed" id="wave-badge-3" title="Wave 4"></div>
+      <div class="wave-badge greyed" id="wave-badge-4" title="Wave 5"></div>
+    </div>
+
+  </div>
+
+  <div id="survival-hud"> <!-- SURVIVAL HUD TIMER -->
+    <span class="hud-label">TIME</span>
+    <span id="survival-timer">0:00</span>
+  </div>
+
+  <div id="survival-countdown"></div> <!-- SURVIVAL COUNTDOWN -->
+
+  <div id="survival-gameover"> <!-- SURVIVAL GAME OVER SCREEN -->
+    <div class="survival-go-title">ANNIHILATED</div>
+    <div class="survival-go-sub">you held out as long as you could</div>
+    <div class="survival-go-stats">
+      <div class="survival-go-stat">
+        <span class="survival-go-stat-label">Time Survived</span>
+        <span class="survival-go-stat-value" id="survival-go-time">0:00</span>
+      </div>
+      <div class="survival-go-stat">
+        <span class="survival-go-stat-label">Enemies Destroyed</span>
+        <span class="survival-go-stat-value" id="survival-go-score">0</span>
+      </div>
+    </div>
+    <button class="survival-go-btn" id="survival-go-restart">TRY AGAIN</button>
+    <div class="survival-go-hint">One life. No mercy.</div>
+  </div>
+
+  <div id="died-overlay">
+    <div class="died-title">YOU DIED</div>
+    <div class="died-sub" id="died-sub">pull yourself up by your bootstraps and get back out there, kiddo!</div>
+    <div class="died-lives" id="died-lives"></div>
+    <button id="btn-continue" class="died-btn">CONTINUE</button>
+  </div>
+
+  <div id="gameover-overlay">
+    <div class="gameover-title">GAME OVER</div>
+    <div class="gameover-sub">you've disappointed everyone</div>
+    <button id="btn-restart" class="gameover-btn">REDEEM YOURSELF</button>
+  </div>
+
+  <div id="portrait-overlay" aria-hidden="true">
+    <div class="portrait-icon">↻</div>
+    <p class="portrait-message">Put that thang down <br> flip it and <br> reverse it. <br><br> Rotate to landscape</p>
+  </div>
 
 </body>
 </html>

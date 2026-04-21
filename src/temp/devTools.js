@@ -1,8 +1,6 @@
-// Updated at 4/19/26 @ 7:30PM
+// Updated at 4/21/26 @ 12PM
 import { CONFIG } from '../utils/config.js';
 import { WAVE_CONFIGS } from '../scenes/gameplay.js';
-
-
 
 export const SessionRecorder = {
   recording: false,

@@ -1,5 +1,4 @@
-// Updated 4/19/26 @ 7:0PM
-// main.js
+// main.js - Updated 4/21/26 @ 12PM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -19,6 +18,7 @@ import { SlimeAttack }                               from './entities/slimeAttac
 import { OcularPrism }                               from './entities/ocularPrism.js';
 import { WaveWormManager }                           from './entities/waveWorm.js';
 import { GameplayScene }                             from './scenes/gameplay.js';
+import { SurvivalScene }                             from './scenes/survivalScene.js';
 import { TransitionScene }                           from './scenes/transitions.js';
 import { BossBattleScene }                           from './scenes/bossBattle.js';
 import { StarfieldScene }                            from './visuals/starfieldScene.js';
@@ -73,6 +73,13 @@ const gameplayScene     = new GameplayScene({
   audio,
   singularityBombManager,
 });
+const survivalScene     = new SurvivalScene({
+  enemyManager,
+  audio,
+  singularityBombManager,
+  cosmicPrismManager,
+  tesseractManager,
+});
 const transitionScene   = new TransitionScene();
 const bot = new BotPlayer();
 bot.onRequestContinue = () => transitionScene._handleContinue();
@@ -93,7 +100,8 @@ const bossBattleScene   = new BossBattleScene({
   tunnel,
 });
 
-// ==================== ENEMY CALLBACKS ====================
+//  ============================== CALLBACKS  ==============================
+
 enemyManager.onLaserFired  = () => audio.playEnemyLaser();
 enemyManager.onTelegraph   = () => { ocularPrism._stopTelegraph = audio.startLoopTelegraph(); };
 enemyManager.onOcularPrism = (w, h) => {
@@ -115,8 +123,7 @@ enemyManager.onSlimeAttack = (glorkX, glorkY) => {
   slimeAttack.trigger(glorkX, glorkY);
   SessionRecorder.log('slime_attack');
 };
-enemyManager.onEnemyKilled = (type) => {
-  // STOP ORPHANED TELEGRAPH SFX IF THE ENEMY WHO STARTED IT DIES MID-TELEGRAPH
+enemyManager.onEnemyKilled = (type) => {   // STOP ORPHANED TELEGRAPH SFX IF THE ENEMY WHO STARTED IT DIES MID-TELEGRAPH
   if (type === 'TANK') {
     audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
   }
@@ -128,7 +135,6 @@ enemyManager.onEnemyKilled = (type) => {
   }
 };
 
-// ==================== FRACTAL CASCADE CALLBACKS ====================
 enemyManager.onFractalTelegraph = () => {
   if (fractalCascade.isActive()) return;
   audio._stopFractalCode?.();                  // KILL ANY ORPHANED PRIOR INSTANCE
@@ -140,10 +146,8 @@ enemyManager.onFractalCascade = () => {
   SessionRecorder.log('fractal_cascade_attack');
 };
 fractalCascade.onRecompile = () => {
-  //audio.startFractalCode(); // RECOMPILE SNAP — BRIEF SECOND HIT OF SAME ASSET
 };
 
-// ==================== OCULAR PRISM CALLBACKS ====================
 ocularPrism.onDefeated = () => {
   ocularPrism._stopPrism?.();     
   ocularPrism._stopPrism = null;
@@ -158,21 +162,19 @@ ocularPrism.onExpired = () => {
   ocularPrism._stopPrism = null;
 };
 
-// ==================== COSMIC PRISM CALLBACKS ====================
 cosmicPrismManager.onCollect = (healAmt) => {
   ship.heal(healAmt);
 };
 
-// ==================== SINGULARITY BOMB CALLBACKS ====================
 singularityBombManager.onInventoryChange = (count) => {
   updateBombDisplay(count);
 };
+
 singularityBombManager.onEnemyKilledByBH = (x, y) => {
   projectileManager.createExplosion(x, y, 'bam');
   audio.playImpact();
 };
 
-// ==================== GAMEPLAY SCENE CALLBACKS ====================
 gameplayScene.onCheckpoint = () => {
   const raw = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
   transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
@@ -207,10 +209,7 @@ gameplayScene.onWaveCleared = (waveIndex) => {
     return;
   }
 
-  // ══════ AFTER KILLING FINAL WAVE WORM - DRAMATIC TRANSITION TO BOSS BATTLE ══════
-  showWaveHUD(false);
-
-  // 🧹 CLEAR ALL IN-PROGRESS GAMEPLAY EFFECTS BEFORE THE BOSS SEQUENCE
+  showWaveHUD(false); //  AFTER KILLING FINAL WAVE WORM - DRAMATIC TRANSITION TO BOSS BATTLE  🧹 CLEAR ALL IN-PROGRESS GAMEPLAY EFFECTS BEFORE THE BOSS SEQUENCE
   audio.stopAllLoopingSfx();                         // KILL ALL LOOPING SFX — CATCHES ANY LOOP HANDLE LOST TO RACE CONDITIONS
   enemyManager.clear();                              // REMOVE ALL ACTIVE ENEMIES FROM SCREEN
   enemyDeathManager.clear();                        // 💀 CANCEL ANY IN-PROGRESS MELT EFFECTS
@@ -259,14 +258,11 @@ gameplayScene.onGooHit = () => {
   }
 };
 
-// ==================== WAVE WORM CALLBACKS ====================
 waveWormManager.onWormSpawn  = () => audio.playWaveWormSfx(); 
-
 waveWormManager.onWormKilled = (x, y) => {
   projectileManager.createExplosion(x, y, 'zap'); 
 };
 
-// ==================== BOSS BATTLE SCENE CALLBACKS ====================
 bossBattleScene.onCinematicStart = () => ship.enterCinematic();
 bossBattleScene.onCinematicEnd   = () => ship.exitCinematic();
 bossBattleScene.onCheckpoint     = () => {
@@ -274,24 +270,19 @@ bossBattleScene.onCheckpoint     = () => {
   transitionScene.saveCheckpoint(parseInt(raw, 10) || 0);
 };
 
-// CELLULAR AUTOMATTACK COLLAPSE — TRIGGERS REALITY DISTORTION INSTEAD OF FLAT DAMAGE
-bossBattleScene.onCollapseHit = () => {
+bossBattleScene.onCollapseHit = () => { // CELLULAR AUTOMATTACK COLLAPSE — TRIGGERS REALITY DISTORTION INSTEAD OF FLAT DAMAGE
   bossBattleScene.activateCellularDistort(ship);
   audio.playOuch();
 };
 
-// LUNGE BITE SCREEN SHAKE — CANVAS-LEVEL IMPACT FEEDBACK
-wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, duration);
+wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, duration); // LUNGE BITE SCREEN SHAKE — CANVAS-LEVEL IMPACT FEEDBACK
 
-// ==================== WORM DEATH → CLOSING SCENE ====================
-wormBoss.onDeath = () => {
+wormBoss.onDeath = () => { //  WORM DEATH → CLOSING SCENE 
   SessionRecorder.log('boss_battle_end');
   SessionRecorder.endSession('boss_defeated'); 
   audio.stopMusic();
   ship.exitCinematic();
-  // HARD-CLEAR SUCTION STATE — PREVENTS SCALED-DOWN SHIP CARRYING INTO CLOSING SCENE
-  // IF THE PLAYER LANDS THE KILLING BLOW DURING AN ACTIVE SUCTION ATTACK
-  ship.suctionScale  = 1.0;
+  ship.suctionScale  = 1.0;   // HARD-CLEAR SUCTION STATE — PREVENTS SCALED-DOWN SHIP CARRYING INTO CLOSING SCENE. IF THE PLAYER LANDS THE KILLING BLOW DURING AN ACTIVE SUCTION ATTACK
   ship.suctionActive = false;
   ship.suctionShakeX = 0;
   ship.suctionShakeY = 0;
@@ -303,8 +294,7 @@ wormBoss.onDeath = () => {
   // console.log('★ Worm defeated — closing scene triggered');
 };
 
-// ==================== CLOSING SCENE → BACK TO MENU ====================
-closingScene.onBackToMenu = () => {
+closingScene.onBackToMenu = () => { //  CLOSING SCENE → BACK TO MENU 
   SessionRecorder.stop();
   audio.stop();
   window.location.reload();
@@ -312,7 +302,6 @@ closingScene.onBackToMenu = () => {
 ship.onHPChange    = (hp, max)   => updateHPBar(hp, max);
 ship.onLivesChange = (lives)     => updateLivesDisplay(lives);
 
-// ==================== SHIP DEATH SEQUENCE CALLBACK ====================
 ship.onDeathSequenceStart = () => {
   audio.playGlitchOut();
 };
@@ -320,6 +309,21 @@ ship.onDeathSequenceStart = () => {
 function wireShipOnDeath() { // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WIRED AFTER A WORMHOLE GAME OVER
   ship.onDeath = (livesLeft) => {
     audio.stopMusic();
+
+    if (currentMode === 'survival') { //  SURVIVAL MODE — ONE LIFE, SKIP NORMAL FLOW, SHOW RESULTS SCREEN
+      enemyManager.clear();
+      projectileManager.clear();
+      slimeAttack.reset();
+      audio._stopSlimeSounds?.();     audio._stopSlimeSounds = null;
+      ocularPrism.active = false;
+      ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
+      ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+      fractalCascade.reset();
+      audio.stopAllLoopingSfx();
+      survivalScene.showResults(scoreManager.score);
+      return;
+    }
+
     const inWormBattle = wormBoss.isActive && !wormBoss.isDead;
 
     if (livesLeft <= 0 && inWormBattle) { // BOSS GAME OVER — SWALLOW SEQUENCE INSTEAD OF INSTANT GAME OVER SCREEN
@@ -355,6 +359,7 @@ function wireShipOnDeath() { // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WI
   };
 }
 wireShipOnDeath();
+
 // ==================== HUD HELPERS ====================
 function updateHPBar(hp, maxHP) {
   const pct   = Math.max(0, (hp / maxHP) * 100);
@@ -381,8 +386,7 @@ function updateBombDisplay(count) {
   }
 }
 
-// ==================== WAVE HUD HELPERS ====================
-function updateWaveCounter(kills, required) {
+function updateWaveCounter(kills, required) { //  WAVE HUD HELPERS 
   const el = document.getElementById('wave-counter');
   if (!el) return;
   el.textContent = `${kills} / ${required}`;
@@ -415,15 +419,13 @@ function resetWaveBadges() {
   }
 }
 
-// ==================== SCREEN SHAKE ====================
 function triggerScreenShake(strength, duration) {
   _screenShakeStrength = strength;
   _screenShakeDuration = duration || 1;
   _screenShakeTimer    = _screenShakeDuration;
 }
 
-// ==================== SHOOT ====================
-function doShoot() {
+function doShoot() { //  SHOOT 
   if (isPaused) return;
   const crosshairPos = crosshair.getPosition();
   const shootData    = ship.shoot(crosshairPos.x, crosshairPos.y);
@@ -438,8 +440,7 @@ function doShoot() {
   }
 }
 
-// ==================== TRANSITION CALLBACKS ====================
-transitionScene.onRestart = () => {
+transitionScene.onRestart = () => { //  TRANSITION CALLBACKS
   ship.resetForNewGame();
   ship.deathSequenceEnabled = true; // RESTORE FOR GAMEPLAY
   scoreManager.reset();
@@ -471,8 +472,7 @@ transitionScene.onRestart = () => {
   if (currentMode !== 'bossBattle') audio.startWaveMusic(0);
 };
 
-// ==================== WORMHOLE GAME OVER → RESTART FROM WAVE 1 - FIRES AFTER THE VORTEX SEQUENCE COMPLETES — FULL RESET, BACK TO WAVE 1 ====================
-bossBattleScene.onWormholeGameOver = () => {
+bossBattleScene.onWormholeGameOver = () => { //  WORMHOLE GAME OVER → RESTART FROM WAVE 1 - FIRES AFTER THE VORTEX SEQUENCE COMPLETES — FULL RESET, BACK TO WAVE 1 
   wormBoss.isActive = false;  // HIDE WORM IMMEDIATELY — WILL RE-ACTIVATE WHEN PLAYER REACHES BOSS BATTLE AGAIN
   ship.resetForNewGame();
   ship.deathSequenceEnabled = true; // RESTORE — BACK TO GAMEPLAY
@@ -535,6 +535,33 @@ transitionScene.onContinue = () => {
   } else {
     audio.startWaveMusic(gameplayScene.getWaveIndex());
   }
+};
+
+survivalScene.onRestart = () => { //  SURVIVAL SCENE RESTART
+  ship.resetForNewGame();
+  ship.lives = 1; // ONE LIFE ONLY IN SURVIVAL MODE
+  ship.deathSequenceEnabled = true;
+  scoreManager.reset();
+  enemyManager.clear();
+  projectileManager.clear();
+  babyWormManager.clear();
+  slimeAttack.reset();
+  audio._stopSlimeSounds?.(); audio._stopSlimeSounds = null;
+  ocularPrism.active = false;
+  ocularPrism._stopPrism?.();     ocularPrism._stopPrism = null;
+  ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
+  fractalCascade.reset();
+  enemyDeathManager.clear();
+  survivalScene.reset();
+  showWaveHUD(false);
+  updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP);
+  updateLivesDisplay(ship.lives);
+  updateBombDisplay(0);
+  wireShipOnDeath(); // RE-WIRE SO SURVIVAL DEATH ROUTING STAYS ACTIVE
+  survivalScene.start();
+  audio.stop();
+  audio.start();
+  audio.startSurvivalMusic();
 };
 
 transitionScene.onGameOver = () => {
@@ -614,8 +641,7 @@ window.addEventListener('keyup', (e) => {
   }
 });
 
-// ==================== MOUSE CONTROLS ====================
-// NOTE: LISTENERS ON window (NOT gameCanvas) — #game-canvas HAS pointer-events:none SO CANVAS EVENTS NEVER FIRE
+// ==================== MOUSE CONTROLS NOTE: LISTENERS ON window (NOT gameCanvas) — #game-canvas HAS pointer-events:none SO CANVAS EVENTS NEVER FIRE
 window.addEventListener('mousedown', (e) => {
   if (e.button === 0 && !isPaused) {  // LEFT CLICK — SHOOT
     doShoot();
@@ -625,8 +651,7 @@ window.addEventListener('mousedown', (e) => {
 window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   if (isPaused || !ship.isAlive || ship.isBarrelRolling) return;
-  // DIRECTION INFERRED FROM SHIP TILT — NEGATIVE ROTATION = TILTED LEFT = ROLL LEFT
-  const direction = ship.currentRotation < 0 ? -1 : 1;
+  const direction = ship.currentRotation < 0 ? -1 : 1;   // DIRECTION INFERRED FROM SHIP TILT — NEGATIVE ROTATION = TILTED LEFT = ROLL LEFT
   ship.startBarrelRoll(direction);
   audio.playBarrelRoll();
 });
@@ -641,7 +666,6 @@ document.getElementById('btn-pause')?.addEventListener('click', () => {
   ui.update(isMuted, isPaused);
 });
 
-// ==================== WINDOW RESIZE ====================
 window.addEventListener('resize', () => {
   tunnel.handleResize();
   gameCanvas.width  = window.innerWidth;
@@ -674,8 +698,7 @@ function gameLoop() {
 
     const enemies = enemyManager.getEnemies(); // SINGLE CALL PER FRAME — REUSED THROUGHOUT LOOP
 
-    //  THREE.JS BACKGROUND 
-    if (closingScene.isActive()) {
+    if (closingScene.isActive()) { //  THREE.JS BACKGROUND 
       closingScene.update(dt);         
       starfield.render();              
       ship.update(dt);                 // SHIP STAYS CONTROLLABLE IN OPEN SPACE
@@ -687,7 +710,6 @@ function gameLoop() {
       const suctionOn = bossBattleScene.isSuctionActive;
       tunnel.setSuctionIntensity(suctionOn ? 1 : 0);
 
-      //  SLIME ATTACK UPDATE
       const activeGlork = enemies.find(e => e.type === 'TANK' && e.scale > CONFIG.SLIME_ATTACK.MIN_SCALE);
       const gx = activeGlork ? activeGlork.x : window.innerWidth  / 2;
       const gy = activeGlork ? activeGlork.y : window.innerHeight / 2;
@@ -737,10 +759,10 @@ function gameLoop() {
       crosshair.update(shipOffset.x, shipOffset.y, dt, enemies);
       enemyManager.update(dt, ship.x, ship.y);
       gameplayScene.update(dt, ship.x, ship.y);
+      if (currentMode === 'survival') survivalScene.update(dt);
       bossBattleScene.update(dt, ship);
 
-      // SINGULARITY BOMB —
-      singularityBombManager.update(dt, ship.x, ship.y);
+      singularityBombManager.update(dt, ship.x, ship.y); 
       singularityBombManager.applyGravityAndBossEffect(dt, enemies, wormBoss);
       setActiveSingularityBH(
         singularityBombManager.blackHole && !singularityBombManager.blackHole.isDead()
@@ -764,8 +786,7 @@ function gameLoop() {
     tesseractManager.update(dt, ship.x, ship.y);
     enemyDeathManager.update(dt); // 💀
 
-    // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
-    if (ship.isBarrelRolling && !_prevBarrelRolling) {
+    if (ship.isBarrelRolling && !_prevBarrelRolling) { // BARREL ROLL RISING EDGE — DETACH ALL LATCHED BABY WORMS
       const detached = babyWormManager.detachAll(ship, ship.barrelRollDirection);
       if (detached > 0) audio.playImpact();
     }
@@ -777,8 +798,7 @@ function gameLoop() {
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const projectile = projectiles[i];
 
-      // PROJECTILE vs ENEMIES
-      for (let j = enemies.length - 1; j >= 0; j--) {
+      for (let j = enemies.length - 1; j >= 0; j--) { // PROJECTILE vs ENEMIES
         const enemy   = enemies[j];
         const pos     = enemy.getPosition();
         const hit     = segmentCircleCollision(
@@ -800,13 +820,11 @@ function gameLoop() {
         }
       }
 
-      // PROJECTILE vs WORM BOSS + BABY WORMS
-      if (!projectile.isDead) {
+      if (!projectile.isDead) { // PROJECTILE vs WORM BOSS + BABY WORMS
         if (bossBattleScene.processProjectileHit(projectile)) continue;
       }
 
-      // PROJECTILE vs OCULAR PRISM PUPIL
-      if (!projectile.isDead && ocularPrism.active) {
+      if (!projectile.isDead && ocularPrism.active) { // PROJECTILE vs OCULAR PRISM PUPIL
         const seg = projectile.getSegment();
         if (ocularPrism.checkProjectileHit(seg.x1, seg.y1)) {
           projectileManager.removeProjectile(projectile);
@@ -815,8 +833,7 @@ function gameLoop() {
         }
       }
 
-      // PROJECTILE vs WAVE WORM
-      if (!projectile.isDead && gameplayScene.isActive()) {
+      if (!projectile.isDead && gameplayScene.isActive()) { // PROJECTILE vs WAVE WORM
         const wormHit = gameplayScene.checkWormHit(
           projectile.getSegment(),
           tesseractManager.isBoostActive() ? 2 : 1
@@ -831,14 +848,12 @@ function gameLoop() {
       }
     }
 
-    // ENEMY BODY COLLISION vs SHIP
-    if (ship.isAlive && !ship.isInvincible) {
+    if (ship.isAlive && !ship.isInvincible) { // ENEMY BODY COLLISION vs SHIP
       const collisionDamage = enemyManager.checkCollisions(ship.x, ship.y);
       if (collisionDamage > 0) { ship.takeDamage(collisionDamage); audio.playOuch(); }
     }
 
-    // ENEMY LASER vs SHIP
-    if (ship.isAlive && !ship.isInvincible) {
+    if (ship.isAlive && !ship.isInvincible) {  // ENEMY LASER vs SHIP
         const result = enemyManager.checkLaserHits(ship.x, ship.y, ship.isBarrelRolling);
         if (result.damage > 0) { // NORMAL HIT = DAMAGE
             ship.takeDamage(result.damage);
@@ -860,14 +875,12 @@ function gameLoop() {
   bossBattleScene.updateHUD(); // MUST RUN EVEN PAUSED SO BAR DOESN'T FREEZE
   if (bot.enabled) bot.tickBlocked(dt); // MUST RUN EVEN WHEN isBlocking — DRAINS RESET TIMER WHILE DIED SCREEN IS UP
 
-  // HIDE CURSOR DURING GAMEPLAY; SHOW ON PAUSE / OVERLAY / MENU
-  document.body.classList.toggle('hide-cursor',
+  document.body.classList.toggle('hide-cursor', // HIDE CURSOR DURING GAMEPLAY; SHOW ON PAUSE / OVERLAY / MENU
     _gameStarted && !isPaused && !transitionScene.isBlocking && !closingScene.isActive());
 
   ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
-  // CANVAS SCREEN SHAKE — TRANSLATES THE ENTIRE DRAW PASS FOR IMPACT FEEL
-  const shakeDecay = _screenShakeDuration > 0 ? _screenShakeTimer / _screenShakeDuration : 0;
+  const shakeDecay = _screenShakeDuration > 0 ? _screenShakeTimer / _screenShakeDuration : 0; // CANVAS SCREEN SHAKE — TRANSLATES THE ENTIRE DRAW PASS FOR IMPACT FEEL
   const shakeX = _screenShakeTimer > 0 ? (Math.random() - 0.5) * 2 * _screenShakeStrength * shakeDecay : 0;
   const shakeY = _screenShakeTimer > 0 ? (Math.random() - 0.5) * 2 * _screenShakeStrength * shakeDecay : 0;
   ctx.save();
@@ -923,14 +936,12 @@ function gameLoop() {
     }
   }
 
-  //  CELLULAR DISTORTION TRACERS — MAGENTA/PURPLE GHOST SHIPS WHILE INFECTED
-  if (ship._cellularDistortActive) {
+  if (ship._cellularDistortActive) {   //  CELLULAR DISTORTION TRACERS — MAGENTA/PURPLE GHOST SHIPS WHILE INFECTED
     const sprite     = ImageLoader.isLoaded('ship') ? ImageLoader.get('ship') : null;
     const frameW     = sprite ? sprite.width / CONFIG.SHIP.SPRITE_FRAMES : 0;
     const trailSnaps = ship.getTrailPositions();
     if (sprite && trailSnaps.length > 0) {
-      // PASS 1 — MAGENTA GHOST SHIPS
-      for (let i = 0; i < trailSnaps.length; i++) {
+      for (let i = 0; i < trailSnaps.length; i++) { // PASS 1 — MAGENTA GHOST SHIPS
         const snap    = trailSnaps[i];
         const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
         const alpha   = 0.55 * (1 - ageFrac * 0.88);
@@ -948,8 +959,7 @@ function gameLoop() {
         ctx.fillRect(-CONFIG.SHIP.WIDTH / 2, -CONFIG.SHIP.HEIGHT / 2, CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT);
         ctx.restore();
       }
-      // PASS 2 — ADDITIVE PURPLE GLOW ON FRESHEST 3 GHOSTS
-      for (let i = Math.max(0, trailSnaps.length - 3); i < trailSnaps.length; i++) {
+      for (let i = Math.max(0, trailSnaps.length - 3); i < trailSnaps.length; i++) { // PASS 2 — ADDITIVE PURPLE GLOW ON FRESHEST 3 GHOSTS
         const snap    = trailSnaps[i];
         const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
         const alpha   = 0.28 * (1 - ageFrac * 0.5);
@@ -967,16 +977,14 @@ function gameLoop() {
     }
   }
 
-  //  BOSS TRANSITION CRIMSON TRACERS
-  if (_bossTracerIntensity > 0.01) {
+  if (_bossTracerIntensity > 0.01) {  //  BOSS TRANSITION CRIMSON TRACERS
     const sprite     = ImageLoader.isLoaded('ship') ? ImageLoader.get('ship') : null;
     const frameW     = sprite ? sprite.width / CONFIG.SHIP.SPRITE_FRAMES : 0;
     const trailSnaps = ship.getTrailPositions();
     if (sprite && trailSnaps.length > 0) {
       const ti = _bossTracerIntensity;
 
-      // PASS 1 — CRIMSON GHOST SHIPS
-      for (let i = 0; i < trailSnaps.length; i++) {
+      for (let i = 0; i < trailSnaps.length; i++) { // PASS 1 — CRIMSON GHOST SHIPS
         const snap    = trailSnaps[i];
         const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
         const alpha   = ti * 0.55 * (1 - ageFrac * 0.88);
@@ -995,8 +1003,7 @@ function gameLoop() {
         ctx.restore();
       }
 
-      // PASS 2 — HOT ADDITIVE GLOW ON FRESHEST 3 GHOSTS
-      for (let i = Math.max(0, trailSnaps.length - 3); i < trailSnaps.length; i++) {
+      for (let i = Math.max(0, trailSnaps.length - 3); i < trailSnaps.length; i++) { // PASS 2 — HOT ADDITIVE GLOW ON FRESHEST 3 GHOSTS
         const snap    = trailSnaps[i];
         const ageFrac = (trailSnaps.length - i) / trailSnaps.length;
         const alpha   = ti * 0.28 * (1 - ageFrac * 0.5);
@@ -1017,17 +1024,13 @@ function gameLoop() {
   muzzleFlash.draw(ctx);
   ship.draw();
   fractalCascade.drawTelegraph(ctx, ship.x, ship.y); // 🌀 FRACTAL TRIANGLES ABOVE SHIP
-
   tesseractManager.drawAuraAndHUD(ctx, ship.x, ship.y); // ◈ LASER BOOST AURA + HUD TIMER
-
   slimeAttack.drawWingDrip(
     ctx,
     ship.x, ship.y, ship.rotation,
     CONFIG.SHIP.WIDTH, CONFIG.SHIP.HEIGHT
   );
-
   babyWormManager.drawSlime(ctx);
-
 
   if (ocularPrism.active) {
     ocularPrism.captureFrame(tunnel.renderer.domElement, gameCanvas);
@@ -1035,7 +1038,7 @@ function gameLoop() {
   }
 
   if (closingScene.isActive()) closingScene.renderWhale(ctx); 
-closingScene.renderFlash(ctx);
+  closingScene.renderFlash(ctx);
   ctx.restore(); // END SCREEN SHAKE TRANSLATE
 }
 
@@ -1051,27 +1054,57 @@ async function startup() {
   currentEnemyCount = enemyCount;
   // console.log(`▶ Mode: ${mode} | Enemies: ${enemyCount}`);
 
-  // ── TENTACLE LAB — SKIP OPENING SCENE, LAUNCH SANDBOX DIRECTLY ────────────
-  if (mode === 'tentacleLab') {
-    // HIDE MENU OVERLAY IMMEDIATELY — LAB USES RAW CANVAS
-    document.getElementById('menu-overlay')?.classList.add('hidden');
-    // DYNAMIC IMPORT — LAB CODE IS ONLY LOADED WHEN ACTUALLY NEEDED
-    const { TentacleLab } = await import('./temp/tentacleLab.js');
+  if (mode === 'tentacleLab') { //  TENTACLE LAB — SKIP OPENING SCENE, LAUNCH SANDBOX DIRECTLY 
+    document.getElementById('menu-overlay')?.classList.add('hidden');  // HIDE MENU OVERLAY IMMEDIATELY — LAB USES RAW CANVAS
+    const { TentacleLab } = await import('./temp/tentacleLab.js'); // DYNAMIC IMPORT — LAB CODE IS ONLY LOADED WHEN ACTUALLY NEEDED
     const lab = new TentacleLab(gameCanvas, ctx);
     lab.start();
     return; // DON'T START GAME LOOP OR OPENING SCENE
+  }
+
+  if (mode === 'survival') { //  SURVIVAL MODE — SKIP OPENING CINEMATIC, GO STRAIGHT TO GAMEPLAY 
+    audio.start(); // UNLOCK WEB AUDIO — NORMALLY DONE INSIDE menu.show() CALLBACK
+    _gameStarted = true;
+
+    DevTools.init();
+    bot.mountToDevPanel(DevTools.panel);
+
+    document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden'));
+    revealMobileControls();
+
+    CONFIG.ENEMIES.MAX_COUNT = 0;
+    ship.lives = 1; // ONE LIFE ONLY — THE CORE SURVIVAL RULE
+    ship.deathSequenceEnabled = true;
+    updateHPBar(ship.getHP(), CONFIG.SHIP_HP.MAX_HP);
+    updateLivesDisplay(ship.lives);
+    updateBombDisplay(0);
+    showWaveHUD(false); // WAVE HUD NOT USED IN SURVIVAL
+
+    initKeyboard();
+    ship.onBoost = () => audio.playBoost();
+    initMobileControls(
+      (direction) => { ship.startBarrelRoll(direction); audio.playBarrelRoll(); },
+      () => doShoot(),
+      () => ship.activateBoost(),
+      () => deployBomb()
+    );
+
+    lastTime = performance.now();
+    gameLoop(); // START LOOP FIRST — TUNNEL ANIMATES BEHIND COUNTDOWN
+
+    audio.startSurvivalMusic();
+    await survivalScene.showCountdown(); // OVERLAY ON TOP; start() FIRES WHEN DONE
+    return;
   }
 
   await openingScene.play(true); 
   // console.log('✔ Opening scene complete');
   _gameStarted = true;  // CURSOR HIDING NOW ACTIVE;
 
-  // DEV TOOLS (SLIDERS + SESSION RECORDER)
-  DevTools.init();
+  DevTools.init();  // DEV TOOLS (SLIDERS + SESSION RECORDER)
   bot.mountToDevPanel(DevTools.panel);
 
-  // REVEAL HUD AND MOBILE CONTROLS AFTER OPENING SCENE
-  document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden'));
+  document.querySelectorAll('.pre-game-hidden').forEach(el => el.classList.remove('pre-game-hidden')); // REVEAL HUD AND MOBILE CONTROLS AFTER OPENING SCENE
   revealMobileControls();
 
   if (mode === 'bossBattle') {
@@ -1096,8 +1129,7 @@ async function startup() {
     () => deployBomb()            // Y BUTTON — SINGULARITY BOMB
   );
 
-  lastTime = performance.now();
-  // console.log('=== Starting game loop ===');
+  lastTime = performance.now(); 
   gameLoop();
 }
 

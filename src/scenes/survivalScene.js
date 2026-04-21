@@ -1,4 +1,4 @@
-// Updated 4/20/26 @ 12:00PM
+// Updated 4/20/26 @ 12:30PM
 // survivalScene.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -52,12 +52,13 @@ export class SurvivalScene {
     this._elapsed = 0;   // SECONDS SURVIVED THIS RUN
 
     // ── DOM REFS ──────────────────────────────────────────────────────────────
-    this._hudEl      = document.getElementById('survival-hud');
-    this._timerEl    = document.getElementById('survival-timer');
-    this._overlayEl  = document.getElementById('survival-gameover');
-    this._goTimeEl   = document.getElementById('survival-go-time');
-    this._goScoreEl  = document.getElementById('survival-go-score');
-    this._restartBtn = document.getElementById('survival-go-restart');
+    this._hudEl        = document.getElementById('survival-hud');
+    this._timerEl      = document.getElementById('survival-timer');
+    this._overlayEl    = document.getElementById('survival-gameover');
+    this._goTimeEl     = document.getElementById('survival-go-time');
+    this._goScoreEl    = document.getElementById('survival-go-score');
+    this._restartBtn   = document.getElementById('survival-go-restart');
+    this._countdownEl  = document.getElementById('survival-countdown');
 
     // CALLBACK — WIRED IN main.js SO THE RESTART BUTTON FULLY RESETS GAME STATE
     this.onRestart = null;
@@ -71,6 +72,47 @@ export class SurvivalScene {
   }
 
   // ── PUBLIC API ────────────────────────────────────────────────────────────
+
+  /**
+   * SHOW 3-2-1-GO! COUNTDOWN OVERLAY, THEN BEGIN THE RUN.
+   * GAME LOOP SHOULD ALREADY BE RUNNING SO THE TUNNEL ANIMATES BEHIND IT.
+   * RETURNS A PROMISE THAT RESOLVES AFTER start() IS CALLED.
+   */
+  showCountdown() {
+    return new Promise(resolve => {
+      const el = this._countdownEl;
+      if (!el) { this.start(); resolve(); return; }
+
+      const STEPS     = ['3', '2', '1', 'GO!'];
+      const STEP_MS   = 1000;   // DURATION FOR DIGITS
+      const GO_MS     = 700;    // SHORTER HOLD FOR "GO!"
+      let   i         = 0;
+
+      el.style.display = 'flex';
+
+      const tick = () => {
+        if (i >= STEPS.length) {
+          el.style.display = 'none';
+          this.start();
+          resolve();
+          return;
+        }
+        const isGo = i === STEPS.length - 1;
+        el.textContent = STEPS[i++];
+        // CHANGE COLOR ON GO!
+        el.style.color = isGo ? '#58e84c' : '#00ffff';
+        el.style.textShadow = isGo
+          ? '0 0 30px #58e84c, 0 0 80px rgba(88,232,76,0.4)'
+          : '0 0 30px #00ffff, 0 0 80px rgba(0,255,255,0.4)';
+        el.classList.remove('countdown-pop');
+        void el.offsetWidth; // FORCE REFLOW SO ANIMATION RESTARTS
+        el.classList.add('countdown-pop');
+        setTimeout(tick, isGo ? GO_MS : STEP_MS);
+      };
+
+      tick();
+    });
+  }
 
   /** BEGIN A NEW SURVIVAL RUN */
   start() {

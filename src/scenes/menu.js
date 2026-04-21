@@ -1,4 +1,4 @@
-// Updated 4/7/26 @ 11PM// menu.js
+// menu.js - Updated 4/21/26 @ 12:00PM
 import { setMobileMode } from '../utils/controls.js';
 
 const DEV_MODE = true;
@@ -165,6 +165,7 @@ export class Menu {
     this._onKey = (e) => {
       if (e.code === 'Digit1') this._select('gameplay');
       if (e.code === 'Digit2') this._select('bossBattle');
+      if (e.code === 'Digit3') this._select('survival');
     };
     window.addEventListener('keydown', this._onKey);
   }
