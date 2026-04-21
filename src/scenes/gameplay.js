@@ -1,4 +1,4 @@
-// Updated 4/18/26 @ 5:30am
+// Updated 4/19/26 @ 10:30pm
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -36,15 +36,14 @@ export const WAVE_CONFIGS = [
     // FRACTAL STARTS RARE. BY 3RD KILL IT'S FREQUENT.
     specialWindows: [22000, 14000, 7000, 3000],   // 4 KILLS → INDICES 0–3
   },
-  { // WAVE 3 — + PHIL  |  FAST BECOMES DOMINANT
-    types:          ['BASIC', 'ZIGZAG', 'FAST'],
-    weights:        [0.25,    0.30,     0.45],
+  { // WAVE 3 — + GLORK / TANK
+    types:          ['BASIC', 'ZIGZAG', 'TANK'],
+    weights:        [0.40,    0.40,     0.20],
     maxEnemies:     6,
-    // FRACTAL STILL PRESENT BUT FASTER-MOVING ENEMIES CARRY THE PRESSURE
     specialWindows: [18000, 12000, 6000, 2000],   // 4 KILLS → INDICES 0–3
   },
-  { // WAVE 4 — + GLORK  |  SLIME BECOMES MEANINGFUL
-    types:          ['BASIC', 'ZIGZAG', 'FAST', 'TANK'],
+  { // WAVE 4 — + PHIL  |  FAST BECOMES DOMINANT 
+    types:          ['BASIC', 'ZIGZAG', 'TANK', 'FAST'],
     weights:        [0.30,    0.20,     0.20,   0.30],
     maxEnemies:     7,
     // GLORK-HEAVY. TWO SPECIALS (FRACTAL + SLIME) — START SEPARATED, CONVERGE.
@@ -52,8 +51,8 @@ export const WAVE_CONFIGS = [
   },
   { // WAVE 5 — + FLIM FLAM  |  CHAOS PEAK
     types:          ['BASIC', 'ZIGZAG', 'FAST', 'TANK', 'FLIMFLAM'],
-    weights:        [0.25,    0.15,     0.10,   0.20,   0.30],
-    maxEnemies:     9,
+    weights:        [0.25,    0.15,     0.20,   0.20,   0.20],
+    maxEnemies:     8,
     // STARTS WITH ZERO OVERLAP POSSIBLE. BY KILL 4: FULL THREE-WAY CHAOS.
     specialWindows: [30000, 20000, 8000, 2000, 0],   // 5 KILLS → INDICES 0–4
   },

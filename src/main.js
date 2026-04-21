@@ -1,4 +1,4 @@
-// Updated 4/19/26 @ 3:00PM
+// Updated 4/19/26 @ 7:0PM
 // main.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
@@ -140,7 +140,7 @@ enemyManager.onFractalCascade = () => {
   SessionRecorder.log('fractal_cascade_attack');
 };
 fractalCascade.onRecompile = () => {
-  audio.startFractalCode(); // RECOMPILE SNAP — BRIEF SECOND HIT OF SAME ASSET
+  //audio.startFractalCode(); // RECOMPILE SNAP — BRIEF SECOND HIT OF SAME ASSET
 };
 
 // ==================== OCULAR PRISM CALLBACKS ====================
@@ -710,6 +710,7 @@ function gameLoop() {
             isAlive:      ship.isAlive,
             isInvincible: ship.isInvincible,
             suctionScale: ship.suctionScale,
+            bombs:        singularityBombManager.inventory ?? 0,
           },
           enemies:         enemies,
           enemyLasers:     enemyManager.lasers,
@@ -729,6 +730,7 @@ function gameLoop() {
         if (intent) {
           crosshair.setMouseInput(intent.aimNX, intent.aimNY);
           if (intent.shouldShoot) doShoot();
+          if (intent.shouldUseBomb) deployBomb(); 
         }
       }
 

@@ -1,4 +1,4 @@
-// Updated 4/18/26 @ 5:30am
+// Updated 4/19/26 @ 10:30PM
 // enemies.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -709,7 +709,7 @@ export class EnemyManager {
       // COLLECT SLIME ATTACK (TANK / GLORK ONLY) / BLOCK NEW SLIME TELEGRAPHS UNTIL WARP + RECOVER + COOLDOWN EXPIRES (7.2 + 1.8 + 5.0s)
       if (enemy.pendingSlime) {
         this.onSlimeAttack?.(enemy.x, enemy.y);
-        this._slimeCooldownUntil         = Date.now() + 14000;
+        this._slimeCooldownUntil         = Date.now() + CONFIG.SLIME_ATTACK.GLOBAL_COOLDOWN_MS;
         this._globalSpecialCooldownUntil = Date.now() + this._globalSpecialWindowMs;
         enemy.pendingSlime = false;
       }
