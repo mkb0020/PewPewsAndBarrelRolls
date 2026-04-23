@@ -1077,9 +1077,21 @@ async function startup() {
   }
 
   if (mode === 'survival') { //  SURVIVAL MODE — SKIP OPENING CINEMATIC, GO STRAIGHT TO GAMEPLAY 
-    document.getElementById('menu-overlay')?.classList.add('hidden');  // HIDE COCKPIT OVERLAY — openingScene.play() never runs in survival mode
+    document.getElementById('mode-transition')?.classList.add('active');
+    document.getElementById('mode-transition2')?.classList.add('active');
+    document.getElementById('glitch-cockpit')?.classList.add('active');
+
+    //document.getElementById('menu-overlay')?.classList.add('hidden');  // HIDE COCKPIT OVERLAY — openingScene.play() never runs in survival mode
     const cockpit = document.getElementById('opening-cockpit');//GET COCKPIT IMG
     cockpit.style.display = 'none'; // HIDE COCKPIT IMG
+
+    setTimeout(() => {
+      document.getElementById('menu-overlay')?.classList.add('hidden');
+    }, 333); 
+
+    setTimeout(() => {
+      document.getElementById('glitch-cockpit')?.classList.remove('active');
+    }, 667); 
 
     audio.start(); // UNLOCK WEB AUDIO — NORMALLY DONE INSIDE menu.show() CALLBACK
     _gameStarted = true;
@@ -1110,8 +1122,8 @@ async function startup() {
     lastTime = performance.now();
     gameLoop(); // START LOOP FIRST — TUNNEL ANIMATES BEHIND COUNTDOWN
 
-    audio.startSurvivalMusic();
-    await survivalScene.showCountdown(); // OVERLAY ON TOP; start() FIRES WHEN DONE
+    audio.startSurvivalSequence();
+    await survivalScene.show(); // OVERLAY ON TOP; start() FIRES WHEN DONE
     return;
   }
 

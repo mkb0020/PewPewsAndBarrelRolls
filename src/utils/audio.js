@@ -82,7 +82,7 @@ export class AudioManager {
         .then(buf => { this._rageBuffer  = buf; console.log('✔ Rage music buffer ready'); return buf; }); 
       this._creditsDecodePromise = this._prefetchAndDecode('./audio/credits.m4a')
         .then(buf => { this._creditsBuffer = buf; console.log('✔ Credits music buffer ready'); return buf; });
-      this._prefetchAndDecode('./audio/survival.wav')
+      this._prefetchAndDecode('./audio/survival.m4a')
         .then(buf => { this._survivalBuffer = buf; console.log('✔ Survival music buffer ready'); });
 
       //  PRELOAD GAME OVER MUSIC
@@ -146,6 +146,14 @@ export class AudioManager {
         wormSnap:  './audio/wormSnap.m4a',   // FIRES ON SNAP-BACK / BITE FOR LUNGE / BITE ATTACK
         wormRage:  './audio/wormRage.m4a', 
         wormRageDrop:  './audio/wormRageDrop.m4a', 
+
+        survivalRiser:  './audio/survivalRiser.m4a', 
+        countdown5:  './audio/countdown5.m4a', 
+        countdown4:  './audio/countdown4.m4a', 
+        countdown3:  './audio/countdown3.m4a', 
+        countdown2:  './audio/countdown2.m4a', 
+        countdown1:  './audio/countdown1.m4a', 
+        countdownGo:  './audio/countdownGo.m4a', 
       };
 
       for (const [name, src] of Object.entries(sfxFiles)) {
@@ -623,4 +631,86 @@ export class AudioManager {
       this._transitionDecodePromises[idx]?.then(b => { if (!this.isMuted) play(b); });
     }
   }
+
+  _playSfxAtTime(name, when, volume = 1.2) { // HELPER FOR SURVIVAL MODE COUNTDOWN TIMING
+    if (this.isMuted || !this.context) return;
+    const buffer = this._sfxBuffers[name];
+    if (!buffer) return;
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+
+    const gain = this.context.createGain();
+    gain.gain.value = Math.min(1, volume);
+
+    source.connect(gain);
+    gain.connect(this.sfxGain);
+
+    source.start(when);
+  }
+
+
+  startSurvivalSequence() {
+    if (this.isMuted || !this.context) return;
+
+    const bpm = 90;
+    const beat = 60 / bpm; // 0.6667s
+
+    const now = this.context.currentTime;
+
+    // STOP CURRENT MUSIC
+    this._stopMusicSource();
+
+    // ====== PLAY RISER ======
+    const riserBuffer = this._sfxBuffers['survivalRiser'];
+    if (!riserBuffer) return;
+
+    const riserSource = this.context.createBufferSource();
+    riserSource.buffer = riserBuffer;
+    riserSource.connect(this._musicGain);
+    riserSource.start(now);
+
+    // ====== DEFINE MUSICAL TIMING (NOT BUFFER DURATION) ======
+    const riserBeats = 16;
+    const musicStartTime = now + riserBeats * beat; // beat 17
+
+    // ====== START SURVIVAL LOOP ON NEXT BAR ======
+    const startSurvival = () => {
+      const source = this.context.createBufferSource();
+      source.buffer = this._survivalBuffer;
+      source.loop = true;
+
+      source.connect(this._musicGain);
+      this._musicGain.gain.setValueAtTime(this.MUSIC_VOLUME, musicStartTime);
+
+      source.start(musicStartTime);
+      this._musicSource = source;
+    };
+
+    if (this._survivalBuffer) {
+      startSurvival();
+    } else {
+      this._prefetchAndDecode('./audio/survival.m4a').then(buf => {
+        this._survivalBuffer = buf;
+        startSurvival();
+      });
+    }
+
+    // ====== COUNTDOWN (EVERY 3 BEATS) ======
+    const schedule = [
+      { name: 'countdown5', beat: 5 },
+      { name: 'countdown4', beat: 7 },
+      { name: 'countdown3', beat: 9 },
+      { name: 'countdown2', beat: 11 },
+      { name: 'countdown1', beat: 13 },
+      { name: 'countdownGo', beat: 15 },
+    ];
+
+    schedule.forEach(({ name, beat: beatIndex }) => {
+      const time = now + (beatIndex - 1) * beat;
+      this._playSfxAtTime(name, time, 1.0);
+    });
+  }
+
+
 }

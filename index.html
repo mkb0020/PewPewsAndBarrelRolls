@@ -10,6 +10,7 @@
   <script type="module" src="src/main.js"></script>
 
   <img id="opening-cockpit" src="./images/cockpit.gif" alt="" aria-hidden="true">
+  <img id="glitch-cockpit" src="./images/cockpitGlitch.gif" alt="" aria-hidden="true">
   <div id="glitch-lines" class="glitch-lines"></div>
 
   <div id="opening-terminal">
@@ -190,18 +191,21 @@
           </div>
         </div>
 
-          <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">This version is the development version so there are a couple extra features that you can check out:</strong></p>
+          <!--<p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">This version is the development version so there are a couple extra features that you can check out:</strong></p>
           <ul style="font-family: arial">
             <li>In the Session Recorder Panel, there's also a <strong>"Playtest Bot"</strong>, named <strong style="color: #ffcc00;">"Noodle"</strong> - if you click "Let Noodle Play", a bot will start playing.  He's actually kinda fun to watch because he gets stressed out and panics sometimes.</li>
             <li>The <strong>"TO THE WORM"</strong> button takes you straight to the final boss battle </li>
             <li><strong>"Tentacle Lab"</strong> is a fun little sandbox - A few of the enemies have proceedurally created tentacles.  I used the lab to figure out the physics and aesthetic for each of the tentacle-based creatures.  It's fun to move the sliders to extreme values and watch the tentacles go crazy.  I ended up using this concept for another game that's in super early development, <a href="https://mkb0020.itch.io/tentacles" style="color: #58E84C">Tentacles</a>.  Feel free to check it out!  PW is "HunterBiden"</li>
-
+          -->
           </ul>
       </div>
     </div>
     </div>
 
   </div>
+
+  <div id="mode-transition"></div>
+  <div id="mode-transition2"></div>
 
   <div id="mobile-controls" class="landscape"> <!-- MOBILE CONTROLS -->
     <div class="joystick">
@@ -369,10 +373,10 @@
 <div id="leaderboard-overlay"> <!--  LEADERBOARD OVERLAY  -->
   <div class="leaderboard-box">
     <div class="leaderboard-header">
-      <div class="leaderboard-title" id="leaderboard-title">TOP PILOTS</div>
+      <div class="leaderboard-title" id="leaderboard-title">TOP WORMHOLERS</div>
       <div class="leaderboard-tabs">
-        <button class="lb-tab active" data-mode="gameplay">STORY</button>
-        <button class="lb-tab" data-mode="survival">SURVIVAL</button>
+        <button class="lb-tab active" data-mode="gameplay">REGULAR GAMEPLAY</button>
+        <button class="lb-tab" data-mode="survival">SURVIVAL MODE</button>
       </div>
     </div>
     <div class="leaderboard-body" id="leaderboard-body">

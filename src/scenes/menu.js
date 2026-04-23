@@ -1,5 +1,7 @@
 // menu.js - Updated 4/22/26 @ 1:00PM
 import { setMobileMode } from '../utils/controls.js';
+import { HighScoreUI }                               from '../utils/highScoreUI.js';
+
 
 const DEV_MODE = true;
 
@@ -136,7 +138,11 @@ export class Menu {
 
     const lbBtn = this._overlay?.querySelector('#leaderboard-btn');
     if (lbBtn) {
-      lbBtn.addEventListener('click', () => this._highScoreUI?.showLeaderboard('gameplay'));
+      lbBtn.addEventListener('click', () => {
+        this._highScoreUI?.showLeaderboard('gameplay');
+        console.log('LEADER BOARD BUTTON CLICKED');
+      }
+      );
     }
 
     const howtoBtn = this._overlay?.querySelector('#howto-btn');

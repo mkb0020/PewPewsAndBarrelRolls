@@ -90,33 +90,47 @@ export class SurvivalScene {
       const el = this._countdownEl;
       if (!el) { this.start(); resolve(); return; }
 
-      const STEPS     = ['7', '6', '5', '4', '3', '2', '1', 'GO!']; // 8 BEATS
-      const BEAT_MS   = 1232;    // 90 BPM — 2 BEAT PER STEP
-      let   i         = 0;
+      const bpm = 90;
+      const beatMs = (60 / bpm) * 1000;
+
+      const STEPS = [
+        { text: '5',  beat: 5 },
+        { text: '4',  beat: 7 },
+        { text: '3',  beat: 9 },
+        { text: '2',  beat: 11 },
+        { text: '1',  beat: 13 },
+        { text: 'GO!', beat: 15 },
+      ];
 
       el.style.display = 'flex';
 
-      const tick = () => {
-        if (i >= STEPS.length) {
-          el.style.display = 'none';
-          this.start();
-          resolve();
-          return;
-        }
-        const isGo = i === STEPS.length - 1;
-        el.textContent = STEPS[i++];
-        // CHANGE COLOR ON GO!
-        el.style.color = isGo ? '#58e84c' : '#00ffff';
-        el.style.textShadow = isGo
-          ? '0 0 30px #58e84c, 0 0 80px rgba(88,232,76,0.4)'
-          : '0 0 30px #00ffff, 0 0 80px rgba(0,255,255,0.4)';
-        el.classList.remove('countdown-pop');
-        void el.offsetWidth; // FORCE REFLOW SO ANIMATION RESTARTS
-        el.classList.add('countdown-pop');
-        setTimeout(tick, BEAT_MS);
-      };
+      STEPS.forEach(({ text, beat }, index) => {
+        const delay = (beat - 1) * beatMs;
 
-      tick();
+        setTimeout(() => {
+          const isGo = index === STEPS.length - 1;
+
+          el.textContent = text;
+
+          el.style.color = isGo ? '#58e84c' : '#00ffff';
+          el.style.textShadow = isGo
+            ? '0 0 30px #58e84c, 0 0 80px rgba(88,232,76,0.1)'
+            : '0 0 30px #00ffff, 0 0 80px rgba(0,255,255,0.1)';
+
+          el.classList.remove('countdown-pop');
+          void el.offsetWidth;
+          el.classList.add('countdown-pop');
+
+          if (isGo) {
+            setTimeout(() => {
+              el.style.display = 'none';
+              this.start();
+              resolve();
+            }, beatMs);
+          }
+
+        }, delay);
+      });
     });
   }
 
@@ -181,6 +195,10 @@ export class SurvivalScene {
 
     this._hideHUD();
     this._hideOverlay();
+  }
+
+  async show() {
+    return this.showCountdown();
   }
 
   isActive()   { return this._active;  }

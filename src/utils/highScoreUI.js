@@ -56,6 +56,7 @@ export class HighScoreUI {
 
   /** SHOW LEADERBOARD PANEL (call from menu or post-submit) */
   async showLeaderboard(mode = 'gameplay', highlightName = null) {
+    console.log('showLeaderboard activated');
     if (!this._lbEl) return;
     this._highlightName = highlightName;
     this._currentMode   = mode;

@@ -1,14 +1,11 @@
-// highScores.js - UPDATED 4/22/26 @ 3:30 PM
+// highScores.js - UPDATED 4/23/26 @ 3:00AM
 
-// Updated 4/22/26 @ 12:00PM
-// src/utils/highScores.js
-//
 // AUTO-DETECTS ENVIRONMENT:
 //   Tauri desktop  → localStorage (persistent, private)
 //   Browser        → Vercel API → Neon PostgreSQL (global leaderboard)
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const API_BASE     = 'https://wormhole-api.vercel.app'; // REPLACE WITH YOUR VERCEL URL
+const API_BASE     = 'https://mkb0020.vercel.app'; 
 const LOCAL_KEY    = 'wormhole_high_scores';
 const MAX_LOCAL    = 10;   // HOW MANY LOCAL SCORES TO KEEP
 const IS_TAURI     = typeof window !== 'undefined' && !!window.__TAURI__;
