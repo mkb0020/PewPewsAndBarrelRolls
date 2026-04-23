@@ -1,0 +1,45 @@
+WORMHOLE BALANCE ANALYSIS REPORT
+========================================
+
+
+=== DATASET OVERVIEW ===
+
+Total sessions: 6
+Boss encounters: 4
+
+
+=== BOSS ENTRY STATS ===
+
+
+bossEntryShipHp:
+  Mean: 71.25
+  Min:  36.00
+  Max:  90.00
+
+bossEntryShipLives:
+  Mean: 3.00
+  Min:  3.00
+  Max:  3.00
+
+
+=== KEY CORRELATIONS ===
+
+
+Top factors influencing bossEntryShipHp:
+  ocularPrismCount: 0.846
+  avgTimeToKill: 0.586
+  SLIME_ATTACK_REPEAT_INTERVAL: 0.324
+  FRACTAL_CASCADE_COOLDOWN_MAX: 0.324
+  SLIME_ATTACK_FIRST_ATTACK_MIN: 0.324
+  SLIME_ATTACK_FIRST_ATTACK_MAX: 0.324
+  FRACTAL_CASCADE_COOLDOWN_MIN: 0.324
+  hpHealCount: 0.205
+  enemyKills: -0.007
+
+Top factors influencing bossEntryShipLives:
+
+
+=== BALANCING INSIGHTS ===
+
+Spawn MIN vs Boss HP correlation: nan
+→ Weak relationship detected.

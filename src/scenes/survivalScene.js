@@ -58,14 +58,21 @@ export class SurvivalScene {
     this._goTimeEl     = document.getElementById('survival-go-time');
     this._goScoreEl    = document.getElementById('survival-go-score');
     this._restartBtn   = document.getElementById('survival-go-restart');
+    this._menuBtn      = document.getElementById('survival-go-menu');
     this._countdownEl  = document.getElementById('survival-countdown');
 
     // CALLBACK — WIRED IN main.js SO THE RESTART BUTTON FULLY RESETS GAME STATE
     this.onRestart = null;
+    this.onMenu    = null;
 
     this._restartBtn?.addEventListener('click', () => {
       this._hideOverlay();
       this.onRestart?.();
+    });
+
+    this._menuBtn?.addEventListener('click', () => {   
+      this._hideOverlay();
+      this.onMenu?.();
     });
 
     // console.log('✔ SurvivalScene initialized');
@@ -83,9 +90,8 @@ export class SurvivalScene {
       const el = this._countdownEl;
       if (!el) { this.start(); resolve(); return; }
 
-      const STEPS     = ['3', '2', '1', 'GO!'];
-      const STEP_MS   = 1000;   // DURATION FOR DIGITS
-      const GO_MS     = 700;    // SHORTER HOLD FOR "GO!"
+      const STEPS     = ['7', '6', '5', '4', '3', '2', '1', 'GO!']; // 8 BEATS
+      const BEAT_MS   = 1232;    // 90 BPM — 2 BEAT PER STEP
       let   i         = 0;
 
       el.style.display = 'flex';
@@ -107,7 +113,7 @@ export class SurvivalScene {
         el.classList.remove('countdown-pop');
         void el.offsetWidth; // FORCE REFLOW SO ANIMATION RESTARTS
         el.classList.add('countdown-pop');
-        setTimeout(tick, isGo ? GO_MS : STEP_MS);
+        setTimeout(tick, BEAT_MS);
       };
 
       tick();
@@ -217,9 +223,11 @@ export class SurvivalScene {
     if (this._goTimeEl)  this._goTimeEl.textContent  = _fmtTime(this._elapsed);
     if (this._goScoreEl) this._goScoreEl.textContent = score.toLocaleString();
     this._overlayEl.classList.add('active');
+    document.body.style.cursor = 'default'; 
   }
 
   _hideOverlay() {
     this._overlayEl?.classList.remove('active');
+    document.body.style.cursor = 'none';  
   }
 }

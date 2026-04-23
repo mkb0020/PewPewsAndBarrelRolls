@@ -1,4 +1,4 @@
-// menu.js - Updated 4/21/26 @ 12:00PM
+// menu.js - Updated 4/22/26 @ 1:00PM
 import { setMobileMode } from '../utils/controls.js';
 
 const DEV_MODE = true;
@@ -28,9 +28,10 @@ export class Menu {
   }
 
   // ======================= PUBLIC: SHOW =======================
-  show(starfield, onStart) {
-    this._starfield = starfield;
-    this._onStart   = onStart ?? null;
+  show(starfield, onStart, highScoreUI = null) {
+    this._starfield   = starfield;
+    this._onStart     = onStart ?? null;
+    this._highScoreUI = highScoreUI;
 
     if (!this._overlay) {
       console.error('[Menu] #menu-overlay not found in DOM');
@@ -132,6 +133,11 @@ export class Menu {
     this._overlay.querySelectorAll('.menu-btn[data-mode]').forEach(btn => {
       btn.addEventListener('click', () => this._select(btn.dataset.mode));
     });
+
+    const lbBtn = this._overlay?.querySelector('#leaderboard-btn');
+    if (lbBtn) {
+      lbBtn.addEventListener('click', () => this._highScoreUI?.showLeaderboard('gameplay'));
+    }
 
     const howtoBtn = this._overlay?.querySelector('#howto-btn');
     if (howtoBtn) {

@@ -1,4 +1,4 @@
-// main.js - Updated 4/21/26 @ 12PM
+// main.js - Updated 4/22/26 @ 3:30PM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -30,8 +30,10 @@ import { TesseractFragmentManager }                  from './entities/tesseractF
 import { SingularityBombManager }                    from './entities/singularityBomb.js';
 import { EnemyDeathManager }                         from './visuals/enemyDeath.js';
 import { FractalCascade }                            from './entities/fractalCascade.js';
-import { DevTools, SessionRecorder }                  from './temp/devTools.js';
+import { DevTools, SessionRecorder }                 from './temp/devTools.js';
 import { BotPlayer }                                 from './temp/botPlayer.js';  
+import { HighScores }                                from './utils/highScores.js';
+import { HighScoreUI }                               from './utils/highScoreUI.js';
 
 // ==================== CANVAS ====================
 const gameCanvas    = document.createElement('canvas');
@@ -99,6 +101,7 @@ const bossBattleScene   = new BossBattleScene({
   singularityBombManager,
   tunnel,
 });
+const highScoreUI = new HighScoreUI();
 
 //  ============================== CALLBACKS  ==============================
 
@@ -564,9 +567,20 @@ survivalScene.onRestart = () => { //  SURVIVAL SCENE RESTART
   audio.startSurvivalMusic();
 };
 
+survivalScene.onMenu = () => {
+  SessionRecorder.stop();
+  audio.stop();
+  window.location.reload();
+};
+
 transitionScene.onGameOver = () => {
   audio.playGameOver1();
-  SessionRecorder.endSession('game_over'); // CAPTURE PROGRESS SNAPSHOT ON GAME OVER
+  SessionRecorder.endSession('game_over');
+  const score = scoreManager.score;
+  if (HighScores.isHighScore(score, currentMode)) {
+    highScoreUI.showEntry(score, gameplayScene.getWaveIndex(), currentMode, () => { // LEADERBOARD SHOWN AUTOMATICALLY AFTER SUBMIT
+    });
+  }
 };
 
 // ==================== GAME STATE ====================
@@ -1048,7 +1062,7 @@ async function startup() {
   await ImageLoader.preloadCritical();
   // console.log('✔ Images ready');
 
-  const { mode, enemyCount } = await menu.show(starfield, () => audio.start());
+  const { mode, enemyCount } = await menu.show(starfield, () => audio.start(), highScoreUI);
 
   currentMode       = mode;
   currentEnemyCount = enemyCount;
@@ -1063,6 +1077,10 @@ async function startup() {
   }
 
   if (mode === 'survival') { //  SURVIVAL MODE — SKIP OPENING CINEMATIC, GO STRAIGHT TO GAMEPLAY 
+    document.getElementById('menu-overlay')?.classList.add('hidden');  // HIDE COCKPIT OVERLAY — openingScene.play() never runs in survival mode
+    const cockpit = document.getElementById('opening-cockpit');//GET COCKPIT IMG
+    cockpit.style.display = 'none'; // HIDE COCKPIT IMG
+
     audio.start(); // UNLOCK WEB AUDIO — NORMALLY DONE INSIDE menu.show() CALLBACK
     _gameStarted = true;
 

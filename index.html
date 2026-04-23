@@ -82,12 +82,15 @@
       <button class="menu-btn howto" id="howto-btn">
         <span class="btn-label">** NOTES FOR TESTERS **</span>
       </button>
-      <button class="menu-btn boss" data-mode="bossBattle">
+      <button class="menu-btn" id="leaderboard-btn">
+        <span class="btn-label">🏆 &nbsp; LEADERBOARD</span>
+      </button>
+      <!--<button class="menu-btn boss" data-mode="bossBattle">
         <span class="btn-label">&#9760; &nbsp; to the worm! </span>
       </button>
-      <button class="menu-btn dev-lab" data-mode="tentacleLab"> <!-- DEV ONLY — TENTACLE PARAMETER TUNING SANDBOX -->
+      <button class="menu-btn dev-lab" data-mode="tentacleLab"> 
         <span class="btn-label">🐙 &nbsp; tentacle lab</span>
-      </button>
+      </button>-->
     </div>
 
     <div class="menu-footer">© Wormholes All The Way Down</div>
@@ -309,20 +312,20 @@
   <div id="survival-countdown"></div> <!-- SURVIVAL COUNTDOWN -->
 
   <div id="survival-gameover"> <!-- SURVIVAL GAME OVER SCREEN -->
-    <div class="survival-go-title">ANNIHILATED</div>
-    <div class="survival-go-sub">you held out as long as you could</div>
+    <div class="survival-go-title">YOU DIED</div>
+    <!--<div class="survival-go-sub">you did your best.  but you only get one life here.</div>-->
     <div class="survival-go-stats">
       <div class="survival-go-stat">
-        <span class="survival-go-stat-label">Time Survived</span>
+        <span class="survival-go-stat-label">Time:</span>
         <span class="survival-go-stat-value" id="survival-go-time">0:00</span>
       </div>
       <div class="survival-go-stat">
-        <span class="survival-go-stat-label">Enemies Destroyed</span>
+        <span class="survival-go-stat-label">Enemies:</span>
         <span class="survival-go-stat-value" id="survival-go-score">0</span>
       </div>
     </div>
-    <button class="survival-go-btn" id="survival-go-restart">TRY AGAIN</button>
-    <div class="survival-go-hint">One life. No mercy.</div>
+    <button class="survival-go-btn" id="survival-go-restart">REDEEM YOURSELF</button> 
+    <button class="survival-go-btn survival-go-btn--menu" id="survival-go-menu">BACK TO MENU</button> 
   </div>
 
   <div id="died-overlay">
@@ -342,6 +345,42 @@
     <div class="portrait-icon">↻</div>
     <p class="portrait-message">Put that thang down <br> flip it and <br> reverse it. <br><br> Rotate to landscape</p>
   </div>
+
+
+<div id="score-entry-overlay"> <!--  SCORE ENTRY OVERLAY  -->
+  <div class="score-entry-box">
+    <div class="score-entry-title">NEW HIGH SCORE!</div>
+    <div class="score-entry-value" id="score-entry-value">000,000</div>
+    <div class="score-entry-label">ENTER YOUR NAME</div>
+    <input
+      id="score-entry-input"
+      class="score-entry-input"
+      type="text"
+      maxlength="20"
+      placeholder="PILOT"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <button class="score-entry-btn" id="score-entry-submit">SUBMIT ↵</button>
+    <div class="score-entry-hint">or press ENTER</div>
+  </div>
+</div>
+
+<div id="leaderboard-overlay"> <!--  LEADERBOARD OVERLAY  -->
+  <div class="leaderboard-box">
+    <div class="leaderboard-header">
+      <div class="leaderboard-title" id="leaderboard-title">TOP PILOTS</div>
+      <div class="leaderboard-tabs">
+        <button class="lb-tab active" data-mode="gameplay">STORY</button>
+        <button class="lb-tab" data-mode="survival">SURVIVAL</button>
+      </div>
+    </div>
+    <div class="leaderboard-body" id="leaderboard-body">
+      <div class="lb-loading">LOADING…</div>
+    </div>
+    <button class="leaderboard-close" id="leaderboard-close">CLOSE</button>
+  </div>
+</div>
 
 </body>
 </html>

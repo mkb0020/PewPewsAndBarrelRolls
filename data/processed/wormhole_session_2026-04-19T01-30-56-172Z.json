@@ -1,0 +1,1505 @@
+{
+  "meta": {
+    "generatedAt": "2026-04-19T01:30:56.167Z"
+  },
+  "configSnapshot": {
+    "COSMIC_PRISM": {
+      "HEAL_AMOUNT": 30
+    },
+    "ENEMIES": {
+      "SPAWN_INTERVAL_MIN": 3,
+      "SPAWN_INTERVAL_MAX": 6,
+      "TYPES": {
+        "BASIC": {
+          "HEALTH": 5,
+          "LASER_INTERVAL": 2.5,
+          "COMBAT_DURATION": 9
+        },
+        "FAST": {
+          "HEALTH": 7,
+          "LASER_INTERVAL": 2,
+          "COMBAT_DURATION": 6
+        },
+        "TANK": {
+          "HEALTH": 10,
+          "LASER_INTERVAL": 2.5,
+          "COMBAT_DURATION": 9
+        },
+        "ZIGZAG": {
+          "HEALTH": 6,
+          "LASER_INTERVAL": 2,
+          "COMBAT_DURATION": 7
+        },
+        "FLIMFLAM": {
+          "HEALTH": 10,
+          "LASER_INTERVAL": 2,
+          "COMBAT_DURATION": 9,
+          "PRISM_FIRST_DELAY_MIN": 1,
+          "PRISM_FIRST_DELAY_MAX": 2.5,
+          "PRISM_COOLDOWN_MIN": 5,
+          "PRISM_COOLDOWN_MAX": 10
+        }
+      }
+    },
+    "SLIME_ATTACK": {
+      "FIRST_ATTACK_MIN": 1,
+      "FIRST_ATTACK_MAX": 2.5,
+      "REPEAT_INTERVAL": 7
+    },
+    "FRACTAL_CASCADE": {
+      "FIRST_DELAY_MIN": 1,
+      "FIRST_DELAY_MAX": 2.5,
+      "COOLDOWN_MIN": 5,
+      "COOLDOWN_MAX": 7
+    },
+    "WAVE_CONFIGS": [
+      {
+        "types": [
+          "BASIC"
+        ],
+        "weights": [
+          1
+        ],
+        "maxEnemies": 4,
+        "specialWindows": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "types": [
+          "BASIC",
+          "ZIGZAG"
+        ],
+        "weights": [
+          0.65,
+          0.35
+        ],
+        "maxEnemies": 5,
+        "specialWindows": [
+          22000,
+          14000,
+          7000,
+          3000
+        ]
+      },
+      {
+        "types": [
+          "BASIC",
+          "ZIGZAG",
+          "FAST"
+        ],
+        "weights": [
+          0.25,
+          0.3,
+          0.45
+        ],
+        "maxEnemies": 6,
+        "specialWindows": [
+          18000,
+          12000,
+          6000,
+          2000
+        ]
+      },
+      {
+        "types": [
+          "BASIC",
+          "ZIGZAG",
+          "FAST",
+          "TANK"
+        ],
+        "weights": [
+          0.3,
+          0.2,
+          0.2,
+          0.3
+        ],
+        "maxEnemies": 7,
+        "specialWindows": [
+          20000,
+          14000,
+          8000,
+          3000,
+          0
+        ]
+      },
+      {
+        "types": [
+          "BASIC",
+          "ZIGZAG",
+          "FAST",
+          "TANK",
+          "FLIMFLAM"
+        ],
+        "weights": [
+          0.25,
+          0.15,
+          0.1,
+          0.2,
+          0.3
+        ],
+        "maxEnemies": 9,
+        "specialWindows": [
+          30000,
+          20000,
+          8000,
+          2000,
+          0
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "totalEvents": 224,
+    "damageEvents": 18,
+    "enemyKills": 87,
+    "enemySpawns": 90,
+    "playerDamageCount": 18,
+    "hpHealCount": 13,
+    "totalHpHealed": 390,
+    "fractalCascadeCount": 8,
+    "slimeAttackCount": 2,
+    "ocularPrismCount": 3,
+    "bossEntryShipHp": 56,
+    "bossEntryShipLives": 3,
+    "bossBattleDuration": null,
+    "avgTimeToKill": 4708.672413794645
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "time": 0.19999998807907104
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 3286.199999988079,
+      "id": 1,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 6582.399999991059,
+      "id": 2,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 6615.399999991059,
+      "id": 1,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 8596.39999999106,
+      "id": 2,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 12026.89999999106,
+      "id": 3,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 15227.5,
+      "id": 3,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 15557.39999999106,
+      "id": 4,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "player_damage",
+      "time": 15842.89999999106,
+      "amount": 12,
+      "hp": 88,
+      "lives": 3
+    },
+    {
+      "type": "hp_heal",
+      "time": 16858.69999998808,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_killed",
+      "time": 20470,
+      "id": 4,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 20936.39999999106,
+      "id": 5,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 22951.29999999702,
+      "id": 5,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 25282.69999998808,
+      "id": 6,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 26381.79999999702,
+      "id": 6,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 29163.69999998808,
+      "id": 7,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 32127.19999998808,
+      "id": 7,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 34709.19999998808,
+      "id": 8,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 36640.29999999702,
+      "id": 8,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 39838.69999998808,
+      "id": 9,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "hp_heal",
+      "time": 40006,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_killed",
+      "time": 42352.19999998808,
+      "id": 9,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 44517.09999999404,
+      "id": 10,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 46631.89999999106,
+      "id": 10,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 49529.79999999702,
+      "id": 11,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 50961.79999999702,
+      "id": 11,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 53544.89999999106,
+      "id": 12,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 54925,
+      "id": 12,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "hp_heal",
+      "time": 66367.39999999106,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 70832.19999998808,
+      "id": 13,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 74442.59999999404,
+      "id": 13,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 76967.39999999106,
+      "id": 14,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 78605.79999999702,
+      "id": 14,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 81170.59999999404,
+      "id": 15,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 84684.19999998808,
+      "id": 16,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 85284.39999999106
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 88564.39999999106,
+      "id": 17,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 88955,
+      "id": 15,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 90295.79999999702,
+      "id": 17,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 92461,
+      "id": 16,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 92777.59999999404,
+      "id": 18,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "hp_heal",
+      "time": 93244.59999999404,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_killed",
+      "time": 97340.5,
+      "id": 18,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "player_damage",
+      "time": 97340.89999999106,
+      "amount": 12,
+      "hp": 88,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 98789.19999998808,
+      "id": 19,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 100305,
+      "id": 19,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 102802.39999999106,
+      "id": 20,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "player_damage",
+      "time": 104917.59999999404,
+      "amount": 10,
+      "hp": 78,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 106699.19999998808,
+      "id": 21,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 106751.79999999702
+    },
+    {
+      "type": "enemy_killed",
+      "time": 107448.89999999106,
+      "id": 20,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 109236.29999999702,
+      "id": 21,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 111495,
+      "id": 22,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "hp_heal",
+      "time": 114760.69999998808,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_killed",
+      "time": 116458.79999999702,
+      "id": 22,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 116857.79999999702,
+      "id": 23,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 119322.39999999106,
+      "id": 23,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 122303.89999999106,
+      "id": 24,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 125501.09999999404
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 127893.79999999702,
+      "id": 25,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 134639.5,
+      "id": 25,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 134639.59999999404,
+      "id": 24,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "hp_heal",
+      "time": 141555.5,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 141804.29999999702,
+      "id": 26,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 144230.29999999702,
+      "id": 26,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 147383.69999998808,
+      "id": 27,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 150646.59999999404,
+      "id": 28,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 151430.09999999404
+    },
+    {
+      "type": "player_damage",
+      "time": 152062.09999999404,
+      "amount": 10,
+      "hp": 90,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 154612.39999999106,
+      "id": 29,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 155274.69999998808,
+      "id": 27,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 158423.89999999106,
+      "id": 28,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 160038.89999999106,
+      "id": 30,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 161356.89999999106,
+      "id": 29,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 163536.19999998808,
+      "id": 31,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 164202.19999998808,
+      "id": 30,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "hp_heal",
+      "time": 165818.29999999702,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 168548.59999999404,
+      "id": 32,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 171363.29999999702,
+      "id": 31,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 173381.89999999106,
+      "id": 33,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 173844.19999998808,
+      "id": 32,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 176227.5,
+      "id": 33,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 179140.69999998808,
+      "id": 34,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "player_damage",
+      "time": 181552,
+      "amount": 10,
+      "hp": 90,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 183286.59999999404,
+      "id": 35,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 188282.39999999106,
+      "id": 36,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 188881.79999999702,
+      "id": 35,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 188948.39999999106,
+      "id": 36,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 189098.59999999404,
+      "id": 34,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 191696.19999998808,
+      "id": 37,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "hp_heal",
+      "time": 192246.39999999106,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 195643,
+      "id": 38,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 195742.69999998808,
+      "id": 37,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 198107.79999999702,
+      "id": 38,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 201189.59999999404,
+      "id": 39,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 203786.39999999106,
+      "id": 39,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 207051.29999999702,
+      "id": 40,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 208932.19999998808,
+      "id": 40,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "player_damage",
+      "time": 209065.59999999404,
+      "amount": 10,
+      "hp": 90,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 211396.89999999106,
+      "id": 41,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 215660.59999999404,
+      "id": 41,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 215893.39999999106,
+      "id": 42,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "hp_heal",
+      "time": 218625.5,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 218941.19999998808,
+      "id": 43,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 220023.19999998808,
+      "id": 42,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 223487.09999999404,
+      "id": 43,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 223820,
+      "id": 44,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 226534.79999999702,
+      "id": 44,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 408768.6999999881,
+      "id": 45,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "hp_heal",
+      "time": 409668.59999999404,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 411983.5
+    },
+    {
+      "type": "enemy_killed",
+      "time": 413032.09999999404,
+      "id": 45,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 414380.799999997,
+      "id": 46,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "player_damage",
+      "time": 417312.09999999404,
+      "amount": 10,
+      "hp": 90,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 418144.1999999881,
+      "id": 47,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "player_damage",
+      "time": 419361,
+      "amount": 12,
+      "hp": 78,
+      "lives": 3
+    },
+    {
+      "type": "enemy_killed",
+      "time": 421707.89999999106,
+      "id": 47,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 422657.799999997,
+      "id": 48,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 423144.5,
+      "id": 46,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 426204.89999999106,
+      "id": 48,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 426821.09999999404,
+      "id": 49,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 430634.09999999404,
+      "id": 50,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 430850.6999999881,
+      "id": 49,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 434564.1999999881,
+      "id": 51,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "slime_attack",
+      "time": 435080.59999999404
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 440192.799999997,
+      "id": 52,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 442268.299999997,
+      "id": 52,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 442268.5,
+      "id": 51,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 442491,
+      "id": 50,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 443739.799999997,
+      "id": 53,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 447620,
+      "id": 54,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 448719.299999997,
+      "id": 53,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 450884
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 452432.799999997,
+      "id": 55,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 453986.59999999404,
+      "id": 55,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 455397.299999997,
+      "id": 54,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 457562.1999999881,
+      "id": 56,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "player_damage",
+      "time": 458661.6999999881,
+      "amount": 12,
+      "hp": 66,
+      "lives": 3
+    },
+    {
+      "type": "enemy_killed",
+      "time": 461758.6999999881,
+      "id": 56,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 462491.59999999404,
+      "id": 57,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 464806.6999999881,
+      "id": 57,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 467220.6999999881,
+      "id": 58,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 470301.5,
+      "id": 59,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 471600.799999997,
+      "id": 58,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 474515.39999999106,
+      "id": 59,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 474581.5,
+      "id": 60,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "player_damage",
+      "time": 478312.39999999106,
+      "amount": 12,
+      "hp": 54,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 478927.6999999881,
+      "id": 61,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 482058.39999999106,
+      "id": 62,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "hp_heal",
+      "time": 484127.6999999881,
+      "amount": 30,
+      "hp": 84
+    },
+    {
+      "type": "enemy_killed",
+      "time": 484523.6999999881,
+      "id": 62,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 484523.799999997,
+      "id": 61,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 484922.6999999881,
+      "id": 60,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 486174.39999999106,
+      "id": 63,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 488936.299999997,
+      "id": 63,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 492017.799999997,
+      "id": 64,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 495165.1999999881
+    },
+    {
+      "type": "enemy_killed",
+      "time": 495447.6999999881,
+      "id": 64,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 506706.6999999881,
+      "id": 65,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "hp_heal",
+      "time": 509670.1999999881,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "ocular_prism_attack",
+      "time": 510486.5
+    },
+    {
+      "type": "player_damage",
+      "time": 511869.299999997,
+      "amount": 10,
+      "hp": 90,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 512636.89999999106,
+      "id": 66,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 515731.1999999881,
+      "id": 67,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 519228.299999997,
+      "id": 68,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 519280.59999999404,
+      "id": 66,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 519382.5,
+      "id": 67,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 519495.1999999881,
+      "id": 65,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 522558.799999997,
+      "id": 68,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 523041.89999999106,
+      "id": 69,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 526605.6999999881,
+      "id": 69,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 526855.599999994,
+      "id": 70,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 529453.299999997,
+      "id": 70,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 531119.5,
+      "id": 71,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "player_damage",
+      "time": 533216.8999999911,
+      "amount": 10,
+      "hp": 80,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 534982.1999999881,
+      "id": 72,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "hp_heal",
+      "time": 537513.3999999911,
+      "amount": 30,
+      "hp": 100
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 538263,
+      "id": 73,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 541137.6999999881,
+      "id": 73,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 541327.299999997,
+      "id": 71,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 541409.799999997,
+      "id": 72,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 541942.8999999911,
+      "id": 74,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 543376.099999994,
+      "id": 74,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 547338.599999994,
+      "id": 75,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 550802.299999997,
+      "id": 76,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 551385.5,
+      "id": 75,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 554417.1999999881,
+      "id": 77,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 556814.599999994,
+      "id": 76,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 557497.6999999881,
+      "id": 78,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "slime_attack",
+      "time": 559147.599999994
+    },
+    {
+      "type": "player_damage",
+      "time": 562259.8999999911,
+      "amount": 10,
+      "hp": 90,
+      "lives": 3
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 562292.8999999911,
+      "id": 79,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 563841.3999999911,
+      "id": 78,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 565540.099999994,
+      "id": 80,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "player_damage",
+      "time": 567191.8999999911,
+      "amount": 12,
+      "hp": 78,
+      "lives": 3
+    },
+    {
+      "type": "enemy_killed",
+      "time": 570260.599999994,
+      "id": 80,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 570261,
+      "id": 79,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 570553.099999994,
+      "id": 77,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 571069,
+      "id": 81,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 574050,
+      "id": 81,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 576914.599999994,
+      "id": 82,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 578080.1999999881,
+      "id": 82,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 580212.5,
+      "id": 83,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "ocular_prism_attack",
+      "time": 584625.299999997
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 584708.099999994,
+      "id": 84,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "player_damage",
+      "time": 587857.8999999911,
+      "amount": 12,
+      "hp": 66,
+      "lives": 3
+    },
+    {
+      "type": "fractal_cascade_attack",
+      "time": 587888.8999999911
+    },
+    {
+      "type": "enemy_killed",
+      "time": 587940.6999999881,
+      "id": 83,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 590653,
+      "id": 85,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 592485,
+      "id": 84,
+      "enemyType": "ZIGZAG"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 594849.8999999911,
+      "id": 86,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_killed",
+      "time": 595349.1999999881,
+      "id": 85,
+      "enemyType": "FAST"
+    },
+    {
+      "type": "player_damage",
+      "time": 597298.599999994,
+      "amount": 10,
+      "hp": 56,
+      "lives": 3
+    },
+    {
+      "type": "enemy_killed",
+      "time": 597398.299999997,
+      "id": 86,
+      "enemyType": "BASIC"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 599912.3999999911,
+      "id": 87,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 604358.599999994,
+      "id": 88,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "ocular_prism_attack",
+      "time": 604708.599999994
+    },
+    {
+      "type": "enemy_killed",
+      "time": 605058,
+      "id": 87,
+      "enemyType": "FLIMFLAM"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 607911.6999999881,
+      "id": 89,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "enemy_spawn",
+      "time": 612321.099999994,
+      "id": 90,
+      "enemyType": "TANK"
+    },
+    {
+      "type": "boss_battle_start",
+      "time": 642075,
+      "shipHp": 56,
+      "shipLives": 3
+    },
+    {
+      "type": "player_damage",
+      "time": 650422.6999999881,
+      "amount": 15,
+      "hp": 41,
+      "lives": 3
+    },
+    {
+      "type": "player_damage",
+      "time": 667725.099999994,
+      "amount": 15,
+      "hp": 26,
+      "lives": 3
+    },
+    {
+      "type": "session_end",
+      "time": 711259.299999997
+    }
+  ]
+}

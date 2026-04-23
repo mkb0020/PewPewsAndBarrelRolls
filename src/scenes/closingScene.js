@@ -1,6 +1,7 @@
-// Updated 4/6/26 @ 2pm
+// Updated 4/22/26 @ 3:30PM
 // scenes/closingScene.js
 import { ImageLoader } from '../utils/imageLoader.js';
+import { HighScores }  from '../utils/highScores.js';
 
 // ── CLOSING SCENE TIMING ──────────────────────────────────────────────────────
 const CREDITS = [
@@ -256,18 +257,18 @@ class SpaceWhale {
     ctx.restore();
   }
 
-  // ── PRIVATE: PHASE → FRAME INDEX ───────────────────────────────────────────
-  // phase = 0→1 over one full bob cycle. frame 0 = bottom of bob (phase 0.75 in a sine wave,
-  // since sin bottoms out at -π/2 = 0.75 of a full cycle).
-  // If you want frame 0 at the TOP of the bob instead, change the offset to 0.25.
-  _computeFrameIndex() {
-    // SHIFT PHASE SO FRAME 0 ALIGNS WITH THE BOTTOM OF THE BOB
-    // sin bottoms at t where 2π·f·t = -π/2, i.e. phase = 0.75
-    // Subtract 0.75 and wrap with % 1 to put frame 0 at the trough
-    const rawPhase    = (this._timeMs * WHALE_BOB_FREQ) % 1;
-    const shiftedPhase = (rawPhase + 0.25) % 1; // +0.25 shifts frame 0 to trough
-    return Math.floor(shiftedPhase * WHALE_FRAME_COUNT);
-  }
+// ── PRIVATE: PHASE → FRAME INDEX ───────────────────────────────────────────
+// PHASE = 0→1 OVER ONE FULL BOB CYCLE. FRAME 0 = BOTTOM OF BOB (PHASE 0.75 IN A SINE WAVE,
+// SINCE SIN BOTTOMS OUT AT -π/2 = 0.75 OF A FULL CYCLE).
+_computeFrameIndex() {
+  // SHIFT PHASE SO FRAME 0 ALIGNS WITH THE BOTTOM OF THE BOB
+  // SIN BOTTOMS AT T WHERE 2π·F·T = -π/2, I.E. PHASE = 0.75
+  // SUBTRACT 0.75 AND WRAP WITH % 1 TO PUT FRAME 0 AT THE TROUGH
+  const rawPhase    = (this._timeMs * WHALE_BOB_FREQ) % 1;
+  const shiftedPhase = (rawPhase + 0.25) % 1; // +0.25 SHIFTS FRAME 0 TO TROUGH
+  return Math.floor(shiftedPhase * WHALE_FRAME_COUNT);
+}
+
 
   // ── PRIVATE: TAIL PHYSICS ───────────────────────────────────────────────────
   _stepTailPhysics(dtMs) {
@@ -332,12 +333,13 @@ export class ClosingScene {
     this._linesRevealed   = 0;
     this._menuBtnShown    = false;
     this._menuBtnEl       = null;
+    this._endLbEl         = null;
 
     // WHALE
     this._whale       = new SpaceWhale();
     this._whaleStarted = false;
 
-    /** @type {Function|null} — called when player clicks "BACK TO MENU" */
+    /** @type {Function|null} — CALLED WHEN PLAYER CLICKS "BACK TO MENU" */
     this.onBackToMenu = null;
 
     console.log('✔ ClosingScene initialized');
@@ -442,7 +444,7 @@ export class ClosingScene {
 
     if (!this._menuBtnShown && this._elapsed >= BACK_TO_MENU_DELAY) {
       this._menuBtnShown = true;
-      this._showMenuButton();
+      this._showEndLeaderboard();
     }
   }
 
@@ -526,20 +528,66 @@ export class ClosingScene {
     }
   }
 
-  _showMenuButton() {
-    this._menuBtnEl?.remove();
+  async _showEndLeaderboard() {
+    this._endLbEl?.remove();
+
+    const wrap = document.createElement('div');
+    wrap.id = 'end-leaderboard';
+    wrap.classList.add('credit-hidden');
+    wrap.innerHTML = `
+      <div class="end-lb-title">TOP PILOTS</div>
+      <div class="end-lb-body"><div class="end-lb-loading">LOADING…</div></div>
+    `;
+
+    // BACK TO MENU BUTTON — INSIDE THE WRAPPER, BELOW THE LEADERBOARD
     const btn = document.createElement('button');
     btn.id          = 'back-to-menu-btn';
     btn.textContent = 'BACK TO MENU';
-    btn.classList.add('credit-hidden');
     btn.addEventListener('click', () => { this.onBackToMenu?.(); });
-    document.body.appendChild(btn);
+    wrap.appendChild(btn);
+
+    document.body.appendChild(wrap);
+    this._endLbEl  = wrap;
     this._menuBtnEl = btn;
+
     requestAnimationFrame(() => {
-      btn.classList.remove('credit-hidden');
-      btn.classList.add('credit-visible');
+      wrap.classList.remove('credit-hidden');
+      wrap.classList.add('credit-visible');
     });
+
+    // FETCH AND RENDER SCORES
+    const bodyEl = wrap.querySelector('.end-lb-body');
+    const scores = await HighScores.getLeaderboard('gameplay', 10);
+
+    if (!scores || scores.length === 0) {
+      bodyEl.innerHTML = '<div class="end-lb-empty">NO SCORES YET</div>';
+      return;
+    }
+
+    const rankColors = ['#ffd700', '#c0c0c0', '#cd7f32'];
+
+    function fmt(n) {
+      return String(Math.floor(n)).padStart(6, '0').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    bodyEl.innerHTML = scores.map((s, i) => {
+      const rankStyle = rankColors[i] ? `style="color:${rankColors[i]}"` : '';
+      return `
+        <div class="end-lb-row">
+          <span class="end-lb-rank" ${rankStyle}>${i + 1}</span>
+          <span class="end-lb-name">${_escHtml(s.name ?? 'PILOT')}</span>
+          <span class="end-lb-score">${fmt(s.score ?? 0)}</span>
+        </div>`;
+    }).join('');
   }
+}
+
+function _escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function easeOut(t) {
