@@ -1,4 +1,4 @@
-// Updated 4/21/26 @ 12:00PM
+// Updated 4/23/26 @ 3:00PM
 // audio.js
 export class AudioManager {
   constructor() {
@@ -672,7 +672,7 @@ export class AudioManager {
 
     // ====== DEFINE MUSICAL TIMING (NOT BUFFER DURATION) ======
     const riserBeats = 16;
-    const musicStartTime = now + riserBeats * beat; // beat 17
+    const musicStartTime = now + riserBeats * beat; 
 
     // ====== START SURVIVAL LOOP ON NEXT BAR ======
     const startSurvival = () => {

@@ -1,4 +1,4 @@
-/* Updated 4/23/26 @ 3AM*/
+/* Updated 4/23/26 @ 3PM*/
 :root {
   --neon-primary: #00ffff;
   --neon-secondary: #67FEBD;
@@ -9,7 +9,7 @@
   --gradient-main: linear-gradient(135deg, #667eea, #830cde, #c71585);
   --gradient-accent: linear-gradient(135deg, #00ffff, #67FEBD);
 
-  --glass-bg: rgba(10, 5, 30, 0.75);
+  --glass-bg: rgba(9, 4, 33, 0.607);
 }
 
 @font-face {
@@ -784,32 +784,43 @@ kbd {
   font-style: italic;
 }
 
+/* ====================== SCROLL BAR =========================*/
 .howto-modal-content::-webkit-scrollbar {
-  width: 8px;
-  background-color: #000000;
+  width: 10px;
+  height: 14px;
 }
 
 .howto-modal-content::-webkit-scrollbar-track {
-  background: #000000;
-  border-radius: 10px;
-  margin: 8px 0;
+  background: #0a0015;
+  border: 1px solid #830cdea2;
+  box-shadow: inset 0 0 12px #000000cc;
+  border-radius: 50px;
 }
 
 .howto-modal-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #00ffff, #67FEBD);
-  border-radius: 10px;
-  border: 1px solid #00FFFF;
+  background: linear-gradient(
+    145deg,
+    #ff69b4 0%,
+    #c71585 5%,
+    #dc4ce8 10%,
+    #830cde 15%,
+    #00ffff 20%,
+    #67FEBD 25%
+  );
+  border-radius: 8px;          
+  border: 2px solid #000000;
+  box-shadow:
+    0 0 10px #ff69b4aa,
+    0 0 20px #c71585aa,
+    inset 0 0 6px #ffffff33;
+  background-size: 300% 300%;    
+  filter: hue-rotate(0deg);
+  animation: 
+    hueCycle 18s linear infinite,    
+    neonFlow 8s ease-in-out infinite alternate; 
 }
 
-.howto-modal-content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #00ffff, #67FEBD);
-  cursor: pointer;
-}
 
-.howto-modal-content {
-  scrollbar-width: thin;
-  scrollbar-color: #00ffff #170032;
-}
 
 
 
@@ -2888,29 +2899,36 @@ kbd {
 #end-leaderboard {
   position: fixed;
   left: 50%;
-  bottom: 60px;
+  bottom: 40%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  width: min(420px, 88vw);
-  padding: 1.6rem 2rem 1.4rem;
-  background: rgba(5, 0, 20, 0.82);
-  border: 1px solid rgba(0, 255, 255, 0.22);
-  border-radius: 10px;
-  box-shadow: 0 0 40px rgba(0, 255, 255, 0.08), 0 0 4px rgba(0, 255, 255, 0.25);
+ /* gap: 14px;
+  width: min(600px, 88vw);
+  height: 70vh;
+  padding: 2rem 5rem 1.4rem;
+  border-radius: 30px;
+  font-family: 'SpaceLetters', monospace;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0);
+  box-shadow:
+    0 0 60px rgba(131, 12, 222, 0),
+    0 0 30px rgba(0, 255, 255, 0.0),
+    inset 0 0 20px rgba(255, 255, 255, 0);*/
   font-family: 'SpaceLetters', monospace;
   z-index: 16;
   pointer-events: auto;
 }
 
 .end-lb-title {
-  font-size: clamp(0.7rem, 2vw, 0.95rem);
-  letter-spacing: 0.4em;
-  color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-  text-transform: uppercase;
+  font-size: clamp(0.7rem, 2vw, 1.1rem);
+  /*letter-spacing: 0.4em;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;*/
 }
 
 .end-lb-body {
@@ -2930,12 +2948,12 @@ kbd {
 }
 
 .end-lb-row {
-  display: grid;
+  /*display: grid;
   grid-template-columns: 2rem 1fr auto;
-  gap: 8px;
+  gap: 8px;*/
   align-items: center;
-  padding: 5px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  /*padding: 5px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);*/
 }
 
 .end-lb-rank {
@@ -2962,10 +2980,46 @@ kbd {
   letter-spacing: 0.05em;
 }
 
+
+/* ====================== SCROLL BAR =========================*/
+.end-lb-body::-webkit-scrollbar {
+  width: 10px;
+  height: 14px;
+}
+
+.end-lb-body::-webkit-scrollbar-track {
+  background: #0a0015;
+  border: 1px solid #830cdea2;
+  box-shadow: inset 0 0 12px #000000cc;
+  border-radius: 50px;
+}
+
+.end-lb-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    145deg,
+    #ff69b4 0%,
+    #c71585 5%,
+    #dc4ce8 10%,
+    #830cde 15%,
+    #00ffff 20%,
+    #67FEBD 25%
+  );
+  border-radius: 8px;          
+  border: 2px solid #000000;
+  box-shadow:
+    0 0 10px #ff69b4aa,
+    0 0 20px #c71585aa,
+    inset 0 0 6px #ffffff33;
+  background-size: 300% 300%;    
+  filter: hue-rotate(0deg);
+  animation: 
+    hueCycle 18s linear infinite,    
+    neonFlow 8s ease-in-out infinite alternate; 
+}
+
 /* BACK TO MENU BUTTON INSIDE THE LEADERBOARD WRAPPER */
 #end-leaderboard #back-to-menu-btn {
   margin-top: 6px;
-  width: 100%;
 }
 
 @media (max-width: 480px) {
@@ -2981,16 +3035,17 @@ kbd {
   position: fixed;
   left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   padding: 0.5em 3em;
+  width: 500px;
+  margin-bottom: 10px;
   font-family: 'GothNerd', 'Orbitron', monospace;
   font-size: clamp(0.7rem, 1.8vw, 1.4rem);
   font-weight: bold;
   letter-spacing: 0.35em;
   text-transform: uppercase;
   color: #e8d8ff;
-  text-shadow: 
+  text-shadow:
     3px 2px 0 #2A3439,
     -1px -1px 0 #9090C0;
   background: rgba(10, 0, 30, 0.6);
@@ -3000,31 +3055,12 @@ kbd {
   pointer-events: auto;
   overflow: hidden;
   z-index: 1;
-
   box-shadow:
     0 0 0 1.5px rgba(180, 100, 255, 0.6),
     0 0 12px rgba(120, 60, 220, 0.4),
     inset 0 0 16px rgba(100, 0, 200, 0.15);
-
-  animation: holoGlow 5s ease-in-out infinite;
-  transition: transform 1s ease, box-shadow 1s ease;
-}
-
-#back-to-menu-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.08) 40%,
-    rgba(200, 150, 255, 0.18) 50%,
-    rgba(255, 255, 255, 0.08) 60%,
-    transparent 80%
-  );
-  background-size: 200% 100%;
-  animation: holoShimmer 5s linear infinite;
-  pointer-events: none;
+  animation: holoGlow 10s ease-in-out infinite;
+  transition: transform 3s ease, box-shadow 1s ease;
 }
 
 #back-to-menu-btn::after {
@@ -3032,31 +3068,81 @@ kbd {
   position: absolute;
   inset: -2px;
   border-radius: 15px;
+
   background: linear-gradient(
     90deg,
-    #ff6ec7, #a78bfa, #38bdf8, #34d399, #facc15, #fb923c, #ff6ec7
+    #c71585, #830cde, #667eea, #00FFFF, #58e84c, #fecd39, #ff6200, #c71585
   );
+
   background-size: 300% 100%;
   animation: holoRainbow 10s linear infinite;
+
   z-index: -1;
   pointer-events: none;
 }
 
+#back-to-menu-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      105deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.08) 40%,
+      rgba(200, 150, 255, 0.18) 50%,
+      rgba(255, 255, 255, 0.08) 60%,
+      transparent 80%
+    ),
+    linear-gradient(
+      120deg,
+      transparent 30%,
+      rgba(0, 255, 255, 0.35),
+      rgba(103, 254, 189, 0.35),
+      transparent 70%
+    );
+
+  background-size:
+    200% 100%,
+    200% 100%;
+
+  background-position:
+    200% center,
+    -200% center;
+
+  animation: holoShimmer 10s linear infinite;
+  transition: background-position 3s ease;
+}
+
+
+
 #back-to-menu-btn:hover {
-  transform: translateX(-50%) scale(1.06);
+  transform: translate(-50%, -50%) scale(1.0);
   box-shadow:
-    0 0 0 1.5px rgba(220, 160, 255, 0.9),
-    0 0 24px rgba(160, 80, 255, 0.7),
+    0 0 0 10px rgba(0, 160, 255, 0.9),
+    0 0 24px rgba(0, 255, 255, 0.7),
     inset 0 0 20px rgba(140, 0, 255, 0.2);
 }
 
 #back-to-menu-btn:active {
-  transform: translateX(-50%) scale(0.97);
+  transform: translate(-50%, -50%) scale(1.0);
 }
 
 @keyframes holoGlow {
-  0%, 100% { box-shadow: 0 0 0 1.5px rgba(180,100,255,0.6), 0 0 12px rgba(120,60,220,0.4), inset 0 0 16px rgba(100,0,200,0.15); }
-  50%       { box-shadow: 0 0 0 1.5px rgba(100,220,255,0.7), 0 0 20px rgba(60,180,255,0.5), inset 0 0 22px rgba(0,180,255,0.18); }
+  0%, 100% {
+    box-shadow:
+      0 0 0 1.5px rgba(180,100,255,0.6),
+      0 0 12px rgba(120,60,220,0.4),
+      inset 0 0 16px rgba(100,0,200,0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(100,220,255,0.7),
+      0 0 20px rgba(60,180,255,0.5),
+      inset 0 0 22px rgba(0,180,255,0.18);
+  }
 }
 
 @keyframes holoShimmer {
@@ -3069,6 +3155,44 @@ kbd {
   100% { background-position: 300% center; }
 }
 
+.btn-label {
+  position: relative;
+  z-index: 2;
+}
+
+.btn-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    rgba(0, 255, 255, 0.3),
+    transparent
+  );
+  filter: blur(5px);
+  transition: left 0.4s ease;
+}
+
+#back-to-menu-btn:hover .btn-sweep::before {
+  left: 100%;
+}
+
+#back-to-menu-btn:not(:hover) .btn-sweep::before {
+  left: -100%;
+}
 
 @media (max-width: 980px) {
 
@@ -3314,7 +3438,7 @@ kbd {
     0 0 30px rgba(0, 255, 255, 0.15),
     inset 0 0 20px rgba(255, 255, 255, 0.05);
   position: relative;
-  overflow: hidden;
+  /*overflow: hidden;*/
 }
 
 .leaderboard-header {
@@ -3559,18 +3683,19 @@ kbd {
 }
 
 /* ====================== SCROLL BAR =========================*/
-.leaderboard-body::-webkit-scrollbar::-webkit-scrollbar {
-  width: 13px;
+.leaderboard-body::-webkit-scrollbar {
+  width: 10px;
   height: 14px;
 }
 
-.leaderboard-body::-webkit-scrollbar::-webkit-scrollbar-track {
+.leaderboard-body::-webkit-scrollbar-track {
   background: #0a0015;
   border: 1px solid #830cdea2;
   box-shadow: inset 0 0 12px #000000cc;
+  border-radius: 50px;
 }
 
-.leaderboard-body::-webkit-scrollbar::-webkit-scrollbar-thumb {
+.leaderboard-body::-webkit-scrollbar-thumb {
   background: linear-gradient(
     145deg,
     #ff69b4 0%,
@@ -3583,8 +3708,8 @@ kbd {
   border-radius: 8px;          
   border: 2px solid #000000;
   box-shadow:
-    0 0 10px #000000,
-    0 0 20px #000000,
+    0 0 10px #ff69b4aa,
+    0 0 20px #c71585aa,
     inset 0 0 6px #ffffff33;
   background-size: 300% 300%;    
   filter: hue-rotate(0deg);

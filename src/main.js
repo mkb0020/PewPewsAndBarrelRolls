@@ -1,4 +1,4 @@
-// main.js - Updated 4/22/26 @ 3:30PM
+// main.js - Updated 4/23/26 @ 3:00PM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -280,21 +280,26 @@ bossBattleScene.onCollapseHit = () => { // CELLULAR AUTOMATTACK COLLAPSE — TRI
 
 wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, duration); // LUNGE BITE SCREEN SHAKE — CANVAS-LEVEL IMPACT FEEDBACK
 
-wormBoss.onDeath = () => { //  WORM DEATH → CLOSING SCENE 
+wormBoss.onDeath = () => {
   SessionRecorder.log('boss_battle_end');
   SessionRecorder.endSession('boss_defeated'); 
   audio.stopMusic();
   ship.exitCinematic();
-  ship.suctionScale  = 1.0;   // HARD-CLEAR SUCTION STATE — PREVENTS SCALED-DOWN SHIP CARRYING INTO CLOSING SCENE. IF THE PLAYER LANDS THE KILLING BLOW DURING AN ACTIVE SUCTION ATTACK
+  ship.suctionScale  = 1.0;
   ship.suctionActive = false;
   ship.suctionShakeX = 0;
   ship.suctionShakeY = 0;
   document.querySelectorAll('#hud, #hp-container, #lives-container, #boss-health-container, #wave-hud, #ui-buttons, #bomb-container')
     .forEach(el => el.classList.add('pre-game-hidden'));
   const rawScore = document.getElementById('score-value')?.textContent?.replace(/,/g, '') ?? '0';
-  closingScene.start(parseInt(rawScore, 10) || 0);
+  const finalScore = parseInt(rawScore, 10) || 0;
+  closingScene.start(finalScore);
+
+  setTimeout(() => {
+    highScoreUI.showEntry(finalScore, null, 'gameplay');
+  }, 20000); 
+
   setTimeout(() => projectileManager.clear(), 11000);
-  // console.log('★ Worm defeated — closing scene triggered');
 };
 
 closingScene.onBackToMenu = () => { //  CLOSING SCENE → BACK TO MENU 
@@ -323,7 +328,10 @@ function wireShipOnDeath() { // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WI
       ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
       fractalCascade.reset();
       audio.stopAllLoopingSfx();
-      survivalScene.showResults(scoreManager.score);
+      // SHOW NAME ENTRY FIRST, THEN REVEAL SURVIVAL RESULTS SCREEN AFTER SUBMIT
+      highScoreUI.showEntry(scoreManager.score, null, 'survival', () => {
+        survivalScene.showResults(scoreManager.score);
+      });
       return;
     }
 
@@ -573,14 +581,20 @@ survivalScene.onMenu = () => {
   window.location.reload();
 };
 
+
+
 transitionScene.onGameOver = () => {
+  //SessionRecorder.endSession('game_over');
   audio.playGameOver1();
-  SessionRecorder.endSession('game_over');
   const score = scoreManager.score;
-  if (HighScores.isHighScore(score, currentMode)) {
-    highScoreUI.showEntry(score, gameplayScene.getWaveIndex(), currentMode, () => { // LEADERBOARD SHOWN AUTOMATICALLY AFTER SUBMIT
-    });
-  }
+  setTimeout(() => {
+    highScoreUI.showEntry(
+      score,
+      gameplayScene.getWaveIndex(),
+      'gameplay',
+      () => {}
+    );
+  }, 50000); 
 };
 
 // ==================== GAME STATE ====================

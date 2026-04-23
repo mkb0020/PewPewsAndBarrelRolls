@@ -1,4 +1,4 @@
-// Updated 4/20/26 @ 12:30PM
+// Updated 4/23/26 @ 3:30PM
 // survivalScene.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';

@@ -1,4 +1,4 @@
-// highScoreUI.js - UPDATED 4/22/26 @ 3:30PM
+// highScoreUI.js - UPDATED 4/23/26 @ 3:30PM
 import { HighScores } from './highScores.js';
 
 function _fmt(n) {
@@ -29,11 +29,13 @@ export class HighScoreUI {
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   /**
    * SHOW NAME-ENTRY PROMPT.
-   * Call from main.js after game over / boss defeat.
+   * CALL FROM MAIN.JS AFTER GAME OVER / BOSS DEFEAT.
+
    * @param {number}   score
-   * @param {number}   waveReached  0-based wave index, or null for boss/survival
+   * @param {number}   waveReached  0-BASED WAVE INDEX, OR NULL FOR BOSS/SURVIVAL
    * @param {string}   mode         'gameplay' | 'survival' | 'bossBattle'
-   * @param {Function} [onDone]     called after submit (no args)
+   * @param {Function} [onDone]     CALLED AFTER SUBMIT (NO ARGS)
+
    */
   showEntry(score, waveReached, mode = 'gameplay', onDone = null) {
     if (!this._entryEl) return;
@@ -54,7 +56,7 @@ export class HighScoreUI {
     this._inputEl?.blur();
   }
 
-  /** SHOW LEADERBOARD PANEL (call from menu or post-submit) */
+  /** SHOW LEADERBOARD PANEL */
   async showLeaderboard(mode = 'gameplay', highlightName = null) {
     console.log('showLeaderboard activated');
     if (!this._lbEl) return;

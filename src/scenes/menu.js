@@ -1,4 +1,4 @@
-// menu.js - Updated 4/22/26 @ 1:00PM
+// menu.js - Updated 4/23/26 @ 3:00PM
 import { setMobileMode } from '../utils/controls.js';
 import { HighScoreUI }                               from '../utils/highScoreUI.js';
 
@@ -316,8 +316,7 @@ export class Menu {
     };
     this._rafId = requestAnimationFrame(tick);
   }
-
-
+  
   hide() {
     this._select('gameplay');
   }

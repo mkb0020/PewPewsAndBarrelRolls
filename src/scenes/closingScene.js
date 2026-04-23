@@ -1,4 +1,4 @@
-// Updated 4/22/26 @ 3:30PM
+// Updated 4/23/26 @ 3:30PM
 // scenes/closingScene.js
 import { ImageLoader } from '../utils/imageLoader.js';
 import { HighScores }  from '../utils/highScores.js';
@@ -528,58 +528,42 @@ export class ClosingScene {
     }
   }
 
-  async _showEndLeaderboard() {
-    this._endLbEl?.remove();
+_showEndLeaderboard() {
+  this._endLbEl?.remove();
 
-    const wrap = document.createElement('div');
-    wrap.id = 'end-leaderboard';
-    wrap.classList.add('credit-hidden');
-    wrap.innerHTML = `
-      <div class="end-lb-title">TOP PILOTS</div>
-      <div class="end-lb-body"><div class="end-lb-loading">LOADING…</div></div>
-    `;
+  const wrap = document.createElement('div');
+  wrap.id = 'end-leaderboard';
+  wrap.classList.add('credit-hidden');
 
-    // BACK TO MENU BUTTON — INSIDE THE WRAPPER, BELOW THE LEADERBOARD
-    const btn = document.createElement('button');
-    btn.id          = 'back-to-menu-btn';
-    btn.textContent = 'BACK TO MENU';
-    btn.addEventListener('click', () => { this.onBackToMenu?.(); });
-    wrap.appendChild(btn);
+  const btn = document.createElement('button');
+  btn.id = 'back-to-menu-btn';
 
-    document.body.appendChild(wrap);
-    this._endLbEl  = wrap;
-    this._menuBtnEl = btn;
+  // Create sweep layer
+  const sweep = document.createElement('span');
+  sweep.className = 'btn-sweep';
 
-    requestAnimationFrame(() => {
-      wrap.classList.remove('credit-hidden');
-      wrap.classList.add('credit-visible');
-    });
+  // Create text node (so it sits above sweep)
+  const label = document.createElement('span');
+  label.className = 'btn-label';
+  label.textContent = 'BACK TO MENU';
 
-    // FETCH AND RENDER SCORES
-    const bodyEl = wrap.querySelector('.end-lb-body');
-    const scores = await HighScores.getLeaderboard('gameplay', 10);
+  // Assemble
+  btn.appendChild(sweep);
+  btn.appendChild(label);
 
-    if (!scores || scores.length === 0) {
-      bodyEl.innerHTML = '<div class="end-lb-empty">NO SCORES YET</div>';
-      return;
-    }
 
-    const rankColors = ['#ffd700', '#c0c0c0', '#cd7f32'];
+  btn.addEventListener('click', () => { this.onBackToMenu?.(); });
+  wrap.appendChild(btn);
 
-    function fmt(n) {
-      return String(Math.floor(n)).padStart(6, '0').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    }
+  document.body.appendChild(wrap);
+  this._endLbEl  = wrap;
+  this._menuBtnEl = btn;
 
-    bodyEl.innerHTML = scores.map((s, i) => {
-      const rankStyle = rankColors[i] ? `style="color:${rankColors[i]}"` : '';
-      return `
-        <div class="end-lb-row">
-          <span class="end-lb-rank" ${rankStyle}>${i + 1}</span>
-          <span class="end-lb-name">${_escHtml(s.name ?? 'PILOT')}</span>
-          <span class="end-lb-score">${fmt(s.score ?? 0)}</span>
-        </div>`;
-    }).join('');
-  }
+  requestAnimationFrame(() => {
+    wrap.classList.remove('credit-hidden');
+    wrap.classList.add('credit-visible');
+  });
+}
 }
 
 function _escHtml(str) {

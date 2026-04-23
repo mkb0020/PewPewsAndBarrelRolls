@@ -1,8 +1,8 @@
-// highScores.js - UPDATED 4/23/26 @ 3:00AM
+// highScores.js - UPDATED 4/23/26 @ 3:00PM
 
 // AUTO-DETECTS ENVIRONMENT:
-//   Tauri desktop  → localStorage (persistent, private)
-//   Browser        → Vercel API → Neon PostgreSQL (global leaderboard)
+//   TAURI DESKTOP  → LOCALSTORAGE (PERSISTENT, PRIVATE)
+//   BROWSER        → VERCEL API → NEON POSTGRESQL (GLOBAL LEADERBOARD)
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const API_BASE     = 'https://mkb0020.vercel.app'; 
@@ -28,7 +28,7 @@ const Local = {
     }
   },
 
-  /** @returns {Array} full sorted list after insert */
+  /** @returns {Array} FULL SORTED LIST AFTER INSERT */
   save(name, score, waveReached, mode = 'gameplay') {
     const scores = this.get();
     scores.push({
@@ -48,7 +48,7 @@ const Local = {
     return scores;
   },
 
-  /** Returns the player's rank (1-based) for a given score in a given mode */
+/** RETURNS THE PLAYER'S RANK (1-BASED) FOR A GIVEN SCORE IN A GIVEN MODE */
   getRank(score, mode = 'gameplay') {
     const scores = this.get().filter(s => s.mode === mode);
     return scores.filter(s => s.score > score).length + 1;
@@ -80,7 +80,7 @@ const Remote = {
 
   /**
    * @returns {{ ok, rank, error } | null}
-   *   rank = global rank of this score (1 = top)
+   *   RANK = GLOBAL RANK OF THIS SCORE (1 = TOP)
    */
   async submit(name, score, waveReached, mode = 'gameplay') {
     try {
@@ -117,8 +117,8 @@ export const HighScores = {
 
   /**
    * SAVE + RETURN RANK.
-   * Desktop: synchronous, returns rank immediately.
-   * Browser: async fetch, returns Promise<{ rank, ok }>.
+   * DESKTOP: SYNCHRONOUS, RETURNS RANK IMMEDIATELY.
+   * BROWSER: ASYNC FETCH, RETURNS PROMISE<{ RANK, OK }>.
    */
   async save(name, score, waveReached, mode = 'gameplay') {
     if (IS_TAURI) {
@@ -130,8 +130,8 @@ export const HighScores = {
 
   /**
    * GET SCORES FOR DISPLAY.
-   * Desktop: returns local array synchronously (wrapped in Promise for uniform API).
-   * Browser: fetches from Neon, returns null on network failure.
+   * DESKTOP: RETURNS LOCAL ARRAY SYNCHRONOUSLY (WRAPPED IN PROMISE FOR UNIFORM API).
+   * BROWSER: FETCHES FROM NEON, RETURNS NULL ON NETWORK FAILURE.
    */
   async getLeaderboard(mode = 'gameplay', limit = 10) {
     if (IS_TAURI) {

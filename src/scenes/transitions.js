@@ -110,8 +110,10 @@ export class TransitionScene {
   }
 
   _showGameOver() {
-    if (this._gameoverOverlay) this._gameoverOverlay.classList.add('active');
-    this.onGameOver?.(); // TRIGGER GAMEOVER1 MUSIC VIA CALLBACK
+    this.onGameOver?.();  
+    setTimeout(() => {
+      if (this._gameoverOverlay) this._gameoverOverlay.classList.add('active');
+    }, 200);
   }
 
   _hideGameOver() {
