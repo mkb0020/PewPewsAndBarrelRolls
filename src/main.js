@@ -714,7 +714,6 @@ window.addEventListener('orientationchange', () => {
 
 // ==================== GAME LOOP ====================
 let lastTime = performance.now();
-
 function gameLoop() {
   requestAnimationFrame(gameLoop);
   const now = performance.now();
@@ -1070,11 +1069,21 @@ function gameLoop() {
   ctx.restore(); // END SCREEN SHAKE TRANSLATE
 }
 
+//========= HIDE LOADING SCREEN HELPER =====
+function hideLoadingScreen() {
+  const screen = document.getElementById('loading-screen');
+  screen.style.opacity = '0';
+  screen.addEventListener('transitionend', () => {
+    screen.style.display = 'none';
+  }, { once: true }); 
+}
 
 // ==================== STARTUP ====================
 async function startup() {
   await ImageLoader.preloadCritical();
   // console.log('✔ Images ready');
+  hideLoadingScreen();
+
 
   const { mode, enemyCount } = await menu.show(starfield, () => audio.start(), highScoreUI);
 

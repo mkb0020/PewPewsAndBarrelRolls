@@ -37,6 +37,58 @@ canvas { display:block; position: fixed; top: 0; left: 0; }
   transform: translateX(50%);
 }
 
+
+/* ======== LOADING SCREEN =========== */
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  flex-direction: column;
+  z-index: 9999;
+  transition: opacity 0.5s ease;
+}
+
+.loading-text{
+  font-family: 'SpaceLetters';
+  color: #FFFFFF;
+  font-size: 1.3rem;
+  position: relative;
+  display: flex;
+  margin-top: 1.6rem;
+}
+
+.worm-spinner {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  animation: spin 2s linear infinite;
+}
+
+.segment {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px; 
+  transform-origin: center;
+}
+
+.segment img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ========================= MOBILE CONTROLS ========================= */
     #mobile-controls {
       position: fixed;

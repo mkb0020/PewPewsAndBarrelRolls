@@ -13,6 +13,11 @@
   <img id="glitch-cockpit" src="./images/cockpitGlitch.gif" alt="" aria-hidden="true">
   <div id="glitch-lines" class="glitch-lines"></div>
 
+  <div id="loading-screen">
+    <div class="worm-spinner" id="wormSpinner"></div>
+    <br><div class="loading-text">LOADING...</div>
+  </div>
+
   <div id="opening-terminal">
     <div class="opening-terminal-header">
       <span class="opening-header-dot"></span>
@@ -385,6 +390,45 @@
     <button class="leaderboard-close" id="leaderboard-close">CLOSE</button>
   </div>
 </div>
+
+
+<script>
+  const spinner = document.getElementById('wormSpinner');
+  const totalSegments = 25;
+  const baseRadius = 65;
+  const startAngle = -120;
+  const endAngle  =  120;
+
+  for (let i = 0; i < totalSegments; i++) {
+    const t      = i / (totalSegments - 1);
+    const easedT = Math.pow(t, 1.2);
+    const angleDeg = startAngle + (endAngle - startAngle) * easedT;
+    const angleRad = angleDeg * (Math.PI / 180);
+    const scale    = 0.5 + 0.6 * Math.pow(t, 1.5);
+    const x = Math.cos(angleRad) * baseRadius;
+    const y = Math.sin(angleRad) * baseRadius;
+
+    const segment = document.createElement('div');
+    segment.className = 'segment';
+    segment.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    segment.style.opacity = 0.5 + 0.7 * t;
+
+    const img = document.createElement('img');
+    img.src = 'public/images/loading01.png';
+    segment.appendChild(img);
+    spinner.appendChild(segment);
+  }
+
+  const head = document.createElement('div');
+  head.className = 'segment';
+  const headRad = endAngle * (Math.PI / 180);
+  head.style.transform = `translate(${Math.cos(headRad) * baseRadius}px, ${Math.sin(headRad) * baseRadius}px) scale(1)`;
+
+  const headImg = document.createElement('img');
+  headImg.src = 'public/images/loading00.png';
+  head.appendChild(headImg);
+  spinner.appendChild(head);
+</script>
 
 </body>
 </html>
