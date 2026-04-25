@@ -1,0 +1,232 @@
+/* ========================= MOBILE CONTROLS ========================= */
+#mobile-controls {
+  position: fixed;
+  display: none;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.joystick {
+  position: absolute;
+  bottom: 20px;
+  left: 30px;
+  width: 110px;
+  height: 110px;
+  background-image: radial-gradient(
+    rgba(0, 40, 40, 0.9), 
+    rgba(0, 70, 70, 0.8),  
+    rgba(0, 80, 80, 0.7), 
+    rgba(0, 90, 90, 0.6), 
+    rgba(0, 135, 135, 0.5), 
+    rgba(0, 150, 150, 0.4)
+  );
+  border: 2px solid #00FFFF;
+  border-radius: 50%;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: background 0.2s;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+}
+
+.joystick.active {
+  background: rgba(0, 255, 255, 0.5);
+}
+
+.joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background-image: radial-gradient(rgba(0, 124, 124, 0.7), rgba(0, 190, 190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.7), rgba(0, 124, 124, 0.7), rgba(0,190,190, 0.8), rgba(0, 124, 124, 0.9));
+  border: 3px solid #02ffff;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+}
+
+.action-buttons {
+  position: absolute;
+  bottom: 25px;
+  right: 20px;
+  width: 170px;
+  height: 170px;
+  pointer-events: none;
+}
+
+.btn-a, .btn-b, .btn-x, .btn-y {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'GothNerd';
+  font-weight: bold;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.btn-a {
+  top: 95px;
+  left: 95px;
+  width: 75px;
+  height: 75px;
+  background: radial-gradient(circle at 38% 35%, #a0ff8a, #58e84c);
+  border: 3px solid #3ab832;
+  box-shadow: 0 0 14px rgba(88, 232, 76, 0.85), inset 0 2px 6px rgba(255,255,255,0.25);
+  color: #0a3707;
+  text-shadow: 2px 1px 0 #c8ffc0;
+  font-size: 2.4rem;
+}
+
+.btn-a:active, .btn-a.pressed {
+  transform: scale(0.91);
+  box-shadow: 0 0 6px rgba(88, 232, 76, 0.4);
+}
+
+.btn-b {
+  top: 10px;
+  left: 105px;
+  width: 55px;
+  height: 55px;
+  background: radial-gradient(circle at 38% 35%, #ff8a55, #e25513);
+  border: 3px solid #b83e0a;
+  box-shadow: 0 0 10px rgba(226, 85, 19, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
+  color: #3d0e00;
+  text-shadow: 2px 1px 0 #ffb48a;
+  font-size: 1.5rem;
+}
+
+.btn-b:active, .btn-b.pressed {
+  transform: scale(0.91);
+  box-shadow: 0 0 5px rgba(226, 85, 19, 0.4);
+}
+
+.btn-x {
+  top: 105px;
+  left: 5px;
+  width: 55px;
+  height: 55px;
+  background: radial-gradient(circle at 38% 35%, #c070ff, #8a2be2);
+  border: 3px solid #6200b8;
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
+  color: #1a0040;
+  text-shadow: 2px 1px 0 #d8a8ff;
+  font-size: 1.5rem;
+}
+
+.btn-x:active, .btn-x.pressed {
+  transform: scale(0.91);
+  box-shadow: 0 0 5px rgba(138, 43, 226, 0.4);
+}
+
+.btn-y {
+  top: 35px;
+  left: 35px;
+  width: 55px;
+  height: 55px;
+  background: radial-gradient(circle at 38% 35%, #ff60b0, #c71585);
+  border: 3px solid #960060;
+  box-shadow: 0 0 10px rgba(199, 21, 133, 0.8), inset 0 2px 4px rgba(255,255,255,0.2);
+  color: #3d0020;
+  text-shadow: 2px 1px 0 #ffaad8;
+  font-size: 1.5rem;
+}
+
+.btn-y:active, .btn-y.pressed {
+  transform: scale(0.91);
+  box-shadow: 0 0 5px rgba(199, 21, 133, 0.4);
+}
+
+#mobile-controls.landscape {
+  inset: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 20px 20px;
+}
+
+@media (max-width: 700px) {
+  .joystick {
+    width: 95px;
+    height: 95px;
+  }
+
+  .joystick-knob {
+    width: 40px;
+    height: 40px;
+  }
+
+  .action-buttons {
+    width: 140px;
+    height: 140px;
+    bottom: 14px;
+    right: 18px;
+  }
+
+  .btn-a {
+    top: 75px; left: 75px;
+    width: 65px; height: 65px;
+    font-size: 2rem;
+  }
+
+  .btn-b, .btn-x, .btn-y {
+    width: 48px; height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .btn-b { top: 8px; left: 82px; }
+  .btn-x { top: 82px; left: 8px; }
+  .btn-y { top: 30px; left: 30px; }
+
+  /* ── WAVE HUD — MOBILE ── */
+  #wave-hud { bottom: 160px; }
+  #wave-counter { font-size: 1.1rem; }
+  .wormCount-icon { width: 25px; height: auto; }
+  .wave-badge { width: 30px; height: 30px; }
+  #wave-badges { gap: 7px; }
+}
+
+/* ── PORTRAIT MODE OVERLAY ── */
+#portrait-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #0a0015;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  pointer-events: none;
+}
+
+.portrait-icon {
+  font-size: clamp(52px, 18vw, 88px);
+  color: #a66bff;
+  animation: portrait-nudge 2.2s ease-in-out infinite;
+}
+
+.portrait-message {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(13px, 4vw, 19px);
+  color: #c8a0ff;
+  text-align: center;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@keyframes portrait-nudge {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (orientation: portrait) and (max-width: 1024px) {
+  #portrait-overlay { display: flex; }
+}

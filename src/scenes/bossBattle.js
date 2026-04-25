@@ -306,6 +306,8 @@ export class BossBattleScene {
     this.wormBoss.isRaging = false;
     this.wormBoss.freeze = false;
     if (ship) ship.setRageSuction(false);
+    ship._shootLocked = false;
+    ship.canShoot     = true; 
     if (this.singularityBombManager) this.singularityBombManager.isBossBattle = false;
     
     // ✨ NEW: Hide break‑node counter on reset
@@ -551,8 +553,9 @@ enterRageSequence() {
   this.rageStarted = true; 
   this.wormBoss.disableAllAttacks();
   this.tunnel.setBossFlash(1.0);
-  this.wormBoss.startRageTransform();  
-  this.ship.canShoot = false;
+  this.wormBoss.startRageTransform(); 
+  this.ship._shootLocked = true; 
+  this.ship.canShoot     = false;
   this.wormBoss.freeze = true;
   this.wormBoss.isRaging = true;
   this.audio.startRageMusic();
@@ -575,6 +578,7 @@ enterRageSequence() {
       this.ship.setRageSuction(false);      // CLEAR RAGE INVINCIBILITY — SHIP CAN NOW DIE FROM SUCTION
       this.wormBoss.startSuctionAttack();   // FORCE FIRST POST-RAGE ATTACK
       this.wormBoss.enableAllAttacks();     // IMMEDIATELY UNLOCK AI AFTER
+      this.ship._shootLocked = false;
       this.ship.canShoot = true;
   }, 10667);
 }

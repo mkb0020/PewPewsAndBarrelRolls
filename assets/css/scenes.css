@@ -1,0 +1,599 @@
+/* ========================= SCENE-SPECIFIC STYLES ========================= */
+/* Opening Scene, Terminals, Victory, Credits, Back-to-Menu Button, Glitch Effects */
+
+/* ========================= OPENING SCENE GLITCH EFFECTS ========================= */
+.glitch-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.08) 0px,
+    rgba(255,255,255,0.08) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+  animation: scanlineFlicker 0.15s infinite;
+  display: none;
+}
+
+@keyframes scanlineFlicker {
+  0% { opacity: .2; transform: translateY(0px); }
+  50% { opacity: .6; transform: translateY(2px); }
+  100% { opacity: .2; transform: translateY(0px); }
+}
+
+.power-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 1 }
+  50% { opacity: .3 }
+  100% { opacity: 1 }
+}
+
+.shake {
+  animation: shake 0.15s infinite;
+}
+
+@keyframes shake {
+  0% { transform: translate(0,0) }
+  25% { transform: translate(3px,-2px) }
+  50% { transform: translate(-3px,2px) }
+  75% { transform: translate(2px,3px) }
+}
+
+/* ════════════════════════════ FRACTAL CASCADE TERMINAL GLITCHES ════════════════════════════ */
+.fractal-terminal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,255,68,0.07) 0px,
+    rgba(0,255,68,0.07) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+}
+
+.recompile-flash {
+  box-shadow:
+    0 0 10px #00ff88,
+    0 0 25px #00ff88;
+}
+
+/* ══════════════════════ WORM RAGE GLITCH EFFECTS ══════════════════════  */
+.worm-rage-glitch canvas {
+  animation: rageFlicker 0.1s steps(1) infinite;
+}
+@keyframes rageFlicker {
+  0%   { filter: none; }
+  33%  { filter: hue-rotate(40deg) saturate(1.4); }
+  66%  { filter: brightness(1.0) contrast(1.1); }
+  100% { filter: none; }
+}
+
+/* ========================= OPENING SCENE ========================= */
+#opening-cockpit {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  display: block;
+}
+
+#opening-terminal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(320px, 55vw, 650px);
+  height: 210px;
+  z-index: 20;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(103, 254, 189, 0.025) 2px,
+      rgba(103, 254, 189, 0.025) 4px
+    ),
+    linear-gradient(160deg, rgba(4, 14, 12, 0.96) 0%, rgba(2, 8, 7, 0.98) 100%);
+  border: 1px solid rgba(103, 254, 189, 0.35);
+  border-top: 1px solid rgba(103, 254, 189, 0.6);
+  border-radius: 6px;
+  padding: 0 0 1.4rem;
+  box-shadow:
+    0 0 40px rgba(103, 254, 189, 0.12),
+    0 0 2px  rgba(103, 254, 189, 0.4),
+    inset 0 1px 0 rgba(103, 254, 189, 0.08);
+  filter: drop-shadow(0 0 18px rgba(103, 254, 189, 0.2));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+#opening-terminal::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(103, 254, 189, 0.9), transparent);
+  border-radius: 2px;
+}
+
+#opening-terminal.visible {
+  opacity: 1;
+}
+
+.opening-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.7rem 1.2rem 0.6rem;
+  border-bottom: 1px solid rgba(103, 254, 189, 0.15);
+  margin-bottom: 0.5rem;
+}
+
+.opening-header-title {
+  font-family: 'SpaceLetters', 'Orbitron', monospace;
+  font-size: clamp(0.6rem, 1.1vw, 0.75rem);
+  letter-spacing: 0.3em;
+  color: rgba(103, 254, 189, 0.5);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.opening-header-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(103, 254, 189, 0.4);
+  flex-shrink: 0;
+  animation: opening-dot-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes opening-dot-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; box-shadow: 0 0 6px rgba(103, 254, 189, 0.9); }
+}
+
+#opening-terminal-text {
+  padding: 0.2rem 1.6rem 0;
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.opening-line {
+  font-family: 'SpaceLetters', 'Orbitron', monospace;
+  font-size: clamp(0.72rem, 1.25vw, 0.9rem);
+  line-height: 1.6;
+  letter-spacing: 0.07em;
+  color: rgba(180, 255, 220, 0.9);
+  text-shadow: 0 0 8px rgba(103, 254, 189, 0.45);
+}
+
+.opening-line:first-child::before {
+  content: '> ';
+  color: rgba(103, 254, 189, 0.55);
+}
+
+.opening-cursor {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: rgba(103, 254, 189, 0.8);
+  padding-left: 1.6rem;
+  margin-top: 0.2rem;
+  animation: opening-blink 1.1s step-end infinite;
+}
+
+@keyframes opening-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ========================= BOSS TRANSMISSION TERMINAL ========================= */
+#boss-terminal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(320px, 55vw, 650px);
+  height: 260px;
+  z-index: 50;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(103, 254, 189, 0.025) 2px,
+      rgba(103, 254, 189, 0.025) 4px
+    ),
+    linear-gradient(160deg, rgba(4, 14, 12, 0.96) 0%, rgba(2, 8, 7, 0.98) 100%);
+  border: 1px solid rgba(103, 254, 189, 0.35);
+  border-top: 1px solid rgba(103, 254, 189, 0.6);
+  border-radius: 6px;
+  padding: 0 0 1.4rem;
+  box-shadow:
+    0 0 40px rgba(103, 254, 189, 0.12),
+    0 0 2px  rgba(103, 254, 189, 0.4),
+    inset 0 1px 0 rgba(103, 254, 189, 0.08);
+  filter: drop-shadow(0 0 18px rgba(103, 254, 189, 0.2));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+#boss-terminal::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(103, 254, 189, 0.9), transparent);
+  border-radius: 2px;
+}
+
+#boss-terminal.visible {
+  opacity: 1;
+}
+
+#boss-terminal-text {
+  padding: 0.2rem 1.6rem 0;
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+#boss-terminal.glitching::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(255, 60, 60, 0.04) 3px,
+    rgba(255, 60, 60, 0.04) 4px
+  );
+  pointer-events: none;
+  animation: boss-terminal-scanline 0.08s steps(1) infinite;
+}
+
+@keyframes boss-terminal-scanline {
+  0%   { transform: translateY(0); }
+  25%  { transform: translateY(-2px); }
+  50%  { transform: translateY(1px); }
+  75%  { transform: translateY(-1px); }
+  100% { transform: translateY(0); }
+}
+
+@media (max-width: 980px) {
+  #boss-terminal {
+    height: 180px;
+  }
+}
+
+/* ========================= CLOSING SCENE ========================= */
+#closing-victory {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  z-index: 14;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+#closing-victory.visible {
+  opacity: 1;
+}
+
+#victory-headline {
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(1.5rem, 6vw, 5rem);
+  letter-spacing: 0.4em;
+  background: linear-gradient(135deg, #e25513 0%,
+    #c71585 25%,
+    #8a2be2 45%,
+    #00ffff 70%,
+    var(--AlphaAqua) 80%,
+    #58e84c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-transform: uppercase;
+}
+
+#victory-sub {
+  font-family: 'SpaceLetters', 'Orbitron', monospace;
+  font-size: clamp(0.55rem, 1.8vw, 1rem);
+  letter-spacing: 0.25em;
+  color: rgba(200, 180, 255, 0.8);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+#victory-score {
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+  letter-spacing: 0.3em;
+  color: var(--AlphaAqua);
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+}
+
+#closing-credits {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+#closing-credits.visible {
+  opacity: 1;
+}
+
+.credit-title-line {
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(1rem, 4.5vw, 4rem);
+  letter-spacing: 0.35em;
+  background: linear-gradient(135deg, #e25513 0%,
+    #c71585 25%,
+    #8a2be2 45%,
+    #00ffff 70%,
+    var(--AlphaAqua) 80%,
+    #58e84c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 0.2rem;
+}
+
+.credit-title-line + .credit-title-line {
+  font-size: clamp(0.65rem, 1.5vw, 1.8rem);
+  letter-spacing: 0.55em;
+  color: rgba(180, 140, 255, 0.65);
+  text-shadow: none;
+  margin-bottom: 1.2rem;
+  margin-top: -0.4rem;
+}
+
+.credit-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  margin-bottom: 0.7rem;
+}
+
+.credit-role {
+  font-family: 'SpaceLetters', 'Orbitron', monospace;
+  font-size: clamp(0.55rem, 2vw, 0.8rem);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #00FFFF;
+  text-align: center;
+}
+
+.credit-name {
+  font-family: 'GothNerd';
+  font-size: clamp(0.85rem, 1.7vw, 1rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #FFC7FF;
+  text-align: center;
+}
+
+.credit-spacer {
+  height: 1.2rem;
+}
+
+.credit-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease, transform 2s ease;
+}
+
+.credit-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── BACK TO MENU BUTTON ── */
+#back-to-menu-btn {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.5em 3em;
+  width: 500px;
+  margin-bottom: 10px;
+  font-family: 'GothNerd', 'Orbitron', monospace;
+  font-size: clamp(0.7rem, 1.8vw, 1.4rem);
+  font-weight: bold;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #e8d8ff;
+  text-shadow:
+    3px 2px 0 #2A3439,
+    -1px -1px 0 #9090C0;
+  background: rgba(10, 0, 30, 0.6);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  pointer-events: auto;
+  overflow: hidden;
+  z-index: 1;
+  box-shadow:
+    0 0 0 1.5px rgba(180, 100, 255, 0.6),
+    0 0 12px rgba(120, 60, 220, 0.4),
+    inset 0 0 16px rgba(100, 0, 200, 0.15);
+  animation: holoGlow 10s ease-in-out infinite;
+  transition: transform 3s ease, box-shadow 1s ease;
+}
+
+#back-to-menu-btn::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 15px;
+  background: linear-gradient(
+    90deg,
+    #c71585, #830cde, #667eea, #00FFFF, #58e84c, #fecd39, #ff6200, #c71585
+  );
+  background-size: 300% 100%;
+  animation: holoRainbow 10s linear infinite;
+  z-index: -1;
+  pointer-events: none;
+}
+
+#back-to-menu-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      105deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.08) 40%,
+      rgba(200, 150, 255, 0.18) 50%,
+      rgba(255, 255, 255, 0.08) 60%,
+      transparent 80%
+    ),
+    linear-gradient(
+      120deg,
+      transparent 30%,
+      rgba(0, 255, 255, 0.35),
+      rgba(103, 254, 189, 0.35),
+      transparent 70%
+    );
+  background-size:
+    200% 100%,
+    200% 100%;
+  background-position:
+    200% center,
+    -200% center;
+  animation: holoShimmer 10s linear infinite;
+  transition: background-position 3s ease;
+}
+
+#back-to-menu-btn:hover {
+  transform: translate(-50%, -50%) scale(1.0);
+  box-shadow:
+    0 0 0 10px rgba(0, 160, 255, 0.9),
+    0 0 24px rgba(0, 255, 255, 0.7),
+    inset 0 0 20px rgba(140, 0, 255, 0.2);
+}
+
+#back-to-menu-btn:active {
+  transform: translate(-50%, -50%) scale(1.0);
+}
+
+@keyframes holoGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1.5px rgba(180,100,255,0.6),
+      0 0 12px rgba(120,60,220,0.4),
+      inset 0 0 16px rgba(100,0,200,0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(100,220,255,0.7),
+      0 0 20px rgba(60,180,255,0.5),
+      inset 0 0 22px rgba(0,180,255,0.18);
+  }
+}
+
+@keyframes holoShimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes holoRainbow {
+  0%   { background-position: 0% center; }
+  100% { background-position: 300% center; }
+}
+
+.btn-label {
+  position: relative;
+  z-index: 2;
+}
+
+.btn-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    rgba(0, 255, 255, 0.3),
+    transparent
+  );
+  filter: blur(5px);
+  transition: left 0.4s ease;
+}
+
+#back-to-menu-btn:hover .btn-sweep::before {
+  left: 100%;
+}
+
+#back-to-menu-btn:not(:hover) .btn-sweep::before {
+  left: -100%;
+}
+
+/* GLITCH TRANSITION BETWEEN OPENING SCENE AND GAMEPLAY */
+#three-canvas.glitch {
+  filter: hue-rotate(0deg) contrast(1) saturate(1);
+  animation: glitch 0.1s infinite;
+}
+
+@keyframes glitch {
+  0% { filter: hue-rotate(0deg) contrast(1) saturate(1); }
+  25% { filter: hue-rotate(90deg) contrast(1.5) saturate(2); }
+  50% { filter: hue-rotate(180deg) contrast(0.5) saturate(0.5); }
+  75% { filter: hue-rotate(270deg) contrast(2) saturate(1.5); }
+  100% { filter: hue-rotate(360deg) contrast(1) saturate(1); }
+}

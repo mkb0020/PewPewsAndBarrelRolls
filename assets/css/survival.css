@@ -1,0 +1,164 @@
+/* ════════════════════════════════════════════════ */
+/* SURVIVAL MODE — GLITCH TRANSITION SYSTEM */
+/* ════════════════════════════════════════════════ */
+
+/* MAIN TRANSITION */
+#mode-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#mode-transition::before,
+#mode-transition::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  opacity: 0;
+}
+
+#mode-transition::before {
+  background: rgba(255, 0, 0, 0.2);
+  mix-blend-mode: screen;
+}
+
+#mode-transition::after {
+  background: rgba(0, 200, 255, 0.2);
+  mix-blend-mode: screen;
+}
+
+/* SECOND TRANSITION LAYER */
+#mode-transition2 {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#mode-transition2::before,
+#mode-transition2::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  opacity: 0;
+}
+
+#mode-transition2::before {
+  background: rgba(255, 0, 0, 0.2);
+  mix-blend-mode: screen;
+}
+
+#mode-transition2::after {
+  background: rgba(0, 200, 255, 0.2);
+  mix-blend-mode: screen;
+}
+
+/* ACTIVE STATES */
+#mode-transition.active {
+  opacity: 1;
+  animation: glitchFlash 0.1s forwards;
+}
+
+#mode-transition.active::before {
+  animation: glitchShift1 2.6s ease forwards;
+}
+
+#mode-transition.active::after {
+  animation: glitchShift2 2.6s ease forwards;
+}
+
+#mode-transition2.active {
+  opacity: 1;
+  animation: glitchFlash 0.667s forwards;
+}
+
+#mode-transition2.active::before {
+  animation: glitchShift3 2.3s ease forwards;
+}
+
+#mode-transition2.active::after {
+  animation: glitchShift4 2.3s ease forwards;
+}
+
+/* VISUAL EFFECTS */
+#mode-transition.active {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 255, 0.9) 0px,
+      rgba(255, 0, 0, 0.9) 2px,
+      transparent 2px,
+      transparent 4px
+    ),
+    radial-gradient(circle at center, rgba(0, 255, 0, 0.3) 0%, black 60%);
+}
+
+#mode-transition2.active {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 255, 255, 0.5) 0px,
+      rgba(255, 0, 255, 0.5) 7px,
+      transparent 7px,
+      transparent 14px
+    ),
+    radial-gradient(circle at center, rgba(255, 255, 0, 0.678) 0%, black 60%);
+}
+
+/* ANIMATIONS */
+@keyframes glitchFlash {
+  0%   { opacity: 0; filter: blur(0px); }
+  5%   { opacity: 1; filter: blur(2px); }
+  50%  { filter: blur(6px); }
+  100% { opacity: 0; filter: blur(0px); }
+}
+
+@keyframes glitchShift1 {
+  0%   { transform: translate(0,0); }
+  10%  { transform: translate(-5px, 3px); }
+  40%  { transform: translate(5px, -3px); }
+  100% { transform: translate(0,0); opacity: 0; }
+}
+
+@keyframes glitchShift2 {
+  0%   { transform: translate(0,0); }
+  30%  { transform: translate(5px, -3px); }
+  60%  { transform: translate(-5px, 3px); }
+  100% { transform: translate(0,0); opacity: 0; }
+}
+
+@keyframes glitchShift3 {
+  0%   { transform: translate(0,0); }
+  10%  { transform: translate(5px, -3px); }
+  60%  { transform: translate(-5px, 3px); }
+  100% { transform: translate(0,0); opacity: 0; }
+}
+
+@keyframes glitchShift4 {
+  0%   { transform: translate(0,0); }
+  40%  { transform: translate(5px, -3px); }
+  80%  { transform: translate(-5px, 3px); }
+  100% { transform: translate(0,0); opacity: 0; }
+}
+
+/* COCKPIT OVERLAY */
+#glitch-cockpit {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 599;
+  opacity: 0;
+  display: block;
+}
+
+#glitch-cockpit.active {
+  opacity: 1;
+}

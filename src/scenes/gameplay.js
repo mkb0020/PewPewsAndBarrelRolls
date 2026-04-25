@@ -32,27 +32,27 @@ export const WAVE_CONFIGS = [
     // BASIC HEAVY — KEEP ZIP ZAP RARE SO THE NEW FRACTAL MECHANIC IS LEARNABLE
     types:          ['BASIC', 'ZIGZAG'],
     weights:        [0.65,    0.35],
-    maxEnemies:     5,
+    maxEnemies:     5, //5
     // FRACTAL STARTS RARE. BY 3RD KILL IT'S FREQUENT.
     specialWindows: [22000, 14000, 7000, 3000],   // 4 KILLS → INDICES 0–3
   },
   { // WAVE 3 — + GLORK / TANK
     types:          ['BASIC', 'ZIGZAG', 'TANK'],
     weights:        [0.40,    0.40,     0.20],
-    maxEnemies:     6,
+    maxEnemies:     6, //6
     specialWindows: [18000, 12000, 6000, 2000],   // 4 KILLS → INDICES 0–3
   },
   { // WAVE 4 — + PHIL  |  FAST BECOMES DOMINANT 
     types:          ['BASIC', 'ZIGZAG', 'TANK', 'FAST'],
     weights:        [0.30,    0.20,     0.20,   0.30],
-    maxEnemies:     7,
+    maxEnemies:     7, //7
     // GLORK-HEAVY. TWO SPECIALS (FRACTAL + SLIME) — START SEPARATED, CONVERGE.
     specialWindows: [20000, 14000, 8000, 3000, 0],   // 5 KILLS → INDICES 0–4
   },
   { // WAVE 5 — + FLIM FLAM  |  CHAOS PEAK
     types:          ['BASIC', 'ZIGZAG', 'FAST', 'TANK', 'FLIMFLAM'],
     weights:        [0.25,    0.15,     0.20,   0.20,   0.20],
-    maxEnemies:     8,
+    maxEnemies:     8, //8
     // STARTS WITH ZERO OVERLAP POSSIBLE. BY KILL 4: FULL THREE-WAY CHAOS.
     specialWindows: [30000, 20000, 8000, 2000, 0],   // 5 KILLS → INDICES 0–4
   },

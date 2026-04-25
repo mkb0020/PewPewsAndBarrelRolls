@@ -1,5 +1,10 @@
-// Updated 4/21/26 @ 12PM
+// Updated 4/24/26 @ 8PM
+
+export const IS_TAURI = !!window.__TAURI__;
+export const DEV_MODE = true; 
+
 export const CONFIG = {
+
   TUNNEL: {
     RADIUS: 2400, 
     SEGMENTS: 700,
@@ -118,7 +123,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, 
+        HEALTH: 5, // 5
         SCORE: 10,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
@@ -136,7 +141,7 @@ export const CONFIG = {
         SPEED: 120,
         COLOR: '#FF0000',
         GLOW_COLOR: '#b444a3',
-        HEALTH: 7,
+        HEALTH: 7, // 7
         SCORE: 20,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 11,
@@ -154,7 +159,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10,
+        HEALTH: 10, //10
         SCORE: 50,
 
         SPRITE_FRAMES: 6,      
@@ -196,7 +201,7 @@ export const CONFIG = {
         SPEED: 90,
         COLOR: '#FF0000',
         GLOW_COLOR: '#7097eb',
-        HEALTH: 6,
+        HEALTH: 6, //6
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 70,
         ZIGZAG_FREQUENCY: 2,
@@ -240,7 +245,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#6786c9',
-        HEALTH: 10,
+        HEALTH: 10, //10
         SCORE: 50,
 
         SPRITE_FRAMES: 6,  

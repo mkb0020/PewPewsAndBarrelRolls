@@ -1,0 +1,60 @@
+/* ============================ COLOR PALETTE ============================ */
+   :root {
+      --BosonBlue: #170032;
+      --ProtonPurple: #37025a;
+      --VortexViolet: #830cde;
+      --PlasmaPurple: #A55AFF;
+      --EntangledEucalyptus: #764ba2;
+      --PulsarPeriwinkle: #667eea;
+      --BohrsBabyBlue: #c4b5fd;
+      --NuclearFuscia:#dc4ce8;
+      --PlanksPink: #ff69b4;
+      --HiggsHotPink: #c71585;
+      --ParticlePink: #FFC7FF;
+      --OrionOrange: #fad0c4;
+      --OrbitalOrange: #ff9a9e;
+      --OptimalOrange: #ff6200;
+      --LaserRed: #FF0000;
+      --RadiationRed: #730132;
+      --AlphaAqua: #67FEBD;
+      --AquaAura: #00ffff;
+      --RadioactiveGreen: #58e84c;
+      --DarkCooGray: #657383;
+      --CoolGray: #9090C0;
+      --MutedGray: #C4C3D0;
+      --glass: rgba(255,255,255,0.2);
+      --glass2: rgba(95, 94, 94, 0.194);
+      --glass3: rgba(138, 137, 137, 0.158);
+      --glass4: rgba(47, 4, 77, 0.2);
+      --glass5: rgba(212, 212, 212, 0.2);
+      --YoungsYellow: #fecd39;
+      --border: rgba(0,255,255,0.25);
+      --gradient-main: linear-gradient(135deg, #667eea, #830cde, #c71585);
+      --gradient-accent: linear-gradient(135deg, #00ffff, #67FEBD);
+      --glass-bg: rgba(9, 4, 33, 0.607);
+    }
+
+@font-face {
+  font-family: 'SpaceLetters'; 
+  src: url('../fonts/SpaceLetters.ttf') format('truetype'); 
+}
+
+@font-face {
+  font-family: 'GothNerd'; 
+  src: url('../fonts/GothNerd.ttf') format('truetype'); 
+}
+
+body { margin:0; overflow:hidden; background:#000; }
+body.hide-cursor { cursor: none; }
+canvas { display:block; position: fixed; top: 0; left: 0; }
+    #three-canvas { z-index: 1; }
+    #game-canvas { z-index: 9995; pointer-events: none; }
+
+.recorder-img{
+  height: 350px;
+  width: auto;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+  margin-top: 1rem;
+  left: 50%;
+  transform: translateX(50%);
+}

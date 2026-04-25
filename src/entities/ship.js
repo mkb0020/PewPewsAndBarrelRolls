@@ -35,6 +35,7 @@ export class Ship {
 
     this.shootCooldown = 0;
     this.canShoot      = true;
+    this._shootLocked  = false; 
 
     this.maxHP              = CONFIG.SHIP_HP.MAX_HP;
     this.hp                 = CONFIG.SHIP_HP.MAX_HP;
@@ -342,7 +343,7 @@ export class Ship {
 
     if (this.shootCooldown > 0) {
       this.shootCooldown -= dt;
-      if (this.shootCooldown <= 0) this.canShoot = true;
+      if (this.shootCooldown <= 0 && !this._shootLocked) this.canShoot = true;
     }
 
     if (this.isInvincible) {
@@ -571,6 +572,8 @@ export class Ship {
     this._trailPositions     = [];
     this._slimeHeaviness     = 0;
     this._cellularDistortActive = false;
+    this._shootLocked             = false; 
+    this.canShoot                 = true; 
     this._dsActive = false;
     this._dsPhase  = 'idle';
     this._dsSmoke  = [];
@@ -602,6 +605,8 @@ export class Ship {
     this._dsFrags  = [];
     this._fractalControlsReversed = false;
     this._cellularDistortActive   = false;
+    this._shootLocked             = false;
+    this.canShoot                 = true;  
     this.x = window.innerWidth  / 2;
     this.y = window.innerHeight / 2;
     if (this.onHPChange)    this.onHPChange(this.hp, this.maxHP);

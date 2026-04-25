@@ -1,4 +1,4 @@
-<!DOCTYPE html> <!-- Updated 4/21/26 @ 12PM -->
+<!DOCTYPE html> <!-- Updated 4/24/26 @ 8PM -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -86,44 +86,42 @@
         <span class="btn-label">☠ SURVIVAL</span>
       </button>
       <button class="menu-btn howto" id="howto-btn">
-        <span class="btn-label">** NOTES FOR TESTERS **</span>
+        <span class="btn-label">🕹️ HOW TO PLAY</span>
       </button>
       <button class="menu-btn" id="leaderboard-btn">
         <span class="btn-label">🏆 &nbsp; LEADERBOARD</span>
       </button>
-      <button class="menu-btn boss" data-mode="bossBattle">
+      <!--<button class="menu-btn boss" data-mode="bossBattle">
         <span class="btn-label">&#9760; &nbsp; to the worm! </span>
       </button>
-      <!--<button class="menu-btn dev-lab" data-mode="tentacleLab"> 
+      <button class="menu-btn dev-lab" data-mode="tentacleLab"> 
         <span class="btn-label">🐙 &nbsp; tentacle lab</span>
       </button>-->
     </div>
 
     <div class="menu-footer">© Wormholes All The Way Down</div>
 
-    <!--<div id="howto-modal" class="howto-modal">
+    <div id="howto-modal" class="howto-modal">
     <div class="howto-modal-content">
       <div class="howto-modal-header">
-        <h2>📖 HOW TO PLAY</h2>
+        <h2>HOW TO PLAY</h2>
         <button class="howto-close" id="howto-close">&times;</button>
       </div>
       <div class="howto-modal-body">
-        <p><strong>Wormholes All The Way Down</strong> is a fast‑paced arcade shooter inspired by <em>Starfox 64</em>.  
-        Fly your spacecraft through a collapsing wormhole, fight alien waves, and avoid strange anomalies.  
-        Survive <strong>5 enemy waves</strong> – each with new attack patterns – then face the <strong>giant wormhole worm boss</strong>.</p>
-
-        <div class="controls-grid">
+         <div class="controls-grid">
           <div class="control-col">
             <h3>🖥️ DESKTOP</h3>
             <ul>
               <li><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> – Move</li>
-              <li><kbd>SPACE</kbd> – Lasers</li>
-              <li><kbd>Q</kbd> / <kbd>E</kbd> – Barrel roll</li>
-              <li><kbd>Right Shift</kbd> – Speed boost</li>
-              <li><kbd>F</kbd> – Singularity Bomb</li>
+              <li><img src="images/clickLeft.png" class="mouse-icon"> / <kbd>SPACE</kbd>  – Lasers</li>
+              <li> <img src="images/clickRight.png" class="mouse-icon"> / <kbd>Q</kbd> / <kbd>E</kbd> – Barrel roll</li>
+              <li><kbd>Shift</kbd> – Speed boost</li>
+              <li><kbd>R</kbd> – Hold to launch Singularity Bomb</li>
+              <li><img src="images/pause.png" class="mouse-icon">  / <kbd>P</kbd> – Pause</li>
+              <li><img src="images/mute.png" class="mouse-icon"> / <kbd>M</kbd> – Mute</li>
             </ul>
           </div>
-          <div class="control-col">
+          <div class="control-col mobile-col">
             <h3>📱 MOBILE</h3>
             <ul>
               <li>🕹️ Joystick – Move</li>
@@ -131,15 +129,16 @@
               <li><kbd>B</kbd> – Barrel roll</li>
               <li><kbd>X</kbd> – Speed boost</li>
               <li><kbd>Y</kbd> – Singularity Bomb</li>
+              <li><img src="images/pause.png" class="mouse-icon"> - Pause</li>
+              <li><img src="images/mute.png" class="mouse-icon"> - Mute</li>
             </ul>
           </div>
         </div>
-        <p class="modal-tip">💡 Tip: Use barrel rolls to deflect small projectiles!</p>
       </div>
     </div>
-    </div>-->
+    </div>
 
-    <div id="howto-modal" class="howto-modal"> <!-- TEMPORARY FOR PLAYTESTERS-->
+    <!--<div id="howto-modal" class="howto-modal">  TEMPORARY FOR PLAYTESTERS
     <div class="howto-modal-content">
       <div class="howto-modal-header">
         <h2>NOTES FOR TESTING</h2>
@@ -196,17 +195,16 @@
           </div>
         </div>
 
-          <!--<p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">This version is the development version so there are a couple extra features that you can check out:</strong></p>
+        <p> <strong style="color: #b090ff; font-family: 'SpaceLetters'; font-size: 1.1rem">This version is the development version so there are a couple extra features that you can check out:</strong></p>
           <ul style="font-family: arial">
             <li>In the Session Recorder Panel, there's also a <strong>"Playtest Bot"</strong>, named <strong style="color: #ffcc00;">"Noodle"</strong> - if you click "Let Noodle Play", a bot will start playing.  He's actually kinda fun to watch because he gets stressed out and panics sometimes.</li>
             <li>The <strong>"TO THE WORM"</strong> button takes you straight to the final boss battle </li>
             <li><strong>"Tentacle Lab"</strong> is a fun little sandbox - A few of the enemies have proceedurally created tentacles.  I used the lab to figure out the physics and aesthetic for each of the tentacle-based creatures.  It's fun to move the sliders to extreme values and watch the tentacles go crazy.  I ended up using this concept for another game that's in super early development, <a href="https://mkb0020.itch.io/tentacles" style="color: #58E84C">Tentacles</a>.  Feel free to check it out!  PW is "HunterBiden"</li>
-          -->
+          
           </ul>
       </div>
     </div>
-    </div>
-
+    </div>-->
   </div>
 
   <div id="mode-transition"></div>
@@ -414,7 +412,7 @@
     segment.style.opacity = 0.5 + 0.7 * t;
 
     const img = document.createElement('img');
-    img.src = 'public/images/loading01.png';
+    img.src = './images/loading01.png';
     segment.appendChild(img);
     spinner.appendChild(segment);
   }
@@ -425,7 +423,7 @@
   head.style.transform = `translate(${Math.cos(headRad) * baseRadius}px, ${Math.sin(headRad) * baseRadius}px) scale(1)`;
 
   const headImg = document.createElement('img');
-  headImg.src = 'public/images/loading00.png';
+  headImg.src = './images/loading00.png';
   head.appendChild(headImg);
   spinner.appendChild(head);
 </script>

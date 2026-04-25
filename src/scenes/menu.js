@@ -1,9 +1,9 @@
-// menu.js - Updated 4/23/26 @ 3:00PM
-import { setMobileMode } from '../utils/controls.js';
+// menu.js - Updated 4/24/26 @ 8:00PM
+import { setMobileMode }                             from '../utils/controls.js';
+import { IS_TAURI, DEV_MODE }                        from '../utils/config.js';
 import { HighScoreUI }                               from '../utils/highScoreUI.js';
 
 
-const DEV_MODE = true;
 
 export class Menu {
   constructor() {
@@ -85,7 +85,7 @@ export class Menu {
 
     setTimeout(() => {
       this._photoScreen.style.display = 'none';
-      this._deviceScreen?.classList.add('visible');
+      if (!IS_TAURI) this._deviceScreen?.classList.add('visible');
     }, 460);
   }
 
@@ -93,12 +93,19 @@ export class Menu {
   _buildDeviceScreen() {
     this._deviceScreen = this._overlay.querySelector('#device-select-screen');
     if (!this._deviceScreen) {
-      console.error('[Menu] #device-select-screen not found — did you add the HTML snippet to index.html?');
+      console.error('[Menu] #device-select-screen not found');
       return;
     }
 
     this._deviceScreen.classList.remove('visible', 'exit');
     this._deviceScreen.style.display = '';
+
+    if (IS_TAURI) { // TAURI - SKIP DEVICE SELECT SCREEN
+      setMobileMode(false);
+      this._deviceScreen.style.display = 'none';
+      this._attachMainMenuListeners();
+      return;
+    }
 
     this._deviceScreen.querySelector('#device-btn-desktop')
       ?.addEventListener('click', () => this._onDeviceSelect(false), { once: true });
@@ -186,6 +193,10 @@ export class Menu {
   _openHowToModal() {
     if (this._howtoModal) {
       this._howtoModal.classList.add('open');
+
+      if (IS_TAURI) {
+        this._howtoModal.querySelector('.mobile-col').style.display = 'none';
+      }
     }
   }
 
