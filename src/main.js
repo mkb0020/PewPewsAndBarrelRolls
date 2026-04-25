@@ -297,7 +297,7 @@ wormBoss.onDeath = () => {
 
   setTimeout(() => {
     highScoreUI.showEntry(finalScore, null, 'gameplay');
-  }, 20000); 
+  }, 50000); 
 
   setTimeout(() => projectileManager.clear(), 11000);
 };

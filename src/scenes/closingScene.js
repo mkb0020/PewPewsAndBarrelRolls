@@ -538,16 +538,13 @@ _showEndLeaderboard() {
   const btn = document.createElement('button');
   btn.id = 'back-to-menu-btn';
 
-  // Create sweep layer
   const sweep = document.createElement('span');
   sweep.className = 'btn-sweep';
 
-  // Create text node (so it sits above sweep)
   const label = document.createElement('span');
   label.className = 'btn-label';
   label.textContent = 'BACK TO MENU';
 
-  // Assemble
   btn.appendChild(sweep);
   btn.appendChild(label);
 
