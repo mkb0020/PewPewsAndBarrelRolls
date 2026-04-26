@@ -1,4 +1,4 @@
-// main.js - Updated 4/23/26 @ 3:00PM
+// main.js - Updated 4/25/26 @ 8:30PM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -282,7 +282,7 @@ wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, du
 
 wormBoss.onDeath = () => {
   SessionRecorder.log('boss_battle_end');
-  SessionRecorder.endSession('boss_defeated'); 
+  //SessionRecorder.endSession('boss_defeated'); // *** AUTO SESSION RECORDER ***
   audio.stopMusic();
   ship.exitCinematic();
   ship.suctionScale  = 1.0;
@@ -303,7 +303,7 @@ wormBoss.onDeath = () => {
 };
 
 closingScene.onBackToMenu = () => { //  CLOSING SCENE → BACK TO MENU 
-  SessionRecorder.stop();
+  // SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };
@@ -576,7 +576,7 @@ survivalScene.onRestart = () => { //  SURVIVAL SCENE RESTART
 };
 
 survivalScene.onMenu = () => {
-  SessionRecorder.stop();
+  //SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };

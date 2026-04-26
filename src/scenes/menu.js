@@ -214,7 +214,7 @@ export class Menu {
     if (this._onStart) { this._onStart(); this._onStart = null; }
 
     this._closeHowToModal();
-
+    this._highScoreUI?.hideLeaderboard();
     this._stopAtmosphere();
 
     this._overlay?.classList.remove('visible');
