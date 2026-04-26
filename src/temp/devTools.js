@@ -233,7 +233,7 @@ export const DevTools = {
     this._createPanel();
     this._attachKeyListeners();
     this.updateRecorderUI();
-    // SessionRecorder.start(); // AUTO START SESSION RECORDER *******
+    SessionRecorder.start(); // AUTO START SESSION RECORDER *******
   },
 
   _createPanel() {

@@ -1,4 +1,4 @@
-// Updated 4/23/26 @ 3:30PM
+// Updated 4/26/26 @ 6am
 // scenes/closingScene.js
 import { ImageLoader } from '../utils/imageLoader.js';
 import { HighScores }  from '../utils/highScores.js';
@@ -321,6 +321,7 @@ export class ClosingScene {
 
     this._active     = false;
     this._elapsed    = 0;
+    this._paused     = false;
     this._flashAlpha  = 0;
     this._flashActive = false;
 
@@ -349,10 +350,18 @@ export class ClosingScene {
 
   isActive() { return this._active; }
 
+  /** Freeze the scene timer (timed events stop) while keeping visuals animated.
+   *  Call before showing the high-score / leaderboard overlay. */
+  pause()  { this._paused = true;  }
+
+  /** Resume the scene timer after the leaderboard is closed. */
+  resume() { this._paused = false; }
+
   start(finalScore = 0) {
     if (this._active) return;
     this._active     = true;
     this._elapsed    = 0;
+    this._paused     = false;
     this._finalScore = finalScore;
 
     this._flashAlpha   = 0;
@@ -384,6 +393,13 @@ export class ClosingScene {
    */
   update(dt) {
     if (!this._active) return;
+
+    // ── PAUSED — keep background visuals alive but freeze the event timer ────
+    if (this._paused) {
+      this._starfield.update(dt);
+      if (this._whaleStarted) this._whale.update(dt, this._starfield.opacity);
+      return;
+    }
 
     this._elapsed += dt;
 

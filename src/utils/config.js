@@ -1,4 +1,4 @@
-// Updated 4/24/26 @ 8PM
+// Updated 4/26/26 @ 6AM
 
 export const IS_TAURI = !!window.__TAURI__;
 export const DEV_MODE = true; 
@@ -123,7 +123,7 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 5, // 5
+        HEALTH: 7, // 5
         SCORE: 10,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
@@ -141,7 +141,7 @@ export const CONFIG = {
         SPEED: 120,
         COLOR: '#FF0000',
         GLOW_COLOR: '#b444a3',
-        HEALTH: 7, // 7
+        HEALTH: 9, // 7
         SCORE: 20,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 11,
@@ -159,7 +159,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 10, //10
+        HEALTH: 12, //10
         SCORE: 50,
 
         SPRITE_FRAMES: 6,      
@@ -171,7 +171,7 @@ export const CONFIG = {
         COLLISION_DAMAGE: 10, 
         LASER_COLOR: '#ff0000',
         LASER_INTERVAL: 1.8,
-        COMBAT_DURATION: 9.0,
+        COMBAT_DURATION: 8.0,
         WANDER_SPEED: 30,
         WANDER_X: 90,
         WANDER_Y: 60,
@@ -201,7 +201,7 @@ export const CONFIG = {
         SPEED: 90,
         COLOR: '#FF0000',
         GLOW_COLOR: '#7097eb',
-        HEALTH: 6, //6
+        HEALTH: 8, //6
         SCORE: 30,
         ZIGZAG_AMPLITUDE: 70,
         ZIGZAG_FREQUENCY: 2,
@@ -245,7 +245,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#6786c9',
-        HEALTH: 10, //10
+        HEALTH: 11, //10
         SCORE: 50,
 
         SPRITE_FRAMES: 6,  
@@ -256,7 +256,7 @@ export const CONFIG = {
 
         COLLISION_DAMAGE: 10, // NO LONGER USED
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 1.8, 
+        LASER_INTERVAL: 1.7, 
         HOVER_DURATION_MIN: 0.7,
         HOVER_DURATION_MAX: 1.6,
         DASH_SPEED: 200,
@@ -291,9 +291,6 @@ export const CONFIG = {
         TENTACLE_TIP_DRAG:         0.93,  
         TENTACLE_ANCHOR_SWAY:         1,  // px — SUBTLE ROOT SWAY AMPLITUDE
       },
-
-
-
     },
 
     PULSE_SPEED: 2.5,

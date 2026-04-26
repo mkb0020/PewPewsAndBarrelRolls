@@ -1,4 +1,4 @@
-// transitions.js
+// transitions.js - Updated 4/26/26 @ 6am
 import { DevTools, SessionRecorder }                  from '../temp/devTools.js';
 
 
@@ -16,6 +16,7 @@ export class TransitionScene {
     this.onRestart  = null;
     this.onGameOver = null;   // ★ NEW — FIRED WHEN REGULAR GAMEPLAY GAME OVER SCREEN SHOWS
                               //   WIRE IN main.js: transitionScene.onGameOver = () => audio.playGameOver1();
+    this.onMenu = null;
 
     //  DOM REFS 
     this._diedOverlay     = document.getElementById('died-overlay');
@@ -27,6 +28,10 @@ export class TransitionScene {
     //  WIRE BUTTONS 
     document.getElementById('btn-continue')?.addEventListener('click', () => this._handleContinue());
     document.getElementById('btn-restart')?.addEventListener('click',  () => this._handleRestart());
+    document.getElementById('btn-gameover-menu')?.addEventListener('click', () => {
+      this._hideGameOver();
+      this.onMenu?.();
+    });
 
     //  KEYBOARD SHORTCUTS 
     window.addEventListener('keydown', (e) => {
@@ -45,7 +50,7 @@ export class TransitionScene {
   handleDeath(livesLeft, inWormBattle) {
     if (livesLeft <= 0) {
       this._isGameOver = true;
-      SessionRecorder.endSession('game_over'); // NOT SURE IF THIS IS THE CORRECT PLACEMENT
+      SessionRecorder.endSession('game_over'); 
       this._showGameOver();
     } else {
       this._showDied(inWormBattle, livesLeft);

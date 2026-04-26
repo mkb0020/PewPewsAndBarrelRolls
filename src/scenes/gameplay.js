@@ -1,4 +1,4 @@
-// Updated 4/21/26 @ 12:30pm
+// Updated 4/26/26 @ 6am
 // gameplay.js
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }          from '../utils/config.js';
@@ -44,7 +44,7 @@ export const WAVE_CONFIGS = [
   },
   { // WAVE 4 — + PHIL  |  FAST BECOMES DOMINANT 
     types:          ['BASIC', 'ZIGZAG', 'TANK', 'FAST'],
-    weights:        [0.30,    0.20,     0.20,   0.30],
+    weights:        [0.25,    0.20,     0.20,   0.35],
     maxEnemies:     7, //7
     // GLORK-HEAVY. TWO SPECIALS (FRACTAL + SLIME) — START SEPARATED, CONVERGE.
     specialWindows: [20000, 14000, 8000, 3000, 0],   // 5 KILLS → INDICES 0–4

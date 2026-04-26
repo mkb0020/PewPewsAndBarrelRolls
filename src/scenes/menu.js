@@ -1,4 +1,4 @@
-// menu.js - Updated 4/24/26 @ 8:00PM
+// menu.js - Updated 4/26/26 @ 6am
 import { setMobileMode }                             from '../utils/controls.js';
 import { IS_TAURI, DEV_MODE }                        from '../utils/config.js';
 import { HighScoreUI }                               from '../utils/highScoreUI.js';
@@ -83,10 +83,15 @@ export class Menu {
     this._photoScreen.classList.remove('visible');
     this._photoScreen.classList.add('exit');
 
-    setTimeout(() => {
-      this._photoScreen.style.display = 'none';
-      if (!IS_TAURI) this._deviceScreen?.classList.add('visible');
-    }, 460);
+  setTimeout(() => {
+    this._photoScreen.style.display = 'none';
+    if (IS_TAURI) {
+      const blackout = this._overlay?.querySelector('#menu-blackout');
+      if (blackout) blackout.classList.add('fade-out');
+    } else {
+      this._deviceScreen?.classList.add('visible');
+    }
+  }, 460);
   }
 
   // ======================= DEVICE SCREEN =======================

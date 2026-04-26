@@ -1,4 +1,4 @@
-// main.js - Updated 4/25/26 @ 8:30PM
+// main.js - Updated 4/26/26 @ 6am
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -282,7 +282,7 @@ wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, du
 
 wormBoss.onDeath = () => {
   SessionRecorder.log('boss_battle_end');
-  //SessionRecorder.endSession('boss_defeated'); // *** AUTO SESSION RECORDER ***
+  SessionRecorder.endSession('boss_defeated'); // *** AUTO SESSION RECORDER ***
   audio.stopMusic();
   ship.exitCinematic();
   ship.suctionScale  = 1.0;
@@ -295,15 +295,19 @@ wormBoss.onDeath = () => {
   const finalScore = parseInt(rawScore, 10) || 0;
   closingScene.start(finalScore);
 
+  // PAUSE SCENE TIMER AFTER A SHORT BEAT, SHOW HIGH SCORE ENTRY + LEADERBOARD. CINEMATIC RESUMES (YOU DID IT → CREDITS → BACK TO MENU) ONCE THE PLAYER CLOSES THE LEADERBOARD.
   setTimeout(() => {
-    highScoreUI.showEntry(finalScore, null, 'gameplay');
-  }, 50000); 
+    closingScene.pause();
+    highScoreUI.showEntry(finalScore, null, 'gameplay', () => {
+      closingScene.resume();
+    });
+  }, 12000);
 
   setTimeout(() => projectileManager.clear(), 11000);
 };
 
 closingScene.onBackToMenu = () => { //  CLOSING SCENE → BACK TO MENU 
-  // SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
+  SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };
@@ -576,15 +580,14 @@ survivalScene.onRestart = () => { //  SURVIVAL SCENE RESTART
 };
 
 survivalScene.onMenu = () => {
-  //SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
+  SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };
 
 
-
 transitionScene.onGameOver = () => {
-  //SessionRecorder.endSession('game_over');
+  SessionRecorder.endSession('game_over'); // AUTO SESSION RECORDER
   audio.playGameOver1();
   const score = scoreManager.score;
   setTimeout(() => {
@@ -595,6 +598,11 @@ transitionScene.onGameOver = () => {
       () => {}
     );
   }, 50000); 
+};
+
+transitionScene.onMenu = () => {
+  audio.stop();
+  window.location.reload();
 };
 
 // ==================== GAME STATE ====================
