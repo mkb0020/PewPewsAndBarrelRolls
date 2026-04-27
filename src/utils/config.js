@@ -123,13 +123,13 @@ export const CONFIG = {
         SPEED: 180,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 7, // 5
+        HEALTH: 6, // 5
         SCORE: 10,
         SPRITE_FRAMES: 11,
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#ff0000',
-        LASER_INTERVAL: 1.8,
+        LASER_INTERVAL: 1.7,
         COMBAT_DURATION: 9.0,   
         WANDER_SPEED: 70,
         WANDER_X: 180,

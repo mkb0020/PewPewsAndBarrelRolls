@@ -282,7 +282,7 @@ wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, du
 
 wormBoss.onDeath = () => {
   SessionRecorder.log('boss_battle_end');
-  SessionRecorder.endSession('boss_defeated'); // *** AUTO SESSION RECORDER ***
+  //SessionRecorder.endSession('boss_defeated'); // *** AUTO SESSION RECORDER ***
   audio.stopMusic();
   ship.exitCinematic();
   ship.suctionScale  = 1.0;
@@ -307,7 +307,7 @@ wormBoss.onDeath = () => {
 };
 
 closingScene.onBackToMenu = () => { //  CLOSING SCENE → BACK TO MENU 
-  SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
+  //SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };
@@ -580,14 +580,14 @@ survivalScene.onRestart = () => { //  SURVIVAL SCENE RESTART
 };
 
 survivalScene.onMenu = () => {
-  SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
+  //SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };
 
 
 transitionScene.onGameOver = () => {
-  SessionRecorder.endSession('game_over'); // AUTO SESSION RECORDER
+  //SessionRecorder.endSession('game_over'); // AUTO SESSION RECORDER
   audio.playGameOver1();
   const score = scoreManager.score;
   setTimeout(() => {
