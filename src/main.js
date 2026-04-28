@@ -1,4 +1,4 @@
-// main.js - Updated 4/26/26 @ 6am
+// main.js - Updated 4/27/26 @ 10:00AM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -628,6 +628,9 @@ function deployBomb() {
 }
 
 window.addEventListener('keydown', (e) => {
+  // DON'T INTERCEPT GAME SHORTCUTS WHILE TYPING IN INPUT FIELDS (e.g. HIGH SCORE NAME ENTRY)
+  if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
   if (e.code === 'KeyP') {
     isPaused = !isPaused;
     ui.update(isMuted, isPaused);
@@ -679,7 +682,7 @@ window.addEventListener('keyup', (e) => {
 
 // ==================== MOUSE CONTROLS NOTE: LISTENERS ON window (NOT gameCanvas) — #game-canvas HAS pointer-events:none SO CANVAS EVENTS NEVER FIRE
 window.addEventListener('mousedown', (e) => {
-  if (e.button === 0 && !isPaused) {  // LEFT CLICK — SHOOT
+  if (e.button === 0 && !isPaused && _gameStarted && !closingScene.isActive()) {  // _gameStarted GATES PRE-GAME CLICKS; closingScene GATES SCORE ENTRY / LEADERBOARD / BACK-TO-MENU CLICKS
     doShoot();
   }
 });

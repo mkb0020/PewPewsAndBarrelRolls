@@ -70,7 +70,7 @@ const WORM = {
     [30,  2.10, 1.9],
   ],
   HEAD_SMOOTH:      0.07,  // HOW SNAPPILY HEAD CHASES WIGGLE TARGET
-  HEALTH:           300,
+  HEALTH:           50,
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
   RAGE_TRIGGER_THRESHOLD: 0.3,
@@ -821,7 +821,7 @@ export class WormBoss {
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
       for (const ch of channels) {
-        ctx.globalAlpha = (0.10 + Math.random() * 0.12) * gi;
+        ctx.globalAlpha = (0.05 + Math.random() * 0.12) * gi;
         ctx.fillStyle   = `rgb(${ch.r},${ch.g},${ch.b})`;
         ctx.beginPath();
         ctx.arc(hx + ch.dx, hy + ch.dy, sz * 0.49, 0, Math.PI * 2);
@@ -1573,14 +1573,14 @@ export class WormBoss {
           ctx.globalCompositeOperation = 'screen';
           const shineGrad = ctx.createRadialGradient(
             rsx - size * 0.17, rsy - size * 0.22, size * 0.03,
-            rsx + size * 0.05, rsy + size * 0.05, size * 0.39
+            rsx + size * 0.05, rsy + size * 0.05, size * 0.25
           );
           shineGrad.addColorStop(0,    `rgba(255, 245, 230, ${shineA})`);
           shineGrad.addColorStop(0.35, `rgba(230, 110, 80,  ${shineA * 0.4})`);
           shineGrad.addColorStop(1,    'rgba(0, 0, 0, 0)');
           ctx.fillStyle = shineGrad;
           ctx.beginPath();
-          ctx.arc(rsx, rsy, size * 0.39, 0, Math.PI * 2);
+          ctx.arc(rsx, rsy, size * 0.25, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
         }
