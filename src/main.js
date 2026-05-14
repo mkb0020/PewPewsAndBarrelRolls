@@ -1,4 +1,4 @@
-// main.js - Updated 4/27/26 @ 10:00AM
+// main.js - Updated 5/1/26 @ 12:00AM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -282,7 +282,7 @@ wormBoss.onScreenShake = (strength, duration) => triggerScreenShake(strength, du
 
 wormBoss.onDeath = () => {
   SessionRecorder.log('boss_battle_end');
-  //SessionRecorder.endSession('boss_defeated'); // *** AUTO SESSION RECORDER ***
+  SessionRecorder.endSession('boss_defeated'); // *** AUTO SESSION RECORDER ***
   audio.stopMusic();
   ship.exitCinematic();
   ship.suctionScale  = 1.0;
@@ -307,7 +307,7 @@ wormBoss.onDeath = () => {
 };
 
 closingScene.onBackToMenu = () => { //  CLOSING SCENE → BACK TO MENU 
-  //SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
+  SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };
@@ -580,14 +580,14 @@ survivalScene.onRestart = () => { //  SURVIVAL SCENE RESTART
 };
 
 survivalScene.onMenu = () => {
-  //SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
+  SessionRecorder.stop(); // *** AUTO SESSION RECORDER ***
   audio.stop();
   window.location.reload();
 };
 
 
 transitionScene.onGameOver = () => {
-  //SessionRecorder.endSession('game_over'); // AUTO SESSION RECORDER
+  SessionRecorder.endSession('game_over'); // AUTO SESSION RECORDER
   audio.playGameOver1();
   const score = scoreManager.score;
   setTimeout(() => {
@@ -624,7 +624,7 @@ let _gameStarted      = false;  // SET AFTER OPENING SCENE — GATES CURSOR HIDI
 // ==================== KEYBOARD SHORTCUTS ====================
 function deployBomb() {
   if (isPaused || !ship.isAlive) return;
-  singularityBombManager.deploy(ship.x, ship.y);
+  singularityBombManager.deploy(ship.x, ship.y, ship.hp);
 }
 
 window.addEventListener('keydown', (e) => {
@@ -848,7 +848,7 @@ function gameLoop() {
           const boostActive = tesseractManager.isBoostActive();
           const destroyed   = enemy.takeDamage(boostActive ? 2 : 1);
           if (destroyed) {
-            projectileManager.createExplosion(pos.x, pos.y, boostActive ? 'boom' : 'bam');
+            projectileManager.createExplosion(pos.x, pos.y, boostActive ? 'shock' : 'bam');
             scoreManager.addScore(enemy.score, pos.x, pos.y);
             enemyDeathManager.spawn(enemy); // 💀 BIOLOGICAL MELT COLLAPSE
             audio.playEnemyDeath();         // 💀 MELT SFX
@@ -1093,10 +1093,8 @@ function hideLoadingScreen() {
 async function startup() {
   await ImageLoader.preloadCritical();
   // console.log('✔ Images ready');
-  hideLoadingScreen();
 
-
-  const { mode, enemyCount } = await menu.show(starfield, () => audio.start(), highScoreUI);
+  const { mode, enemyCount } = await menu.show(starfield, () => audio.start(), highScoreUI, hideLoadingScreen);
 
   currentMode       = mode;
   currentEnemyCount = enemyCount;

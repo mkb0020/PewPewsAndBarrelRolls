@@ -30,10 +30,10 @@ export const SessionRecorder = {
   },
 
   endSession(reason = 'unknown') { // AUTOMATICALLY ENDS SESSION RECORDER AND DOWNLOADS JSON
-  if (!this.recording) return;
-  this.log('session_end_trigger', { reason }); 
-  this.stop(); 
-},
+    if (!this.recording) return;
+    this.log('session_end_trigger', { reason }); 
+    this.stop(); 
+  },
 
   // CALLED BY BOTPLAYER AT THE START OF EACH NEW RUN — RESETS EVENTS WITHOUT DOWNLOADING.
   // KEEPS SESSIONS CLEAN PER RUN WITHOUT SPAMMING DOWNLOAD FILES.
@@ -68,6 +68,7 @@ export const SessionRecorder = {
       fractalCascadeCount: 0,
       slimeAttackCount: 0,
       ocularPrismCount: 0,
+      singularityBombCount: 0,
       bossEntryShipHp:    null,  // SHIP HP WHEN BOSS BATTLE BEGAN
       bossEntryShipLives: null,  // LIVES REMAINING WHEN BOSS BATTLE BEGAN
       bossBattleDuration: null,
@@ -122,6 +123,9 @@ export const SessionRecorder = {
           break;
         case 'ocular_prism_attack':
           summary.ocularPrismCount++;
+          break;
+        case 'singularity_bomb':
+          summary.singularityBombCount++;
           break;
         // ── PROGRESS EVENTS (logged by main.js) ─────────────────────────────
         case 'wave_start':
@@ -233,7 +237,7 @@ export const DevTools = {
     this._createPanel();
     this._attachKeyListeners();
     this.updateRecorderUI();
-    //SessionRecorder.start(); // AUTO START SESSION RECORDER *******
+    SessionRecorder.start(); // AUTO START SESSION RECORDER *******
   },
 
   _createPanel() {

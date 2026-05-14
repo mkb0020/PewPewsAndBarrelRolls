@@ -121,6 +121,11 @@ export class Explosion {
       this.spriteKey = 'boom';
       this.frames    = CONFIG.EXPLOSIONS.BOOM_FRAMES;
       this.size      = CONFIG.EXPLOSIONS.BOOM_SIZE;
+    } else if (type === 'shock') {
+      this.spriteKey = 'shock';
+      this.frames    = CONFIG.EXPLOSIONS.SHOCK_FRAMES;
+      this.size      = CONFIG.EXPLOSIONS.SHOCK_SIZE;
+      ImageLoader.load('shock'); // LAZY-LOAD IF NOT ALREADY
     } else if (type === 'zap') {
       this.spriteKey = 'zap';
       this.frames    = 6;

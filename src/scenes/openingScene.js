@@ -1,11 +1,19 @@
 // UPDATED 3/15/26 @ 10PM
 // scenes/openingScene.js
+//const TRANSMISSION_LINES = [
+  //'This is Deep Space Command.',
+//  'Commander Rosen has crossed the event horizon.',
+//  'Gravitational interference increasing.',
+//  'Signal integrity failing\u2026',
+//  'We\'ve lost all communication...',
+//];
+
 const TRANSMISSION_LINES = [
   //'This is Deep Space Command.',
-  'Commander Rosen has crossed the event horizon.',
-  'Gravitational interference increasing.',
-  'Signal integrity failing\u2026',
-  'We\'ve lost all communication...',
+  'WORMHOLES ALL THE WAY DOWN',
+  '...',
+  'NOW AVAILABLE',
+  'ON ITCH.IO',
 ];
 
 

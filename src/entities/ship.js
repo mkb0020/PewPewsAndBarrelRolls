@@ -890,7 +890,7 @@ export class Ship {
     ctx.save();
     for (const s of this._dsSmoke) {
       if (s.frame >= CFG.SMOKE_FRAMES) continue;
-      const lifeAlpha = 0.65;
+      const lifeAlpha = 0.3;
       ctx.globalAlpha = lifeAlpha;
       ctx.drawImage(
         smoke,

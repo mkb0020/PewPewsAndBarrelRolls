@@ -21,7 +21,7 @@ export const CONFIG = {
 
   SHIP: {
     WIDTH: 140,
-    HEIGHT: 120,
+    HEIGHT: 130,
     SPEED: 5,             
     ACCELERATION: 2400,   // px/s² 
     DAMPING: 0.85,        // HIGHER = SPACE ICE
@@ -80,7 +80,7 @@ export const CONFIG = {
     FIRST_SPAWN_DELAY: 15,    
     SPAWN_INTERVAL:    25,   
     MAX_COUNT:         1,    
-    HEAL_AMOUNT:       15,    
+    HEAL_AMOUNT:       10,    
   },
 
   TESSERACT_FRAGMENT: {
@@ -111,7 +111,7 @@ export const CONFIG = {
 
   ENEMIES: {
     MAX_COUNT: 1, //  I DON'T THINK THIS IS USED ANYMORE
-    SPAWN_INTERVAL_MIN: 2.0, 
+    SPAWN_INTERVAL_MIN: 2, 
     SPAWN_INTERVAL_MAX: 4.0,
     SPAWN_DISTANCE: 400, 
     SPRITE_SIZE: 150,
@@ -129,7 +129,7 @@ export const CONFIG = {
         ANIM_SPEED: 9,
         COLLISION_DAMAGE: 20,
         LASER_COLOR: '#ff0000',
-        LASER_INTERVAL: 1.7,
+        LASER_INTERVAL: 1.4,
         COMBAT_DURATION: 9.0,   
         WANDER_SPEED: 70,
         WANDER_X: 180,
@@ -159,7 +159,7 @@ export const CONFIG = {
         SPEED: 70,
         COLOR: '#FF0000',
         GLOW_COLOR: '#FF0000',
-        HEALTH: 12, //10
+        HEALTH: 11, //10
         SCORE: 50,
 
         SPRITE_FRAMES: 6,      
@@ -214,7 +214,7 @@ export const CONFIG = {
 
         COLLISION_DAMAGE: 10, 
         LASER_COLOR: '#FF0000',
-        LASER_INTERVAL: 1.8,
+        LASER_INTERVAL: 1.6,
         COMBAT_DURATION: 7.0,
         WANDER_SPEED: 45,
         WANDER_X: 80,
@@ -245,7 +245,7 @@ export const CONFIG = {
         SPEED: 200,
         COLOR: '#FF0000',
         GLOW_COLOR: '#6786c9',
-        HEALTH: 11, //10
+        HEALTH: 9, //10
         SCORE: 50,
 
         SPRITE_FRAMES: 6,  
@@ -367,6 +367,8 @@ export const CONFIG = {
     BAM_SIZE:       160,
     BOOM_FRAMES:    6,
     BOOM_SIZE:      200,
+    SHOCK_FRAMES:    8,
+    SHOCK_SIZE:      165,
     FRAME_DURATION: 0.03,
   },
 
@@ -433,7 +435,7 @@ export const CONFIG = {
     FADE_DURATION:   0.6,   
     SHARD_MIN:       3,     
     SHARD_MAX:       5,     
-    PUPIL_RADIUS:   68,     
+    PUPIL_RADIUS:   72,     
     PUPIL_HEALTH:    5,     
     ICHOR_COUNT:    55,     
     PUPIL_HIT_SCORE: 25,    
@@ -449,8 +451,8 @@ export const CONFIG = {
 
   WAVE_WORM: {
     SPRITE_FRAMES:  10,        // 10 TOTAL: 5 WAVES × (BODY + HEAD)
-    HEAD_SIZE:            70, 
-    SEGMENT_SIZE_RATIO:  0.9, 
+    HEAD_SIZE:            55, 
+    SEGMENT_SIZE_RATIO:  1, 
     NUM_SEGMENTS:         15,  
     SEGMENT_SPACING:      8,  
     TAPER_RATIO:         0.8,
@@ -468,12 +470,12 @@ export const CONFIG = {
 
     HEALTH:            5,        
 
-    FIRST_SPAWN_DELAY_MIN: 10,    
-    FIRST_SPAWN_DELAY_MAX: 15,    
-    SPAWN_GAP_MIN:         10,    
-    SPAWN_GAP_MAX:         20,     
+    FIRST_SPAWN_DELAY_MIN: 10,    // 10
+    FIRST_SPAWN_DELAY_MAX: 15,    // 15
+    SPAWN_GAP_MIN:         10,    // 10
+    SPAWN_GAP_MAX:         20,     // 20
 
-    KILLS_PER_WAVE: [3, 4, 4, 5, 5],   
+    KILLS_PER_WAVE: [3, 4, 4, 5, 5],  // [3, 4, 4, 5, 5],   
     
     GOO_FIRST_SHOT_MIN: 1.7,
     GOO_FIRST_SHOT_MAX: 2.0,
@@ -496,8 +498,8 @@ export const CONFIG = {
     RADIUS:               20,    // SPINOR ITEM
     COLLECT_RADIUS:       50,    
     LIFETIME:             5,    
-    FIRST_SPAWN_DELAY:    30,    //  VALUE NOT FINALIZED - MORE TESTING NEEDED
-    SPAWN_INTERVAL:       45,   //  VALUE NOT FINALIZED - MORE TESTING NEEDED
+    FIRST_SPAWN_DELAY:    30,    
+    SPAWN_INTERVAL:       55,   
     MAX_COUNT:             1,   
     MAX_INVENTORY:         3,    
     ROTATION_SPEED:        1.4,  // radians/s — INTERNAL SPINOR ANGLE
@@ -578,7 +580,7 @@ export const CONFIG = {
     PIECE_DRIFT_Y:      45,     
     PIECE_SPIN:         2.2,   
     PIECE_FADE_START:   1.8,  
-    KABAM_FRAMES:       16,
+    KABAM_FRAMES:       7,
     KABAM_FPS:          20,    
     KABAM_SIZE:         400,    
     SMOKE_COUNT:        9,     

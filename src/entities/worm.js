@@ -1,4 +1,4 @@
-// Updated 4/8/26 @ 2:30AM
+// Updated 5/14/26 @ 2:30AM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
@@ -34,17 +34,17 @@ const WORM = {
   ATTACK_HEAD_SCALE:  0.9, // SCALE MULTIPLIER FOR HEAD DURING ATTACK FRAMES (4-9) — COMPENSATES FOR OVERSIZED SPRITE
   DEATH_PAUSE_DURATION: 1.36, // FREEZE BEFORE RIPPLE/POPS BEGIN — DRAMATIC BEAT (2 BEATS AT 90 BPM = 1.33)
   ATTACK_INTERVAL_MIN: 1,  // AI — MINIMUM SECONDS BETWEEN ATTACKS
-  ATTACK_INTERVAL_MAX: 2, // AI — MAXIMUM SECONDS BETWEEN ATTACKS
-  ATTACK_DURATION:    5,
-  BABY_ATTACK_DURATION: 5,  
+  ATTACK_INTERVAL_MAX: 1.75, // AI — MAXIMUM SECONDS BETWEEN ATTACKS
+  ATTACK_DURATION:    4,
+  BABY_ATTACK_DURATION: 4,  
   BABY_SPIT_DURATION:   0.8, // SECONDS MOUTH STAYS OPEN WHEN BABY WORMS ARE EXPELLED
   ATTACK_FPS:         7,  
   SPAWN_OFFSET_X:  -520, // SPAWN OFFSET – NEGATIVE X = LEFT
   SPAWN_OFFSET_Y:   200, // POSITIVE Y = DOWN (COMES FROM AROUND THE BEND)
-  AI_TIER_BABYWORM: 0.80, // BELOW THIS HEALTH → BABY WORM ATTACK UNLOCKED (80% HP)
-  AI_TIER_SUCTION:   0.50, // BELOW THIS HEALTH → SUCTION ATTACK UNLOCKED (50% HP)
-  AI_TIER_DISABLE_CELLULAR: 0.40, // BELOW THIS HEALTH → CELLULAR ATTACK DISABLED (40% HP — PRE-RAGE WIND-DOWN)
-  AI_TIER_DISABLE_ALL:      0.31, // BELOW THIS HEALTH → ALL NEW ATTACKS GATED OFF (33% HP — CLEARS FIELD BEFORE RAGE)
+  AI_TIER_BABYWORM: 0.85, // BELOW THIS HEALTH → BABY WORM ATTACK UNLOCKED (80% HP)
+  AI_TIER_SUCTION:   0.70, // BELOW THIS HEALTH → SUCTION ATTACK UNLOCKED (50% HP)
+  AI_TIER_DISABLE_CELLULAR: 0.60, // BELOW THIS HEALTH → CELLULAR ATTACK DISABLED (40% HP — PRE-RAGE WIND-DOWN)
+  AI_TIER_DISABLE_ALL:      0.405, // BELOW THIS HEALTH → ALL NEW ATTACKS GATED OFF (33% HP — CLEARS FIELD BEFORE RAGE)
   AI_DIST_CLOSE:    180,   // PIXELS — BELOW THIS: STRONGLY PREFER LUNGE
   AI_DIST_FAR:      400,   // PIXELS — ABOVE THIS: PREFER RANGED ATTACKS
   CELLULAR_SPIT_DURATION: 1, // SECONDS MOUTH STAYS OPEN AFTER SEED FIRES
@@ -73,7 +73,7 @@ const WORM = {
   HEALTH:           300,
   SEGMENT_HEALTH:   1,     
   HEAD_HEALTH_MULT: 2,     
-  RAGE_TRIGGER_THRESHOLD: 0.3,
+  RAGE_TRIGGER_THRESHOLD: 0.4,
   RAGE_THRESHOLD:     0.25,
   RAGE_INTERVAL_MULT: 0.75,
   RAGE_LUNGE_WEIGHT:  5.0,
@@ -230,6 +230,25 @@ class SuctionParticleSystem {
 
 // ======================= WORM BOSS =======================
 export class WormBoss {
+  static _RAGE_TERM_LINES = [
+    'BIOSYS ERR 0x4F3A: DERMIS INTEGRITY COMPROMISED',
+    'WARN: SEGMENT[07] POLARITY INVERTED',
+    '',
+    'ERR 0xC0RE: NEURAL SYNC LOOP DETECTED',
+    'FATAL: INTERNAL PRESSURE EXCEEDING LIMITS',
+    '',
+    'WARN: RAGE HORMONE OVERFLOW — BUFFER SATURATED',
+    'SEGMENT REBIND FAILED............',
+    '',
+    'ERR 0xDEAD: EXOSKELETON DISSOLUTION IN PROGRESS',
+    'CRITICAL: IDENTITY MATRIX CORRUPTED',
+    '',
+    'WARN: UNKNOWN ENTITY DETECTED IN WORM.CORE',
+    'ERR 0xFF00: CONTAINMENT BREACH',
+    '',
+    '> INNER FORM EMERGING',
+  ];
+
   constructor() {
     this.time         = 0;
     this.phaseOffset  = Math.random() * Math.PI * 2; // RANDOMISE START POSE
@@ -358,8 +377,14 @@ export class WormBoss {
       glitchIntensity: 0,   // 0→1 RAMPS UP DURING TRANSFORM, FADES AFTER EMERGENCE
       glitchTimer:     0,   // ACCUMULATOR FOR SLICE SPAWNING
       glitchSlices:    [],  // ACTIVE SCANLINE DISPLACEMENT BARS
+      crossSlices:     [],
+      crossTimer:      0,
+      rageTermLines:   [],
+      rageTermTimer:   0,
+      rageTermLineIdx: 0,
       glitchActive:    false,
     };
+    this._rageTerminalEl = null;
     // console.log('✔ WormBoss initialized');
   }
 
@@ -428,6 +453,11 @@ export class WormBoss {
       _rt.glitchIntensity = 0;
       _rt.glitchTimer     = 0;
       _rt.glitchSlices    = [];
+      _rt.crossSlices = [];
+      _rt.crossTimer  = 0;
+      _rt.rageTermLines   = [];
+      _rt.rageTermTimer   = 0;
+      _rt.rageTermLineIdx = 0;
       _rt.glitchActive    = false;           
       for (let _i = 0; _i < WORM.NUM_SEGMENTS; _i++) {
         _rt.rageSegs[_i].x = WORM.SPAWN_OFFSET_X;
@@ -478,6 +508,11 @@ export class WormBoss {
       rt.glitchIntensity = 0;
       rt.glitchTimer     = 0;
       rt.glitchSlices    = [];
+      rt.crossSlices     = [];
+      rt.crossTimer      = 0;
+      rt.rageTermLines   = [];
+      rt.rageTermTimer   = 0;
+      rt.rageTermLineIdx = 0;
       rt.glitchActive    = false;
 
       rt.headAlphaNormal = 1.0;
@@ -511,6 +546,7 @@ export class WormBoss {
         rt.rageSegs[i].screenY = this.segments[0].screenY;
       }
       ImageLoader.load('wormRage');
+      ImageLoader.load('wormCrossSections');
     }
 
   // CALLED BY startSuctionAttack() — INSTANTLY FINALISES THE TRANSFORM IF THE TIMING GAP BETWEEN  THE LAST SEGMENT REVEAL AND normalAlphas[0] REACHING 0 WOULD LEAVE SEGMENTS[0] AT THE WRONG POSITION. SAFE TO CALL WHEN ALREADY EMERGED (NO-OP).
@@ -539,6 +575,11 @@ export class WormBoss {
     }
     rt.glitchIntensity = 0;  
     rt.glitchSlices    = [];  
+    rt.crossSlices     = [];
+    rt.crossTimer      = 0;
+    rt.rageTermLines   = [];
+    rt.rageTermTimer   = 0;
+    rt.rageTermLineIdx = 0;
   }
 
     _updateRageTransform(dt) {
@@ -638,51 +679,140 @@ export class WormBoss {
         rt.glitchActive = true;
         this._activateGlitchOverlay();
       }
-      if (rt.glitchActive) {
-        if (rt.emerged) {
-        } else if (!this.freeze) {
-          rt.glitchIntensity = Math.min(1, rt.glitchIntensity + dt * 2.2);
+        if (rt.glitchActive) {
+          if (rt.emerged) {
+          } else if (!this.freeze) {
+            rt.glitchIntensity = Math.min(1, rt.glitchIntensity + dt * 2.2);
+          }
+
+          // ── SPAWN GLITCH TEARS ──
+          rt.glitchTimer += dt;
+          const spawnRate = 0.028 - rt.glitchIntensity * 0.022;
+          if (rt.glitchTimer >= spawnRate) {
+            rt.glitchTimer = 0;
+
+            const h = window.innerHeight;
+            const intensity = rt.glitchIntensity;
+
+            const glitchColors = [
+              '255,40,40',   // BRIGHT RED
+              '220,10,10',   // CRIMSON
+              '180,30,30',   // DARK RED
+              '255,90,70',   // WARM RED
+              '140,0,0',     // DARK DARK RED
+              '101,115,131', // DARK COOL GREY
+              '42,52,57',    // DARK GREY
+              '144,144,192'  // COOL GREY
+            ];
+
+            const life = 0.035 + Math.random() * 0.11;
+
+            rt.glitchSlices.push({
+              y:          Math.random() * h,
+              baseOffset: (Math.random() - 0.5) * 110 * intensity,
+              height:     1.5 + Math.random() * 11 * intensity,
+              life,
+              maxLife:    life,
+              color:      glitchColors[Math.floor(Math.random() * glitchColors.length)],
+              alpha:      0.18 + Math.random() * 0.32,
+              segments:   8 + Math.floor(Math.random() * 12)
+            });
+          }
+
+          for (let i = rt.glitchSlices.length - 1; i >= 0; i--) {
+            rt.glitchSlices[i].life -= dt;
+            if (rt.glitchSlices[i].life <= 0) rt.glitchSlices.splice(i, 1);
+          }
+
+          // ── SPAWN CROSS-SECTION ANATOMY FLASHES ──
+          rt.crossTimer += dt;
+          const crossRate = 0.06 - rt.glitchIntensity * 0.045; // SPAWNS FASTER AT HIGH INTENSITY
+          if (rt.crossTimer >= crossRate && ImageLoader.isLoaded('wormCrossSections')) {
+            rt.crossTimer = 0;
+            const gi   = rt.glitchIntensity;
+            const n    = this.segments.length;
+            const type = Math.random();
+
+            if (type < 0.45) {
+              // BODY BLEED-THROUGH — AT A RANDOM SEGMENT POSITION
+              const seg  = this.segments[Math.floor(Math.random() * n)];
+              const life = 0.05 + Math.random() * 0.12;
+              rt.crossSlices.push({
+                kind:    'body',
+                x:       seg.screenX,
+                y:       seg.screenY,
+                size:    seg.drawSize * (0.85 + Math.random() * 0.4),
+                frame:   Math.floor(Math.random() * 7),
+                rot:     (Math.random() - 0.5) * 0.6,
+                alpha:   0.35 + Math.random() * 0.4,
+                life,
+                maxLife: life,
+              });
+            } else if (type < 0.80) {
+              // GHOST STAMP — NEAR A RANDOM SEGMENT
+              const seg  = this.segments[Math.floor(Math.random() * n)];
+              const life = 0.08 + Math.random() * 0.18 * gi;
+              rt.crossSlices.push({
+                kind:    'ghost',
+                x:       seg.screenX + (Math.random() - 0.5) * seg.drawSize * 2.5,
+                y:       seg.screenY + (Math.random() - 0.5) * seg.drawSize * 2.5,
+                size:    40 + Math.random() * 90 * gi,
+                frame:   Math.floor(Math.random() * 7),
+                alpha:   0.12 + Math.random() * 0.22 * gi,
+                life,
+                maxLife: life,
+              });
+            } else {
+              // HEAD PHASE ECHO — NEAR THE HEAD, DRIFTS SLOWLY
+              const head = this.segments[0];
+              const life = 0.18 + Math.random() * 0.22;
+              rt.crossSlices.push({
+                kind:    'echo',
+                x:       head.screenX + (Math.random() - 0.5) * head.drawSize * 0.5,
+                y:       head.screenY + (Math.random() - 0.5) * head.drawSize * 0.5,
+                vx:      (Math.random() - 0.5) * 30,
+                vy:      (Math.random() - 0.5) * 30,
+                size:    head.drawSize * (0.9 + Math.random() * 0.5),
+                frame:   Math.floor(Math.random() * 7),
+                rot:     (Math.random() - 0.5) * 0.4,
+                alpha:   0.5 + Math.random() * 0.35,
+                life,
+                maxLife: life,
+              });
+            }
+          }
+
+          // TICK CROSS-SECTION LIFETIMES
+          for (let i = rt.crossSlices.length - 1; i >= 0; i--) {
+            const cs = rt.crossSlices[i];
+            cs.life -= dt;
+            if (cs.kind === 'echo') {
+              cs.x += cs.vx * dt;
+              cs.y += cs.vy * dt;
+            }
+            if (cs.life <= 0) rt.crossSlices.splice(i, 1);
+          }
+
+        // ── RAGE ERROR TERMINAL TYPING ──
+        const LINES = WormBoss._RAGE_TERM_LINES;
+        const termRate = 0.52 - rt.glitchIntensity * 0.10; // SPEEDS UP AS INTENSITY RISES
+        if (rt.rageTermLineIdx < LINES.length) {
+          rt.rageTermTimer += dt;
+          if (rt.rageTermTimer >= termRate) {
+            rt.rageTermTimer = 0;
+            rt.rageTermLines.push(LINES[rt.rageTermLineIdx++]);
+            this._renderRageTerminal();
+          }
         }
-
-    // SPAWN GLITCH TEARS
-      rt.glitchTimer += dt;
-      const spawnRate = 0.028 - rt.glitchIntensity * 0.022;
-      if (rt.glitchTimer >= spawnRate) {
-        rt.glitchTimer = 0;
-
-        const h = window.innerHeight;
-        const intensity = rt.glitchIntensity;
-
-        const glitchColors = [
-          '255,40,40',   // BRIGHT RED
-          '220,10,10',   // CRIMSON
-          '180,30,30',   // DARK RED
-          '255,90,70',   // WARM RED
-          '140,0,0',     // DARK DARK RED
-          '101,115,131', // DARK COOL GREY
-          '42,52,57', // DARK GREY
-          '144,144,192'  // COOL GREY
-        ];
-
-        const life = 0.035 + Math.random() * 0.11;
-
-        rt.glitchSlices.push({
-          y:          Math.random() * h,
-          baseOffset: (Math.random() - 0.5) * 110 * intensity,
-          height:     1.5 + Math.random() * 11 * intensity,
-          life,
-          maxLife:    life,
-          color:      glitchColors[Math.floor(Math.random() * glitchColors.length)],
-          alpha:      0.18 + Math.random() * 0.32,
-          segments:   8 + Math.floor(Math.random() * 12)
-        });
-      }
-
-        for (let i = rt.glitchSlices.length - 1; i >= 0; i--) {
-          rt.glitchSlices[i].life -= dt;
-          if (rt.glitchSlices[i].life <= 0) rt.glitchSlices.splice(i, 1);
+        // PERIODIC MICRO-GLITCH RE-RENDER (FLICKER EXISTING LINES)
+        if (Math.random() < 0.08) this._renderRageTerminal();
+        // HORIZONTAL JITTER
+        if (this._rageTerminalEl && Math.random() < 0.05 * rt.glitchIntensity) {
+          const jolt = (Math.random() - 0.5) * 8;
+          this._rageTerminalEl.style.transform = `translateX(${jolt}px)`;
+          setTimeout(() => { if (this._rageTerminalEl) this._rageTerminalEl.style.transform = ''; }, 40);
         }
-      }
+        }
 
       if (rt.emerged) return;
 
@@ -760,118 +890,208 @@ export class WormBoss {
     const glitchEl = document.getElementById('glitch-lines');
     if (glitchEl) glitchEl.style.display = 'block';
     document.body.classList.add('worm-rage-glitch');
+    this._ensureRageTerminal();
+    if (this._rageTerminalEl) this._rageTerminalEl.style.display = 'block';
   }
 
   _deactivateGlitchOverlay() {
     const glitchEl = document.getElementById('glitch-lines');
     if (glitchEl) glitchEl.style.display = 'none';
     document.body.classList.remove('worm-rage-glitch');
+    if (this._rageTerminalEl) this._rageTerminalEl.style.display = 'none';
+  }
+
+  // ── RAGE ERROR TERMINAL ──
+  _ensureRageTerminal() {
+    if (this._rageTerminalEl) return;
+    const el = document.createElement('div');
+    el.id = 'rage-terminal';
+    Object.assign(el.style, {
+      position:      'fixed',
+      top:        '80px',
+      left:         '15px',
+      width:         '340px',
+      background:    'rgba(10,0,18,0.72)',
+      border:        '1px solid #cc0000',
+      borderRadius:  '3px',
+      color:         '#cc0000',
+      fontFamily:    "'Courier New', monospace",
+      fontSize:      '11px',
+      padding:       '10px 14px',
+      zIndex:        '300',
+      pointerEvents: 'none',
+      lineHeight:    '1.75',
+      display:       'none',
+      whiteSpace:    'pre',
+      maxHeight:     '260px',
+      overflow:      'hidden',
+      textShadow:    '0 0 6px #850000',
+      boxShadow:     '0 0 18px rgba(204, 0, 0,0.3)',
+    });
+    document.body.appendChild(el);
+    this._rageTerminalEl = el;
+  }
+
+  _renderRageTerminal() {
+    if (!this._rageTerminalEl) return;
+    const rt    = this._rageTransform;
+    const total = rt.rageTermLines.length;
+    const GLITCH_CHARS = '!@#$%<>█▒░▓';
+
+    this._rageTerminalEl.innerHTML = rt.rageTermLines.map((l, i) => {
+      // LAST LINE GETS FULL MAGENTA HIGHLIGHT
+      const isLast  = i === total - 1;
+      const color   = isLast ? '#cc0000' : (i % 3 === 0 ? '#940103' : '#ed0423');
+      const flicker = Math.random() < 0.06;
+      const opacity = flicker ? 0.35 : 1;
+      // RANDOMLY CORRUPT A CHARACTER
+      let display = l;
+      if (l && Math.random() < 0.04) {
+        const ci = Math.floor(Math.random() * l.length);
+        display  = l.slice(0, ci) + GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)] + l.slice(ci + 1);
+      }
+      return `<div style="color:${color};opacity:${opacity}">${display || '\u00A0'}</div>`;
+    }).join('');
+
+    // SCROLL TO BOTTOM
+    this._rageTerminalEl.scrollTop = this._rageTerminalEl.scrollHeight;
   }
 
   // ======================= GLITCH DRAW PASS =======================
   _drawGlitchEffects(ctx) {
-    const rt = this._rageTransform;
-    if (!rt.glitchActive && rt.glitchIntensity <= 0) return;
+      const rt = this._rageTransform;
+      if (!rt.glitchActive && rt.glitchIntensity <= 0) return;
 
-    const gi = rt.glitchIntensity;
-    const w  = window.innerWidth;
-    const h  = window.innerHeight;
+      const gi = rt.glitchIntensity;
+      const w  = window.innerWidth;
+      const h  = window.innerHeight;
 
-    // ── SCANLINE DISPLACEMENT TEARS 
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-
-    for (const sl of rt.glitchSlices) {
-      const progress = 1 - (sl.life / sl.maxLife);
-      let a = sl.alpha * (1 - progress * 0.75) * gi;
-      if (a < 0.008) continue;
-
-      ctx.globalAlpha = a;
-      ctx.fillStyle = `rgb(${sl.color})`;
-
-      let x = 0;
-      const segmentCount = sl.segments || 12;
-      const avgSegWidth = window.innerWidth / segmentCount;
-
-      for (let i = 0; i < segmentCount; i++) {
-        const jitter = (Math.random() - 0.5) * 14 * gi;
-        const segOffset = sl.baseOffset + jitter;
-        const segWidth = avgSegWidth * (0.6 + Math.random() * 0.9);
-
-        ctx.fillRect(x + segOffset, sl.y, segWidth, sl.height);
-
-        x += segWidth + (2 + Math.random() * 12); 
-        if (x >= window.innerWidth) break;
-      }
-    }
-    ctx.restore();
-
-    // ── CHROMATIC ABERRATION BURST AROUND HEAD ──
-    const head = this.segments[0];
-    if (head && head.drawSize > 1) {
-      const hx   = head.screenX;
-      const hy   = head.screenY;
-      const sz   = head.drawSize;
-      const jolt = (Math.random() - 0.5) * 14 * gi;
-      const channels = [
-        { dx:  9 * gi + jolt, dy: -5 * gi, r: 255, g: 0,   b: 60  },
-        { dx: -9 * gi + jolt, dy:  5 * gi, r: 0,   g: 255, b: 200 },
-        { dx:  2 * gi + jolt, dy:  9 * gi, r: 160, g: 0,   b: 255 },
-      ];
+      // ── SCANLINE DISPLACEMENT TEARS ──
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
-      for (const ch of channels) {
-        ctx.globalAlpha = (0.05 + Math.random() * 0.12) * gi;
-        ctx.fillStyle   = `rgb(${ch.r},${ch.g},${ch.b})`;
-        ctx.beginPath();
-        ctx.arc(hx + ch.dx, hy + ch.dy, sz * 0.49, 0, Math.PI * 2);
-        ctx.fill();
+
+      for (const sl of rt.glitchSlices) {
+        const progress = 1 - (sl.life / sl.maxLife);
+        let a = sl.alpha * (1 - progress * 0.75) * gi;
+        if (a < 0.008) continue;
+
+        ctx.globalAlpha = a;
+        ctx.fillStyle = `rgb(${sl.color})`;
+
+        let x = 0;
+        const segmentCount = sl.segments || 12;
+        const avgSegWidth = window.innerWidth / segmentCount;
+
+        for (let i = 0; i < segmentCount; i++) {
+          const jitter    = (Math.random() - 0.5) * 14 * gi;
+          const segOffset = sl.baseOffset + jitter;
+          const segWidth  = avgSegWidth * (0.6 + Math.random() * 0.9);
+
+          ctx.fillRect(x + segOffset, sl.y, segWidth, sl.height);
+
+          x += segWidth + (2 + Math.random() * 12);
+          if (x >= window.innerWidth) break;
+        }
       }
       ctx.restore();
-    }
 
-    // ── FULL-SCREEN STROBE FLICKER ──
-    if (Math.random() < 0.07 * gi) {
-      ctx.save();
-      ctx.globalAlpha = (0.05 + Math.random() * 0.09) * gi;
-      ctx.fillStyle   = Math.random() < 0.5 ? '#ffffff' : '#ff0040';
-      ctx.fillRect(0, 0, w, h);
-      ctx.restore();
-    }
-
-    // ── VERTICAL NOISE BARS ──
-    if (Math.random() < 0.18 * gi) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      ctx.globalAlpha = (0.05 + Math.random() * 0.10) * gi;
-      ctx.fillStyle   = '#ff22ff';
-      ctx.fillRect(Math.random() * w, 0, 1.5 + Math.random() * 5, h);
-      ctx.restore();
-    }
-
-    // ── EXTRA DIGITAL STATIC ──
-    if (Math.random() < 0.45 * gi) {
-      ctx.save();
-      ctx.globalAlpha = (0.03 + Math.random() * 0.07) * gi;
-      ctx.fillStyle = Math.random() < 0.6 ? '#ad0017' : '#9090C0';  
-      for (let i = 0; i < 80; i++) {
-        const nx = Math.random() * window.innerWidth;
-        const ny = Math.random() * window.innerHeight;
-        ctx.fillRect(nx, ny, 1.5 + Math.random() * 3, 1);
+      // ── CHROMATIC ABERRATION BURST AROUND HEAD ──
+      const head = this.segments[0];
+      if (head && head.drawSize > 1) {
+        const hx   = head.screenX;
+        const hy   = head.screenY;
+        const sz   = head.drawSize;
+        const jolt = (Math.random() - 0.5) * 14 * gi;
+        const channels = [
+          { dx:  9 * gi + jolt, dy: -5 * gi, r: 255, g: 0,   b: 60  },
+          { dx: -9 * gi + jolt, dy:  5 * gi, r: 0,   g: 255, b: 200 },
+          { dx:  2 * gi + jolt, dy:  9 * gi, r: 160, g: 0,   b: 255 },
+        ];
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        for (const ch of channels) {
+          ctx.globalAlpha = (0.05 + Math.random() * 0.12) * gi;
+          ctx.fillStyle   = `rgb(${ch.r},${ch.g},${ch.b})`;
+          ctx.beginPath();
+          ctx.arc(hx + ch.dx, hy + ch.dy, sz * 0.49, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
       }
-      ctx.restore();
-    }
 
-    if (Math.random() < 0.09 * gi) {
-      ctx.save();
-      ctx.globalAlpha = 0.22 * gi;
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = Math.random() < 0.7 ? '#ff3333' : '#cccccc';
-      ctx.fillRect(0, Math.random() * window.innerHeight, window.innerWidth, 3 + Math.random() * 8);
-      ctx.restore();
-    }
+      // ── FULL-SCREEN STROBE FLICKER ──
+      if (Math.random() < 0.07 * gi) {
+        ctx.save();
+        ctx.globalAlpha = (0.05 + Math.random() * 0.09) * gi;
+        ctx.fillStyle   = Math.random() < 0.5 ? '#ffffff' : '#ff0040';
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+      }
 
-  }
+      // ── VERTICAL NOISE BARS ──
+      if (Math.random() < 0.18 * gi) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = (0.05 + Math.random() * 0.10) * gi;
+        ctx.fillStyle   = '#ff22ff';
+        ctx.fillRect(Math.random() * w, 0, 1.5 + Math.random() * 5, h);
+        ctx.restore();
+      }
+
+      // ── EXTRA DIGITAL STATIC ──
+      if (Math.random() < 0.45 * gi) {
+        ctx.save();
+        ctx.globalAlpha = (0.03 + Math.random() * 0.07) * gi;
+        ctx.fillStyle = Math.random() < 0.6 ? '#ad0017' : '#9090C0';
+        for (let i = 0; i < 80; i++) {
+          const nx = Math.random() * window.innerWidth;
+          const ny = Math.random() * window.innerHeight;
+          ctx.fillRect(nx, ny, 1.5 + Math.random() * 3, 1);
+        }
+        ctx.restore();
+      }
+
+      if (Math.random() < 0.09 * gi) {
+        ctx.save();
+        ctx.globalAlpha = 0.22 * gi;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = Math.random() < 0.7 ? '#ff3333' : '#cccccc';
+        ctx.fillRect(0, Math.random() * window.innerHeight, window.innerWidth, 3 + Math.random() * 8);
+        ctx.restore();
+      }
+
+      // ── CROSS-SECTION ANATOMY FLASHES ──
+      const csImg = ImageLoader.get('wormCrossSections');
+      if (csImg && rt.crossSlices.length > 0) {
+        const FRAMES = 7;
+        const frameW = csImg.width / FRAMES; // EACH FRAME IS SQUARE
+        const frameH = csImg.height;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+
+      for (const cs of rt.crossSlices) {
+        const t = 1 - (cs.life / cs.maxLife);
+        const a = cs.alpha * Math.sin(t * Math.PI) * gi;
+        if (a < 0.01) continue;
+
+        ctx.globalAlpha = a;
+        ctx.save();
+        ctx.translate(cs.x, cs.y);
+
+        const half = cs.size * 0.5;
+        ctx.drawImage(
+          csImg,
+          cs.frame * frameW, 0, frameW, frameH,
+          -half, -half, cs.size, cs.size
+        );
+
+        ctx.restore();
+      }
+
+        ctx.restore();
+      }
+    }
 
   enterRageMode() {
     this.isRaging = true;

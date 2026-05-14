@@ -2,6 +2,8 @@
 // js/entities/singularityBomb.js
 import { CONFIG } from '../utils/config.js';
 import { ImageLoader } from '../utils/imageLoader.js';
+import { DevTools, SessionRecorder }                 from '../temp/devTools.js';
+
 
 // ======================= SPINOR COLLECT EFFECT =======================
 // DOUBLE HELIX RIBBON + COLLECTION FLASH — PLAYS ON PICKUP, ~1 SECOND DURATION
@@ -871,7 +873,7 @@ export class SingularityBombManager {
     this.onInventoryChange?.(0);
   }
 
-  deploy(shipX, shipY) {
+  deploy(shipX, shipY, shipHp = null) {
     if (!this.deployEnabled) return;         // BLOCKED OUTSIDE ACTIVE GAMEPLAY / BOSS BATTLE
     if (this.inventory <= 0) return;
     if (this.blackHole && !this.blackHole.isDead()) return; 
@@ -881,6 +883,11 @@ export class SingularityBombManager {
     const spawnX = this.isBossBattle ? window.innerWidth  / 2 : shipX;
     const spawnY = this.isBossBattle ? window.innerHeight / 2 : shipY;
     this.blackHole = new BabyBlackHole(spawnX, spawnY, this.isBossBattle);
+      window.SessionRecorder?.log('singularity_bomb', {
+    shipHp,                                           
+    inventoryRemaining: this.inventory,               
+    isBossBattle: this.isBossBattle,                  
+     });
     // console.log(`💣 Singularity Bomb deployed | remaining: ${this.inventory} | boss: ${this.isBossBattle}`);
   }
 

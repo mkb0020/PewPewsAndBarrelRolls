@@ -1,4 +1,4 @@
-// menu.js - Updated 4/26/26 @ 6am
+// menu.js - Updated 5/1/26 @ 12am
 import { setMobileMode }                             from '../utils/controls.js';
 import { IS_TAURI, DEV_MODE }                        from '../utils/config.js';
 import { HighScoreUI }                               from '../utils/highScoreUI.js';
@@ -25,12 +25,13 @@ export class Menu {
 
     this._howtoModal   = null;
     this._howtoCloseBtn = null;
+    this._presentsEl   = null;
 
     if (DEV_MODE) this._overlay?.classList.add('dev-mode');
   }
 
   // ======================= PUBLIC: SHOW =======================
-  show(starfield, onStart, highScoreUI = null) {
+  show(starfield, onStart, highScoreUI = null, hideLoading = null) {
     this._starfield   = starfield;
     this._onStart     = onStart ?? null;
     this._highScoreUI = highScoreUI;
@@ -41,7 +42,6 @@ export class Menu {
     }
 
     this._buildDeviceScreen();
-    this._animateStarfield();
 
     if (!this._atmosRawProm) {
       this._atmosRawProm = fetch('./audio/menuAtmosphere.m4a')
@@ -49,14 +49,175 @@ export class Menu {
         .catch(e => { console.warn('⚠ Atmosphere prefetch failed:', e); return null; });
     }
 
-    requestAnimationFrame(() => {
+    this._showPresentsScreen(hideLoading, () => {
+      this._animateStarfield();
       requestAnimationFrame(() => {
-        this._overlay.classList.add('visible');
-        setTimeout(() => this._showPhotoWarning(), 180);
+        requestAnimationFrame(() => {
+          this._overlay.classList.add('visible');
+          setTimeout(() => this._showPhotoWarning(), 240);
+        });
       });
     });
 
     return new Promise(resolve => { this._resolve = resolve; });
+  }
+
+  // ======================= PRESENTS SCREEN =======================
+  _showPresentsScreen(hideLoading, onDone) {
+    if (!document.getElementById('presents-screen-styles')) {
+      const style = document.createElement('style');
+      style.id = 'presents-screen-styles';
+      style.textContent = `
+        #presents-screen {
+          position: fixed; inset: 0;
+          background: #0d0016;
+          display: flex; flex-direction: column;
+          justify-content: center; align-items: center;
+          z-index: 9999;
+          opacity: 0; transition: opacity 0.6s ease;
+          cursor: pointer;
+          font-family: 'SpaceLetters', sans-serif;
+        }
+        #presents-screen.visible { opacity: 1; }
+        #presents-screen.exit    { opacity: 0; }
+
+        .presents-glitch {
+          --f-size: 15; --f-unit: 1vmin;
+          --f: calc(var(--f-size) * var(--f-unit));
+          font-size: var(--f);
+          display: flex; flex-direction: column;
+          align-items: center; gap: 0.5rem; text-align: center;
+        }
+        .presents-glitch p {
+          position: relative; line-height: .75;
+          margin: 0; margin-top: 1rem;
+          color: #c4b5fd; text-align: center;
+          transform: scaleX(var(--scale, 1));
+          animation: pg-glitch-p 3s infinite alternate;
+        }
+        .presents-glitch p::before,
+        .presents-glitch p::after {
+          --top: 0; --left: 0; --v-height: 30%;
+          --t-cut: calc(15 * .1 * var(--top) / 15 * 100%);
+          --b-cut: calc(var(--t-cut) + var(--v-height));
+          content: attr(data-text);
+          position: absolute; width: 100%; left: 0; text-align: center;
+          transform: translateX(calc(var(--left) * 100%));
+          filter: drop-shadow(0 0 transparent);
+          text-shadow: calc(var(--left) * -3em) 0 .02em #00FFFF,
+                       calc(var(--left) * -6em) 0 .02em #c71585;
+          background-color: #0d0016;
+          clip-path: polygon(0% var(--t-cut), 100% var(--t-cut), 100% var(--b-cut), 0% var(--b-cut));
+        }
+        .presents-glitch p::before { animation: pg-glitch-b 1.5s infinite alternate-reverse; }
+        .presents-glitch p::after  { animation: pg-glitch-a 2.5s infinite alternate; }
+
+        .presents-no-glitch { font-size: 2rem; color: #fff; margin-top: 0.5rem; }
+
+        @keyframes pg-glitch-p {
+          17% { --scale:.9; } 31% { --scale:.95; }
+          37% { --scale:1.05; } 47% { --scale:.93; } 87% { --scale:1; }
+        }
+        @keyframes pg-glitch-a {
+          10%,30%,50%,70%,90% { --top:0; --left:0; }
+          0%   { --v-height:10%; }
+          20%  { --left:.005; }
+          40%  { --left:.01;  --v-height:20%; --top:3; }
+          60%  { --left:.03;  --v-height:15%; --top:6; }
+          80%  { --left:.07;  --v-height:5%;  --top:8; }
+          100% { --left:.083; --v-height:30%; --top:1; }
+        }
+        @keyframes pg-glitch-b {
+          10%,30%,50%,70%,90% { --top:0; --left:0; }
+          0%   { --v-height:15%; --top:10; }
+          20%  { --left:-.005; }
+          40%  { --left:-.01;  --v-height:17%; --top:3; }
+          60%  { --left:-.03;  --v-height:35%; --top:6; }
+          80%  { --left:-.07;  --v-height:5%;  --top:8; }
+          100% { --left:-.083; --v-height:30%; --top:1; }
+        }
+
+
+        .presents-img-wrap {
+          display: inline-block;
+          opacity: 0;
+          transform: translateY(10px) scale(0.98);
+          animation: fadeUp 1.2s ease forwards;
+          animation-delay: 0.4s;
+        }
+
+        .presents-glitch p[data-text] {
+          opacity: 0;
+          transform: translateY(10px) scale(0.98);
+          animation: fadeUp 1s ease forwards;
+          animation-delay: 0.8s;
+        }
+
+        .presents-no-glitch {
+          opacity: 0;
+          transform: translateY(10px) scale(0.98);
+          animation: fadeUp 0.8s ease forwards;
+          animation-delay: 1.12s;
+        }
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+            filter: blur(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+          }
+        }
+
+        .presents-glitch p {
+          animation-delay: 0.6s;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const el = document.createElement('div');
+    el.id = 'presents-screen';
+    el.innerHTML = `
+      <p>
+        <span class="presents-img-wrap">
+          <img src="./images/Niels2.png" alt="🐱">
+        </span>
+      </p>
+      <div class="presents-glitch">
+        <p data-text="mkb0020">mkb0020</p>
+      </div>
+      <div class="presents-no-glitch"><p>PRESENTS</p></div>
+    `;
+    document.body.appendChild(el);
+    this._presentsEl = el;
+
+    let done = false;
+    let autoTimer;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(autoTimer);
+      el.classList.remove('visible');
+      el.classList.add('exit');
+      setTimeout(() => {
+        el.remove();
+        this._presentsEl = null;
+        onDone();
+      }, 420);
+    };
+
+    requestAnimationFrame(() => {
+      el.classList.add('visible');
+      hideLoading?.();              
+      el.addEventListener('click', finish, { once: true });
+      autoTimer = setTimeout(finish, 3500);
+    });
   }
 
   // ======================= PHOTOSENSITIVITY WARNING =======================

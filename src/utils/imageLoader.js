@@ -8,6 +8,7 @@ const MANIFEST = {
   worm:         { path: 'worm.png' }, // NOW 14 FRAMES
   wormRage:     { path: 'wormRage.png' },      // INSIDE-OUT RAGE SPRITE — SAME FRAME ORDER, COLORED AS INTERNALS
   babyWorm:     { path: 'babyWorm.png' },
+  wormCrossSections: { path: 'wormCrossSections.png', lazy: true }, // 7 FRAMES — CROSS-SECTION ANATOMY SLICES
   phil:         { path: 'phil.png' },         // 11 FRAMES — JELLYFISH (FAST TYPE)
   glipGlop:     { path: 'glipGlop.png' },     // 11 FRAMES — JELLYFISH (BASIC TYPE)
 
@@ -19,6 +20,7 @@ const MANIFEST = {
   boom:         { path: 'boom.png' },        // 6 FRAMES
   zap:          { path: 'zap.png',     lazy: true },   // 6 FRAMES
   bam:          { path: 'bam.png' },         // 8 FRAMES
+  shock:      { path: 'shock.png'      },               // 8 FRAMES —  EXPLOSION FOR PHOTON OVERDRIVE
   spiral:       { path: 'spiral.png',  lazy: true },   // 13 FRAMES
   slime:            { path: 'slime.png',            lazy: true },
   slimeProjectiles: { path: 'slimeProjectiles.png', lazy: true }, // 4 FRAMES

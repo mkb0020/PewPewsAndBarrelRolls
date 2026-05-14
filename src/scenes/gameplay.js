@@ -24,7 +24,7 @@ export const WAVE_CONFIGS = [
   { // WAVE 1 — GLIP GLOP ONLY (JELLYFISH) — TUTORIAL PRESSURE
     types:          ['BASIC'],
     weights:        [1.00],
-    maxEnemies:     4,
+    maxEnemies:     5,
     // NO SPECIALS THIS WAVE — WINDOWS ARE MOOT BUT KEPT FOR CONSISTENCY
     specialWindows: [0, 0, 0, 0],   // 3 KILLS REQUIRED → INDICES  0–2 
   },
@@ -45,14 +45,14 @@ export const WAVE_CONFIGS = [
   { // WAVE 4 — + PHIL  |  FAST BECOMES DOMINANT 
     types:          ['BASIC', 'ZIGZAG', 'TANK', 'FAST'],
     weights:        [0.25,    0.20,     0.20,   0.35],
-    maxEnemies:     7, //7
+    maxEnemies:     6, //7
     // GLORK-HEAVY. TWO SPECIALS (FRACTAL + SLIME) — START SEPARATED, CONVERGE.
     specialWindows: [20000, 14000, 8000, 3000, 0],   // 5 KILLS → INDICES 0–4
   },
   { // WAVE 5 — + FLIM FLAM  |  CHAOS PEAK
     types:          ['BASIC', 'ZIGZAG', 'FAST', 'TANK', 'FLIMFLAM'],
     weights:        [0.25,    0.15,     0.20,   0.20,   0.20],
-    maxEnemies:     8, //8
+    maxEnemies:     6, //8
     // STARTS WITH ZERO OVERLAP POSSIBLE. BY KILL 4: FULL THREE-WAY CHAOS.
     specialWindows: [30000, 20000, 8000, 2000, 0],   // 5 KILLS → INDICES 0–4
   },
