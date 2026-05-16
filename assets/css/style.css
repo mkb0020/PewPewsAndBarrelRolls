@@ -2160,7 +2160,19 @@ kbd {
 }
 @media (max-width: 980px) {
 .died-title{
-  font-size: 1.8rem;
+  font-size: 2.5rem;
+}
+
+.died-sub {
+  font-size: 1rem;
+}
+
+.died-lives {
+  font-size: 1rem;
+}
+
+.died-btn {
+  font-size: 1rem;
 }
 }
 /* ════════════════════════════════ GAME OVER   ══════════════════════════════ */
@@ -3929,4 +3941,34 @@ kbd {
 @media (max-width: 480px) {
   .score-entry-box { padding: 1.6rem 1.4rem; min-width: unset; width: 90vw; }
   .lb-date { display: none; }
+}
+
+
+@media (max-width: 980px) {
+.gameover-sub,
+.score-entry-value,
+.score-entry-input,
+.leaderboard-title {
+  font-size: 1rem;
+}
+
+.leaderboard-body {
+  min-height: 150px;
+}
+
+.survival-go-title{
+  font-size: 2.6rem;
+  margin-bottom: 1px;
+}
+
+.survival-go-stat-label,
+.survival-go-btn {
+  font-size: 0.8rem;
+  margin-top: 1px;
+  margin-bottom: 1px;
+}
+
+.survival-go-stat-value {
+  font-size: 1rem;
+}
 }

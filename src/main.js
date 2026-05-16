@@ -1,4 +1,4 @@
-// main.js - Updated 5/1/26 @ 12:00AM
+// main.js - Updated 5/16/26 @ 12:15PM
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }                                    from './utils/config.js';
 import { initKeyboard, initMobileControls, revealMobileControls } from './utils/controls.js';
@@ -332,9 +332,17 @@ function wireShipOnDeath() { // EXTRACTED AS A NAMED FUNCTION SO IT CAN BE RE-WI
       ocularPrism._stopTelegraph?.(); ocularPrism._stopTelegraph = null;
       fractalCascade.reset();
       audio.stopAllLoopingSfx();
+      // FREEZE SURVIVAL SCENE — STOPS _applyDifficulty() FROM RE-ENABLING SPAWNING EACH FRAME DURING SCORE ENTRY
+      survivalScene._active = false;
+      enemyManager.setSpawningEnabled(false);
+      enemyManager.setMaxCount(0);
+      cosmicPrismManager.stop();
+      tesseractManager.stop();
+      singularityBombManager.deployEnabled = false;
       // SHOW NAME ENTRY FIRST, THEN REVEAL SURVIVAL RESULTS SCREEN AFTER SUBMIT
-      highScoreUI.showEntry(scoreManager.score, null, 'survival', () => {
-        survivalScene.showResults(scoreManager.score);
+      const survivalFinalScore = scoreManager.score;
+      highScoreUI.showEntry(survivalFinalScore, null, 'survival', () => {
+        survivalScene.showResults(survivalFinalScore);
       });
       return;
     }
@@ -589,15 +597,8 @@ survivalScene.onMenu = () => {
 transitionScene.onGameOver = () => {
   SessionRecorder.endSession('game_over'); // AUTO SESSION RECORDER
   audio.playGameOver1();
-  const score = scoreManager.score;
-  setTimeout(() => {
-    highScoreUI.showEntry(
-      score,
-      gameplayScene.getWaveIndex(),
-      'gameplay',
-      () => {}
-    );
-  }, 50000); 
+  // SCORE ENTRY + LEADERBOARD ONLY APPEAR IN THE CLOSING SCENE (AFTER BEATING THE GAME)
+  // REGULAR GAMEPLAY GAME OVERS DO NOT SUBMIT TO THE LEADERBOARD
 };
 
 transitionScene.onMenu = () => {

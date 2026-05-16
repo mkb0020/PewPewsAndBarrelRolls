@@ -117,7 +117,7 @@ export class SlimeAttack {
     const frameW = sprite.width / (DRIP_FRAMES_HALF * 2);
     const frameH = sprite.height;
 
-    const dripW = shipWidth * 0.40;
+    const dripW = shipWidth * 0.35;
     const dripH = frameH * (dripW / frameW);
 
     ctx.save();

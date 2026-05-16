@@ -1,4 +1,4 @@
-// Updated 4/17/26 @ 10:45am
+// Updated 5/15/25 @ 12:00PM
 // ship.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -109,6 +109,10 @@ export class Ship {
     this._dsSmoke              = [];     
     this._dsFrags              = [];     
     this.onDeathSequenceStart  = null;   
+
+    // CACHED DOM REFS — QUERIED ONCE AT INIT INSTEAD OF EVERY FRAME
+    this._domBoostWrap = null;
+    this._domBoostFill = null;
     // console.log('✔ Ship initialized');
   }
 
@@ -920,9 +924,14 @@ export class Ship {
 
   // ========== BOOST COOLDOWN BAR (HTML/CSS) ==========
   _updateBoostBarDOM() {
+    // LAZY-INIT CACHED REFS ON FIRST CALL — DOM IS READY BY THIS POINT
+    if (!this._domBoostWrap) {
+      this._domBoostWrap = document.getElementById('boost-cooldown-bar');
+      this._domBoostFill = document.getElementById('boost-cooldown-bar-fill');
+    }
     const cd   = this._boostCooldown;
-    const wrap = document.getElementById('boost-cooldown-bar');
-    const fill = document.getElementById('boost-cooldown-bar-fill');
+    const wrap = this._domBoostWrap;
+    const fill = this._domBoostFill;
     if (!wrap || !fill) return;
     if (cd <= 0) { wrap.classList.remove('visible'); return; }
     const pct = 1 - cd / CONFIG.BOOST.COOLDOWN;

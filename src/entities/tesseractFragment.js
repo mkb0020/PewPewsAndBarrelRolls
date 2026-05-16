@@ -1,4 +1,4 @@
-// Updated 3/12/26 @ 7AM
+// Updated 5/15/25 @ 12:00PM
 // tesseractFragment.js 
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG } from '../utils/config.js';
@@ -357,7 +357,11 @@ export class TesseractFragmentManager {
     this._boostTime  = 0;   
 
     this.onCollect = null;  
-    this.audio     = null;  
+    this.audio     = null;
+
+    // CACHED DOM REFS — QUERIED ONCE AT FIRST USE INSTEAD OF EVERY FRAME
+    this._domPhotonWrap = null;
+    this._domPhotonFill = null;
   }
 
   isBoostActive() { return this._boostTimer > 0; }
@@ -480,8 +484,13 @@ export class TesseractFragmentManager {
 
   // ========== PHOTON OVERDRIVE BAR (HTML/CSS) ==========
   _updatePhotonBarDOM() {
-    const wrap = document.getElementById('photon-overdrive-bar');
-    const fill = document.getElementById('photon-overdrive-bar-fill');
+    // LAZY-INIT CACHED REFS ON FIRST CALL — DOM IS READY BY THIS POINT
+    if (!this._domPhotonWrap) {
+      this._domPhotonWrap = document.getElementById('photon-overdrive-bar');
+      this._domPhotonFill = document.getElementById('photon-overdrive-bar-fill');
+    }
+    const wrap = this._domPhotonWrap;
+    const fill = this._domPhotonFill;
     if (!wrap || !fill) return;
     if (this._boostTimer <= 0) { wrap.classList.remove('visible'); return; }
     const C   = CONFIG.TESSERACT_FRAGMENT;

@@ -1,4 +1,4 @@
-// Updated 3/16/26 @ 7PM
+// Updated 5/15/25 @ 12:00PM
 // tunnel.js
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import * as THREE from 'three';
@@ -41,7 +41,21 @@ export class Tunnel {
     this._bossFlashTarget           = 0;
     this._bossEmergenceFog          = 0;  // PHASE 3: THICK FOG + NEAR-BLACKOUT, WORM EMERGES
     this._bossEmergenceFogTarget    = 0;
-    
+
+    // CACHED THREE.Color OBJECTS — REUSED EVERY FRAME TO AVOID PER-FRAME GC PRESSURE
+    this._c_bg        = new THREE.Color();
+    this._c_base      = new THREE.Color(CONFIG.SCENE?.BACKGROUND_COLOR ?? 0x0a0015);
+    this._c_black     = new THREE.Color(0x000000);
+    this._c_slimeBg   = new THREE.Color(0x010e03);
+    this._c_flashRed  = new THREE.Color(0x1a0000);
+    this._c_slime     = new THREE.Color();
+    this._c_surge     = new THREE.Color();
+    this._c_flash     = new THREE.Color();
+    this._c_pink      = new THREE.Color(0xc71585);
+    this._c_orange    = new THREE.Color(0xff8800);
+    this._c_pulse     = new THREE.Color();
+    this._c_spinor    = new THREE.Color();
+
     this.initScene();
     this.initTunnel();
     
@@ -279,30 +293,21 @@ export class Tunnel {
     this.camera.up.set(0, 1, 0).applyAxisAngle(tangent, -Math.PI * rollAmt - this._spinorRollAccum);
 
     // ── BACKGROUND COLOR — DEEP PURPLE → PURE BLACK → SLIME GREEN ────────────
-    const bgColor = new THREE.Color();
-    bgColor.lerpColors(
-      new THREE.Color(CONFIG.SCENE.BACKGROUND_COLOR),  
-      new THREE.Color(0x000000),
-      ci
-    );
-    if (sli > 0.01) {
-      const slimeBg = new THREE.Color(0x010e03); 
-      bgColor.lerp(slimeBg, sli * 0.75);
-    }
-    // FLASH BLEEDS DEEP RED, EMERGENCE CUTS TO NEAR-BLACK
-    if (bf  > 0.01) bgColor.lerp(new THREE.Color(0x1a0000), bf  * 0.75);
-    if (bef > 0.01) bgColor.lerp(new THREE.Color(0x000000), bef * 0.94);
-    this.scene.background.copy(bgColor);
-    this.scene.fog.color.copy(bgColor);
+    // USES CACHED COLOR OBJECTS — NO ALLOCATION THIS FRAME
+    this._c_bg.lerpColors(this._c_base, this._c_black, ci);
+    if (sli > 0.01) this._c_bg.lerp(this._c_slimeBg, sli * 0.75);
+    if (bf  > 0.01) this._c_bg.lerp(this._c_flashRed, bf  * 0.75);
+    if (bef > 0.01) this._c_bg.lerp(this._c_black,    bef * 0.94);
+    this.scene.background.copy(this._c_bg);
+    this.scene.fog.color.copy(this._c_bg);
 
     // ── FOG DENSITY — THICKENS SO TUNNEL WALLS DISSOLVE INTO DARKNESS ─────────
     this.scene.fog.density = CONFIG.SCENE.FOG_DENSITY + ci * 0.018 + bts * 0.003 + bef * 0.048;
 
     // ── RAGE BLACKOUT OVERRIDE — PERMANENT VOID ARENA ─────────────────────────
     if (rb > 0.01) {
-      const black = new THREE.Color(0x000000);
-      this.scene.background.lerp(black, rb);
-      this.scene.fog.color.lerp(black, rb);
+      this.scene.background.lerp(this._c_black, rb);
+      this.scene.fog.color.lerp(this._c_black, rb);
       // EXTREMELY HEAVY FOG SO TUNNEL WALLS VANISH
       this.scene.fog.density = CONFIG.SCENE.FOG_DENSITY + 0.05 + rb * 0.12;
     }
@@ -319,40 +324,36 @@ export class Tunnel {
 
     if (sli > 0.01) {
       const slimePulse = Math.sin(this.time * 2.2) * 0.5 + 0.5;
-      const greenHue   = 0.33 + slimePulse * 0.04;   
-      const slimeLight = 0.42 + slimePulse * 0.12;
-      const slimeColor = new THREE.Color().setHSL(greenHue, 1, slimeLight);
-      col.lerp(slimeColor, sli);
+      this._c_slime.setHSL(0.33 + slimePulse * 0.04, 1, 0.42 + slimePulse * 0.12);
+      col.lerp(this._c_slime, sli);
     }
 
     // SURGE — BLEED HUE FROM PURPLE TO DEEP CRIMSON
     if (bts > 0.01) {
-      const surgeColor = new THREE.Color().setHSL(0.0, 1.0, 0.48 + bts * 0.08);
-      col.lerp(surgeColor, bts * 0.92);
+      this._c_surge.setHSL(0.0, 1.0, 0.48 + bts * 0.08);
+      col.lerp(this._c_surge, bts * 0.92);
     }
     // FLASH — SPIKE TO HOT BRIGHT RED
     if (bf > 0.01) {
-      const flashColor = new THREE.Color().setHSL(0.0, 1.0, 0.44 + bf * 0.52);
-      col.lerp(flashColor, bf);
+      this._c_flash.setHSL(0.0, 1.0, 0.44 + bf * 0.52);
+      col.lerp(this._c_flash, bf);
     }
 
     // WAVE PULSE — SHIMMER BETWEEN HOT PINK (#c71585) AND ORANGE (#ff8800)
     if (wpi > 0.01) {
-      const shimmer     = Math.sin(this.time * Math.PI * 7) * 0.5 + 0.5; // ~3.5Hz oscillation
-      const pink        = new THREE.Color(0xc71585);
-      const orange      = new THREE.Color(0xff8800);
-      const pulseColor  = new THREE.Color().lerpColors(pink, orange, shimmer);
+      const shimmer = Math.sin(this.time * Math.PI * 7) * 0.5 + 0.5; // ~3.5Hz oscillation
+      this._c_pulse.lerpColors(this._c_pink, this._c_orange, shimmer);
       // BRIGHTNESS RIDES THE SHIMMER SO IT FEELS ELECTRIC
-      pulseColor.multiplyScalar(0.85 + shimmer * 0.4);
-      col.lerp(pulseColor, wpi * 0.95);
+      this._c_pulse.multiplyScalar(0.85 + shimmer * 0.4);
+      col.lerp(this._c_pulse, wpi * 0.95);
     }
 
     // SPINOR — TUNNEL BLEEDS TO PINK/MAGENTA DURING THE 720° ROTATION
     // BELL CURVE (sin(t*π)) PEAKS MID-WAY AND RETURNS TO NORMAL BY END
     if (spinorT > 0 && spinorT < 1) {
-      const spinorBell  = Math.sin(spinorT * Math.PI);             // 0→1→0 envelope
-      const spinorColor = new THREE.Color().setHSL(0.88, 1.0, 0.50); // HOT PINK
-      col.lerp(spinorColor, spinorBell * 0.72);
+      const spinorBell = Math.sin(spinorT * Math.PI); // 0→1→0 envelope
+      this._c_spinor.setHSL(0.88, 1.0, 0.50);        // HOT PINK
+      col.lerp(this._c_spinor, spinorBell * 0.72);
     }
 
     // PUSH COLOR TO ALL FOUR MATERIALS

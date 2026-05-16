@@ -1,9 +1,24 @@
-// Updated 5/14/26 @ 2:30AM
+// Updated 5/15/25 @ 12:00PM
 // WORM.JS
 // ~~~~~~~~~~~~~~~~~~~~ IMPORTS ~~~~~~~~~~~~~~~~~~~~
 import { CONFIG }      from '../utils/config.js';
 import { ImageLoader } from '../utils/imageLoader.js';
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// MODULE-LEVEL CONSTANTS — DEFINED ONCE, NEVER REALLOCATED
+// glitchColors: used by _updateRageTransform every slice spawn (can fire many times/s)
+// RAGE_GLITCH_CHARS: used by _renderRageTerminal on every corruption pass
+const _GLITCH_COLORS = [
+  '255,40,40',   // BRIGHT RED
+  '220,10,10',   // CRIMSON
+  '180,30,30',   // DARK RED
+  '255,90,70',   // WARM RED
+  '140,0,0',     // DARK DARK RED
+  '101,115,131', // DARK COOL GREY
+  '42,52,57',    // DARK GREY
+  '144,144,192', // COOL GREY
+];
+const _RAGE_GLITCH_CHARS = '!@#$%<>█▒░▓';
 
 function organicNoise(t, layers) { 
   let val = 0;
@@ -694,16 +709,7 @@ export class WormBoss {
             const h = window.innerHeight;
             const intensity = rt.glitchIntensity;
 
-            const glitchColors = [
-              '255,40,40',   // BRIGHT RED
-              '220,10,10',   // CRIMSON
-              '180,30,30',   // DARK RED
-              '255,90,70',   // WARM RED
-              '140,0,0',     // DARK DARK RED
-              '101,115,131', // DARK COOL GREY
-              '42,52,57',    // DARK GREY
-              '144,144,192'  // COOL GREY
-            ];
+            const glitchColors = _GLITCH_COLORS; // MODULE-LEVEL CONSTANT — NO ALLOCATION
 
             const life = 0.035 + Math.random() * 0.11;
 
@@ -936,7 +942,7 @@ export class WormBoss {
     if (!this._rageTerminalEl) return;
     const rt    = this._rageTransform;
     const total = rt.rageTermLines.length;
-    const GLITCH_CHARS = '!@#$%<>█▒░▓';
+    const GLITCH_CHARS = _RAGE_GLITCH_CHARS; // MODULE-LEVEL CONSTANT — NO ALLOCATION
 
     this._rageTerminalEl.innerHTML = rt.rageTermLines.map((l, i) => {
       // LAST LINE GETS FULL MAGENTA HIGHLIGHT
